@@ -12,6 +12,7 @@ class GameApp {
   async init() {
     Responsive.init(this.canvas, this.ctx);
     Input.init(this.canvas);
+    DevPanel.init();
     this.images = await this.loadImages();
     this.setState('splash');
     requestAnimationFrame((time) => this.loop(time));
@@ -67,6 +68,10 @@ class GameApp {
   update(dt) {
     if (Responsive.isPortrait) return;
 
+    DevPanel.update(this);
+
+    if (DevPanel.open) return;
+
     if (this.state === 'splash') {
       const click = Input.consumePointer();
       if (Input.consume('enter') || Input.consume('space') || click) this.setState('mainMenu');
@@ -99,6 +104,8 @@ class GameApp {
     } else if (this.state === 'level' && this.scene) {
       this.scene.draw(ctx);
     }
+
+    DevPanel.draw(ctx);
   }
 
   drawLoading(ctx) {
