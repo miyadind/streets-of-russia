@@ -31,7 +31,7 @@ const DevPanel = {
   update(game) {
     if (!GAME_CONFIG.adminTuningEnabled) return;
 
-    if (Input.consume('`') || Input.consume('ё')) {
+    if (Input.consume('dev') || Input.consume('`') || Input.consume('ё')) {
       this.open = !this.open;
     }
 
