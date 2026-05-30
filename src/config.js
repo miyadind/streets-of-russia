@@ -3,6 +3,8 @@ const GAME_CONFIG = {
   height: 720,
   targetFPS: 60,
 
+  adminTuningEnabled: true,
+
   laneTop: 515,
   laneBottom: 675,
 
@@ -26,8 +28,19 @@ const GAME_CONFIG = {
   enemyDeathFadeMs: 1200,
 
   heroes: {
-    alexey: { name: 'Алексей', role: 'balanced', hp: 120, speed: 4.1, damage: 20, strength: 5, speedStat: 5, health: 5, color: '#4f9cff' },
-    anna: { name: 'Анна', role: 'fast', hp: 85, speed: 4.85, damage: 14, strength: 3, speedStat: 7, health: 4, color: '#c163ff' },
-    boris: { name: 'Борис', role: 'tank', hp: 160, speed: 3.55, damage: 28, strength: 7, speedStat: 3, health: 8, color: '#5fd65f' }
+    alexey: { name: 'Алексей', role: 'balanced', hp: 120, speed: 2.6, damage: 16, strength: 5, speedStat: 5, health: 5, color: '#4f9cff' },
+    anna: { name: 'Анна', role: 'fast', hp: 85, speed: 3.15, damage: 12, strength: 3, speedStat: 7, health: 4, color: '#c163ff' },
+    boris: { name: 'Борис', role: 'tank', hp: 160, speed: 2.25, damage: 22, strength: 7, speedStat: 3, health: 8, color: '#5fd65f' }
+  },
+
+  enemies: {
+    dogRegime: {
+      name: 'Пёс режима',
+      hp: 90,
+      speed: 1.35,
+      damage: 10
+    }
   }
 };
+
+const DEFAULT_GAME_CONFIG = JSON.parse(JSON.stringify(GAME_CONFIG));
