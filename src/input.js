@@ -8,11 +8,20 @@ const Input = {
       const key = this.normalizeKey(event);
       if (!this.keys[key]) this.just[key] = true;
       this.keys[key] = true;
+
+      if (event.code === 'Backquote') {
+        this.just.dev = true;
+        this.keys.dev = true;
+        event.preventDefault();
+      }
+
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'Enter'].includes(event.key)) event.preventDefault();
     });
 
     window.addEventListener('keyup', (event) => {
-      this.keys[this.normalizeKey(event)] = false;
+      const key = this.normalizeKey(event);
+      this.keys[key] = false;
+      if (event.code === 'Backquote') this.keys.dev = false;
     });
 
     canvas.addEventListener('pointerdown', (event) => {
@@ -36,6 +45,7 @@ const Input = {
 
   normalizeKey(event) {
     if (event.code === 'Space') return 'space';
+    if (event.code === 'Backquote') return 'dev';
     if (event.key === 'Escape') return 'escape';
     if (event.key === 'Enter') return 'enter';
     return event.key.toLowerCase();
