@@ -1,6 +1,8 @@
 const DevPanel = {
   open: false,
   fields: [],
+  statusText: 'Ready',
+  statusUntil: 0,
 
   init() {
     this.fields = [
@@ -54,15 +56,23 @@ const DevPanel = {
     const panel = this.panelRect();
     if (point.x < panel.x || point.x > panel.x + panel.w || point.y < panel.y || point.y > panel.y + panel.h) return;
 
-    const save = { x: panel.x + 24, y: panel.y + panel.h - 58, w: 110, h: 36 };
-    const reset = { x: panel.x + 150, y: panel.y + panel.h - 58, w: 120, h: 36 };
     const close = { x: panel.x + panel.w - 80, y: panel.y + 14, w: 58, h: 34 };
-    const apply = { x: panel.x + 288, y: panel.y + panel.h - 58, w: 160, h: 36 };
+    const save = { x: panel.x + 24, y: panel.y + panel.h - 58, w: 94, h: 36 };
+    const reset = { x: panel.x + 130, y: panel.y + panel.h - 58, w: 96, h: 36 };
+    const apply = { x: panel.x + 238, y: panel.y + panel.h - 58, w: 126, h: 36 };
+    const exportBtn = { x: panel.x + 376, y: panel.y + panel.h - 58, w: 112, h: 36 };
+    const slowPreset = { x: panel.x + 24, y: panel.y + panel.h - 104, w: 110, h: 30 };
+    const normalPreset = { x: panel.x + 146, y: panel.y + panel.h - 104, w: 120, h: 30 };
+    const fastPreset = { x: panel.x + 278, y: panel.y + panel.h - 104, w: 110, h: 30 };
 
     if (this.inRect(point, close)) { this.open = false; return; }
     if (this.inRect(point, save)) { this.save(); return; }
     if (this.inRect(point, reset)) { this.reset(game); return; }
-    if (this.inRect(point, apply)) { this.applyToCurrentScene(game); return; }
+    if (this.inRect(point, apply)) { this.applyToCurrentScene(game); this.setStatus('Applied to current scene'); return; }
+    if (this.inRect(point, exportBtn)) { this.exportConfig(); return; }
+    if (this.inRect(point, slowPreset)) { this.applyPreset('slow', game); return; }
+    if (this.inRect(point, normalPreset)) { this.applyPreset('normal', game); return; }
+    if (this.inRect(point, fastPreset)) { this.applyPreset('fast', game); return; }
 
     const startY = panel.y + 72;
     for (let i = 0; i < this.fields.length; i++) {
@@ -78,6 +88,7 @@ const DevPanel = {
         const raw = field.min + ratio * (field.max - field.min);
         this.setValue(field.path, this.roundToStep(raw, field.step));
         this.applyToCurrentScene(game);
+        this.setStatus('Changed ' + field.label);
       }
     }
   },
@@ -87,6 +98,46 @@ const DevPanel = {
     const next = Math.max(field.min, Math.min(field.max, this.roundToStep(current + delta, field.step)));
     this.setValue(field.path, next);
     this.applyToCurrentScene(game);
+    this.setStatus(field.label + ': ' + next);
+  },
+
+  applyPreset(name, game) {
+    const presets = {
+      slow: {
+        heroes: {
+          boris: { speed: 1.85 },
+          alexey: { speed: 2.15 },
+          anna: { speed: 2.55 }
+        },
+        enemies: { dogRegime: { speed: 1.0 } },
+        walkFrameMs: 260,
+        enemyWalkFrameMs: 310
+      },
+      normal: {
+        heroes: {
+          boris: { speed: 2.25 },
+          alexey: { speed: 2.6 },
+          anna: { speed: 3.15 }
+        },
+        enemies: { dogRegime: { speed: 1.35 } },
+        walkFrameMs: 220,
+        enemyWalkFrameMs: 260
+      },
+      fast: {
+        heroes: {
+          boris: { speed: 2.55 },
+          alexey: { speed: 2.95 },
+          anna: { speed: 3.55 }
+        },
+        enemies: { dogRegime: { speed: 1.65 } },
+        walkFrameMs: 180,
+        enemyWalkFrameMs: 220
+      }
+    };
+
+    this.deepMerge(GAME_CONFIG, presets[name]);
+    this.applyToCurrentScene(game);
+    this.setStatus('Preset applied: ' + name.toUpperCase());
   },
 
   applyToCurrentScene(game) {
@@ -133,7 +184,7 @@ const DevPanel = {
     ctx.fillText('DEVELOPER TUNING PANEL', panel.x + 22, panel.y + 40);
     ctx.font = '13px Arial';
     ctx.fillStyle = '#aaa';
-    ctx.fillText('Toggle: ` / Ё   Save: localStorage   Apply: current scene', panel.x + 22, panel.y + 60);
+    ctx.fillText('Toggle: ` / Ё   Save: localStorage   Export: console + clipboard', panel.x + 22, panel.y + 60);
 
     this.drawButton(ctx, panel.x + panel.w - 80, panel.y + 14, 58, 34, 'X');
 
@@ -142,9 +193,16 @@ const DevPanel = {
       this.drawField(ctx, this.fields[i], panel.x + 22, startY + i * 29);
     }
 
-    this.drawButton(ctx, panel.x + 24, panel.y + panel.h - 58, 110, 36, 'SAVE');
-    this.drawButton(ctx, panel.x + 150, panel.y + panel.h - 58, 120, 36, 'RESET');
-    this.drawButton(ctx, panel.x + 288, panel.y + panel.h - 58, 160, 36, 'APPLY NOW');
+    this.drawButton(ctx, panel.x + 24, panel.y + panel.h - 104, 110, 30, 'SLOW');
+    this.drawButton(ctx, panel.x + 146, panel.y + panel.h - 104, 120, 30, 'NORMAL');
+    this.drawButton(ctx, panel.x + 278, panel.y + panel.h - 104, 110, 30, 'FAST');
+
+    this.drawButton(ctx, panel.x + 24, panel.y + panel.h - 58, 94, 36, 'SAVE');
+    this.drawButton(ctx, panel.x + 130, panel.y + panel.h - 58, 96, 36, 'RESET');
+    this.drawButton(ctx, panel.x + 238, panel.y + panel.h - 58, 126, 36, 'APPLY');
+    this.drawButton(ctx, panel.x + 376, panel.y + panel.h - 58, 112, 36, 'EXPORT');
+
+    this.drawStatus(ctx, panel);
   },
 
   drawField(ctx, field, x, y) {
@@ -178,6 +236,12 @@ const DevPanel = {
     ctx.textAlign = 'left';
   },
 
+  drawStatus(ctx, panel) {
+    ctx.font = '13px Arial';
+    ctx.fillStyle = performance.now() < this.statusUntil ? '#8cff8c' : '#aaa';
+    ctx.fillText('Status: ' + this.statusText, panel.x + 505, panel.y + panel.h - 36);
+  },
+
   panelRect() {
     return { x: 30, y: 30, w: 640, h: 620 };
   },
@@ -204,6 +268,7 @@ const DevPanel = {
 
   save() {
     localStorage.setItem('streetsOfRussia.tuning', JSON.stringify(GAME_CONFIG));
+    this.setStatus('Saved to localStorage');
   },
 
   load() {
@@ -212,8 +277,10 @@ const DevPanel = {
     try {
       const data = JSON.parse(saved);
       this.deepMerge(GAME_CONFIG, data);
+      this.setStatus('Loaded saved tuning');
     } catch (error) {
       console.warn('Failed to load tuning', error);
+      this.setStatus('Failed to load saved tuning');
     }
   },
 
@@ -221,6 +288,34 @@ const DevPanel = {
     this.deepMerge(GAME_CONFIG, JSON.parse(JSON.stringify(DEFAULT_GAME_CONFIG)));
     localStorage.removeItem('streetsOfRussia.tuning');
     this.applyToCurrentScene(game);
+    this.setStatus('Reset to default config');
+  },
+
+  exportConfig() {
+    const exportData = {
+      playerScale: GAME_CONFIG.playerScale,
+      enemyScale: GAME_CONFIG.enemyScale,
+      walkFrameMs: GAME_CONFIG.walkFrameMs,
+      enemyWalkFrameMs: GAME_CONFIG.enemyWalkFrameMs,
+      heroes: GAME_CONFIG.heroes,
+      enemies: GAME_CONFIG.enemies
+    };
+    const text = JSON.stringify(exportData, null, 2);
+    console.log('STREETS_OF_RUSSIA_TUNING_EXPORT');
+    console.log(text);
+
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text)
+        .then(() => this.setStatus('Export copied to clipboard'))
+        .catch(() => this.setStatus('Export printed in Console'));
+    } else {
+      this.setStatus('Export printed in Console');
+    }
+  },
+
+  setStatus(text) {
+    this.statusText = text;
+    this.statusUntil = performance.now() + 1800;
   },
 
   deepMerge(target, source) {
