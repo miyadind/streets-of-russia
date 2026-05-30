@@ -6,10 +6,7 @@ class DogRegimeEnemy {
     this.y = y;
     this.facing = -1;
 
-    this.maxHp = 90;
-    this.hp = 90;
-    this.damage = 14;
-    this.speed = 1.75;
+    this.applyTuning(true);
 
     this.state = 'walk';
     this.walkFrame = 0;
@@ -24,6 +21,14 @@ class DogRegimeEnemy {
     this.deadTimer = 0;
     this.alive = true;
     this.remove = false;
+  }
+
+  applyTuning(resetHp = false) {
+    const config = GAME_CONFIG.enemies.dogRegime;
+    this.speed = config.speed;
+    this.damage = config.damage;
+    this.maxHp = config.hp;
+    this.hp = resetHp ? this.maxHp : Math.min(this.hp, this.maxHp);
   }
 
   update(dt, scene) {
