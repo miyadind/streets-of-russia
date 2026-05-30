@@ -1,2 +1,1 @@
-# streets-of-russia
-Arcade beat-em-up
+# Streets of Russia
