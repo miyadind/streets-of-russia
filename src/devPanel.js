@@ -1,34 +1,54 @@
 const DevPanel = {
   open: false,
-  fields: [],
+  tab: 'PLAYER',
+  tabs: ['PLAYER', 'DOG', 'SUCKER', 'LEVEL WAVES'],
   statusText: 'Ready',
   statusUntil: 0,
   selectedLevelIndex: 0,
   selectedWaveIndex: 0,
+  selectedGroupIndex: 0,
 
-  init() {
-    this.fields = [
+  fieldGroups: {
+    PLAYER: [
       { label: 'Boris speed', path: 'heroes.boris.speed', min: 0.5, max: 5, step: 0.05 },
       { label: 'Boris HP', path: 'heroes.boris.hp', min: 10, max: 300, step: 5 },
       { label: 'Boris damage', path: 'heroes.boris.damage', min: 1, max: 80, step: 1 },
-
       { label: 'Alexey speed', path: 'heroes.alexey.speed', min: 0.5, max: 5, step: 0.05 },
       { label: 'Alexey HP', path: 'heroes.alexey.hp', min: 10, max: 300, step: 5 },
       { label: 'Alexey damage', path: 'heroes.alexey.damage', min: 1, max: 80, step: 1 },
-
       { label: 'Anna speed', path: 'heroes.anna.speed', min: 0.5, max: 5, step: 0.05 },
       { label: 'Anna HP', path: 'heroes.anna.hp', min: 10, max: 300, step: 5 },
       { label: 'Anna damage', path: 'heroes.anna.damage', min: 1, max: 80, step: 1 },
-
+      { label: 'Player scale', path: 'playerScale', min: 0.05, max: 0.22, step: 0.005 },
+      { label: 'Walk frame ms', path: 'walkFrameMs', min: 80, max: 400, step: 10 }
+    ],
+    DOG: [
       { label: 'Dog speed', path: 'enemies.dogRegime.speed', min: 0.3, max: 4, step: 0.05 },
       { label: 'Dog HP', path: 'enemies.dogRegime.hp', min: 10, max: 300, step: 5 },
       { label: 'Dog damage', path: 'enemies.dogRegime.damage', min: 1, max: 60, step: 1 },
-
-      { label: 'Player scale', path: 'playerScale', min: 0.05, max: 0.22, step: 0.005 },
-      { label: 'Enemy scale', path: 'enemyScale', min: 0.05, max: 0.22, step: 0.005 },
-      { label: 'Walk frame ms', path: 'walkFrameMs', min: 80, max: 400, step: 10 },
+      { label: 'Dog scale', path: 'enemies.dogRegime.scale', min: 0.05, max: 0.25, step: 0.005 },
       { label: 'Enemy walk ms', path: 'enemyWalkFrameMs', min: 80, max: 500, step: 10 }
-    ];
+    ],
+    SUCKER: [
+      { label: 'Sucker speed', path: 'enemies.sucker.speed', min: 0.3, max: 4, step: 0.05 },
+      { label: 'Sucker HP', path: 'enemies.sucker.hp', min: 20, max: 500, step: 5 },
+      { label: 'Sucker damage', path: 'enemies.sucker.damage', min: 1, max: 60, step: 1 },
+      { label: 'Sucker scale', path: 'enemies.sucker.scale', min: 0.05, max: 0.25, step: 0.005 },
+      { label: 'Slide speed', path: 'enemies.sucker.slideSpeed', min: 2, max: 18, step: 0.25 },
+      { label: 'Slide range', path: 'enemies.sucker.slideRange', min: 120, max: 900, step: 20 },
+      { label: 'Preferred dist', path: 'enemies.sucker.preferredDistance', min: 120, max: 700, step: 10 },
+      { label: 'Min dist', path: 'enemies.sucker.minDistance', min: 60, max: 500, step: 10 },
+      { label: 'Align Y', path: 'enemies.sucker.alignToleranceY', min: 8, max: 90, step: 2 },
+      { label: 'Windup ms', path: 'enemies.sucker.windupMs', min: 80, max: 1200, step: 20 },
+      { label: 'Recovery ms', path: 'enemies.sucker.slideRecoveryMs', min: 100, max: 1400, step: 20 },
+      { label: 'Pin ms', path: 'enemies.sucker.pinDurationMs', min: 400, max: 3500, step: 50 },
+      { label: 'Bite tick', path: 'enemies.sucker.biteTickMs', min: 150, max: 1200, step: 25 },
+      { label: 'Bite damage', path: 'enemies.sucker.biteDamage', min: 1, max: 40, step: 1 },
+      { label: 'Enemy scatter', path: 'enemies.sucker.otherEnemyScatterDistance', min: 0, max: 300, step: 10 }
+    ]
+  },
+
+  init() {
     this.ensureLevels();
     this.load();
   },
@@ -59,21 +79,36 @@ const DevPanel = {
 
   handleClick(point, game) {
     const panel = this.panelRect();
-    if (point.x < panel.x || point.x > panel.x + panel.w || point.y < panel.y || point.y > panel.y + panel.h) return;
+    if (!this.inRect(point, panel)) return;
 
-    const close = { x: panel.x + panel.w - 80, y: panel.y + 14, w: 58, h: 34 };
+    const close = { x: panel.x + panel.w - 78, y: panel.y + 14, w: 56, h: 32 };
     if (this.inRect(point, close)) { this.open = false; return; }
 
-    if (this.handleWaveEditorClick(point, game)) return;
+    const tab = this.getClickedTab(point);
+    if (tab) { this.tab = tab; this.setStatus('Tab: ' + tab); return; }
+
     if (this.handleFooterClick(point, game)) return;
 
-    const startY = panel.y + 72;
-    for (let i = 0; i < this.fields.length; i++) {
-      const y = startY + i * 29;
-      const minus = { x: panel.x + 300, y: y - 18, w: 30, h: 23 };
-      const plus = { x: panel.x + 552, y: y - 18, w: 30, h: 23 };
-      const bar = { x: panel.x + 337, y: y - 12, w: 208, h: 10 };
-      const field = this.fields[i];
+    if (this.tab === 'LEVEL WAVES') {
+      this.handleWaveEditorClick(point, game);
+      return;
+    }
+
+    this.handleFieldsClick(point, game);
+  },
+
+  handleFieldsClick(point, game) {
+    const fields = this.fieldGroups[this.tab] || [];
+    const panel = this.panelRect();
+    const startY = panel.y + 120;
+
+    for (let i = 0; i < fields.length; i++) {
+      const y = startY + i * 32;
+      const minus = { x: panel.x + 350, y: y - 20, w: 34, h: 25 };
+      const plus = { x: panel.x + 640, y: y - 20, w: 34, h: 25 };
+      const bar = { x: panel.x + 395, y: y - 13, w: 235, h: 11 };
+      const field = fields[i];
+
       if (this.inRect(point, minus)) { this.change(field, -field.step, game); return; }
       if (this.inRect(point, plus)) { this.change(field, field.step, game); return; }
       if (this.inRect(point, bar)) {
@@ -89,42 +124,44 @@ const DevPanel = {
 
   handleFooterClick(point, game) {
     const panel = this.panelRect();
-    const slowPreset = { x: panel.x + 24, y: panel.y + panel.h - 104, w: 110, h: 30 };
-    const normalPreset = { x: panel.x + 146, y: panel.y + panel.h - 104, w: 120, h: 30 };
-    const fastPreset = { x: panel.x + 278, y: panel.y + panel.h - 104, w: 110, h: 30 };
-    const save = { x: panel.x + 24, y: panel.y + panel.h - 58, w: 94, h: 36 };
-    const reset = { x: panel.x + 130, y: panel.y + panel.h - 58, w: 96, h: 36 };
-    const apply = { x: panel.x + 238, y: panel.y + panel.h - 58, w: 126, h: 36 };
-    const exportBtn = { x: panel.x + 376, y: panel.y + panel.h - 58, w: 112, h: 36 };
-    const restart = { x: panel.x + 500, y: panel.y + panel.h - 58, w: 112, h: 36 };
+    const y = panel.y + panel.h - 54;
+    const buttons = {
+      save: { x: panel.x + 24, y, w: 92, h: 34 },
+      reset: { x: panel.x + 126, y, w: 96, h: 34 },
+      apply: { x: panel.x + 232, y, w: 116, h: 34 },
+      exportBtn: { x: panel.x + 358, y, w: 112, h: 34 },
+      restart: { x: panel.x + 480, y, w: 112, h: 34 }
+    };
 
-    if (this.inRect(point, save)) { this.save(); return true; }
-    if (this.inRect(point, reset)) { this.reset(game); return true; }
-    if (this.inRect(point, apply)) { this.applyToCurrentScene(game); this.restartScene(game); this.setStatus('Applied + restarted level'); return true; }
-    if (this.inRect(point, exportBtn)) { this.exportConfig(); return true; }
-    if (this.inRect(point, restart)) { this.restartScene(game); this.setStatus('Level restarted'); return true; }
-    if (this.inRect(point, slowPreset)) { this.applyPreset('slow', game); return true; }
-    if (this.inRect(point, normalPreset)) { this.applyPreset('normal', game); return true; }
-    if (this.inRect(point, fastPreset)) { this.applyPreset('fast', game); return true; }
-
+    if (this.inRect(point, buttons.save)) { this.save(); return true; }
+    if (this.inRect(point, buttons.reset)) { this.reset(game); return true; }
+    if (this.inRect(point, buttons.apply)) { this.applyToCurrentScene(game); this.restartScene(game); this.setStatus('Applied + restarted'); return true; }
+    if (this.inRect(point, buttons.exportBtn)) { this.exportConfig(); return true; }
+    if (this.inRect(point, buttons.restart)) { this.restartScene(game); this.setStatus('Level restarted'); return true; }
     return false;
   },
 
   handleWaveEditorClick(point, game) {
     const r = this.waveEditorRects();
     const levelKeys = this.getLevelKeys();
+    const level = this.getSelectedLevel();
     const wave = this.getSelectedWave();
-    if (!wave) return false;
-    const enemy = this.getSelectedEnemyGroup(wave);
+    const group = this.getSelectedEnemyGroup(wave);
+    const enemyTypes = this.getEnemyTypes();
 
-    if (this.inRect(point, r.levelPrev)) { this.selectedLevelIndex = this.wrap(this.selectedLevelIndex - 1, levelKeys.length); this.selectedWaveIndex = 0; this.setStatus('Selected ' + this.getSelectedLevelKey()); return true; }
-    if (this.inRect(point, r.levelNext)) { this.selectedLevelIndex = this.wrap(this.selectedLevelIndex + 1, levelKeys.length); this.selectedWaveIndex = 0; this.setStatus('Selected ' + this.getSelectedLevelKey()); return true; }
-    if (this.inRect(point, r.wavePrev)) { this.selectedWaveIndex = Math.max(0, this.selectedWaveIndex - 1); this.setStatus('Wave ' + (this.selectedWaveIndex + 1)); return true; }
-    if (this.inRect(point, r.waveNext)) { this.selectedWaveIndex = Math.min(this.getSelectedLevel().waves.length - 1, this.selectedWaveIndex + 1); this.setStatus('Wave ' + (this.selectedWaveIndex + 1)); return true; }
-    if (this.inRect(point, r.countMinus)) { enemy.count = Math.max(0, enemy.count - 1); this.restartScene(game); this.setStatus('Enemy count: ' + enemy.count); return true; }
-    if (this.inRect(point, r.countPlus)) { enemy.count = Math.min(12, enemy.count + 1); this.restartScene(game); this.setStatus('Enemy count: ' + enemy.count); return true; }
-    if (this.inRect(point, r.sideBtn)) { enemy.side = this.nextValue(enemy.side, ['right', 'left', 'both']); this.restartScene(game); this.setStatus('Side: ' + enemy.side); return true; }
+    if (this.inRect(point, r.levelPrev)) { this.selectedLevelIndex = this.wrap(this.selectedLevelIndex - 1, levelKeys.length); this.selectedWaveIndex = 0; this.selectedGroupIndex = 0; this.setStatus('Level: ' + this.getSelectedLevelKey()); return true; }
+    if (this.inRect(point, r.levelNext)) { this.selectedLevelIndex = this.wrap(this.selectedLevelIndex + 1, levelKeys.length); this.selectedWaveIndex = 0; this.selectedGroupIndex = 0; this.setStatus('Level: ' + this.getSelectedLevelKey()); return true; }
+    if (this.inRect(point, r.wavePrev)) { this.selectedWaveIndex = Math.max(0, this.selectedWaveIndex - 1); this.selectedGroupIndex = 0; this.setStatus('Wave: ' + (this.selectedWaveIndex + 1)); return true; }
+    if (this.inRect(point, r.waveNext)) { this.selectedWaveIndex = Math.min(level.waves.length - 1, this.selectedWaveIndex + 1); this.selectedGroupIndex = 0; this.setStatus('Wave: ' + (this.selectedWaveIndex + 1)); return true; }
+    if (this.inRect(point, r.groupPrev)) { this.selectedGroupIndex = Math.max(0, this.selectedGroupIndex - 1); this.setStatus('Group: ' + (this.selectedGroupIndex + 1)); return true; }
+    if (this.inRect(point, r.groupNext)) { this.selectedGroupIndex = Math.min(wave.enemies.length - 1, this.selectedGroupIndex + 1); this.setStatus('Group: ' + (this.selectedGroupIndex + 1)); return true; }
+    if (this.inRect(point, r.typeBtn)) { group.type = this.nextValue(group.type, enemyTypes); this.restartScene(game); this.setStatus('Enemy type: ' + group.type); return true; }
+    if (this.inRect(point, r.countMinus)) { group.count = Math.max(0, group.count - 1); this.restartScene(game); this.setStatus('Count: ' + group.count); return true; }
+    if (this.inRect(point, r.countPlus)) { group.count = Math.min(12, group.count + 1); this.restartScene(game); this.setStatus('Count: ' + group.count); return true; }
+    if (this.inRect(point, r.sideBtn)) { group.side = this.nextValue(group.side, ['right', 'left', 'both']); this.restartScene(game); this.setStatus('Side: ' + group.side); return true; }
     if (this.inRect(point, r.triggerBtn)) { wave.trigger = this.nextValue(wave.trigger, ['onEnter', 'afterWaveCleared']); this.restartScene(game); this.setStatus('Trigger: ' + wave.trigger); return true; }
+    if (this.inRect(point, r.addGroup)) { this.addEnemyGroup(game); return true; }
+    if (this.inRect(point, r.removeGroup)) { this.removeEnemyGroup(game); return true; }
     if (this.inRect(point, r.addWave)) { this.addWave(game); return true; }
     if (this.inRect(point, r.removeWave)) { this.removeWave(game); return true; }
     if (this.inRect(point, r.copyWave)) { this.copyWave(game); return true; }
@@ -140,33 +177,6 @@ const DevPanel = {
     this.setStatus(field.label + ': ' + next);
   },
 
-  applyPreset(name, game) {
-    const presets = {
-      slow: {
-        heroes: { boris: { speed: 1.85 }, alexey: { speed: 2.15 }, anna: { speed: 2.55 } },
-        enemies: { dogRegime: { speed: 1.0 } },
-        walkFrameMs: 260,
-        enemyWalkFrameMs: 310
-      },
-      normal: {
-        heroes: { boris: { speed: 2.25 }, alexey: { speed: 2.6 }, anna: { speed: 3.15 } },
-        enemies: { dogRegime: { speed: 1.35 } },
-        walkFrameMs: 220,
-        enemyWalkFrameMs: 260
-      },
-      fast: {
-        heroes: { boris: { speed: 2.55 }, alexey: { speed: 2.95 }, anna: { speed: 3.55 } },
-        enemies: { dogRegime: { speed: 1.65 } },
-        walkFrameMs: 180,
-        enemyWalkFrameMs: 220
-      }
-    };
-
-    this.deepMerge(GAME_CONFIG, presets[name]);
-    this.applyToCurrentScene(game);
-    this.setStatus('Preset applied: ' + name.toUpperCase());
-  },
-
   applyToCurrentScene(game) {
     if (!game.scene) return;
     const player = game.scene.player;
@@ -179,12 +189,6 @@ const DevPanel = {
     }
     for (const enemy of game.scene.enemies || []) {
       if (typeof enemy.applyTuning === 'function') enemy.applyTuning(false);
-      else {
-        enemy.speed = GAME_CONFIG.enemies.dogRegime.speed;
-        enemy.damage = GAME_CONFIG.enemies.dogRegime.damage;
-        enemy.maxHp = GAME_CONFIG.enemies.dogRegime.hp;
-        enemy.hp = Math.min(enemy.hp, enemy.maxHp);
-      }
     }
   },
 
@@ -210,7 +214,7 @@ const DevPanel = {
     }
 
     const panel = this.panelRect();
-    ctx.fillStyle = 'rgba(0,0,0,0.88)';
+    ctx.fillStyle = 'rgba(0,0,0,0.90)';
     ctx.fillRect(panel.x, panel.y, panel.w, panel.h);
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 2;
@@ -218,95 +222,43 @@ const DevPanel = {
 
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 24px Arial';
-    ctx.fillText('DEVELOPER TUNING PANEL', panel.x + 22, panel.y + 40);
+    ctx.fillText('DEVELOPER PANEL', panel.x + 22, panel.y + 38);
     ctx.font = '13px Arial';
     ctx.fillStyle = '#aaa';
-    ctx.fillText('Toggle: ` / Ё   Level waves saved in localStorage, exported to console + clipboard', panel.x + 22, panel.y + 60);
+    ctx.fillText('Tabs: balance, enemies, and level waves. SAVE stores in localStorage. EXPORT prints JSON.', panel.x + 22, panel.y + 58);
 
-    this.drawButton(ctx, panel.x + panel.w - 80, panel.y + 14, 58, 34, 'X');
+    this.drawButton(ctx, panel.x + panel.w - 78, panel.y + 14, 56, 32, 'X');
+    this.drawTabs(ctx);
 
-    const startY = panel.y + 72;
-    for (let i = 0; i < this.fields.length; i++) this.drawField(ctx, this.fields[i], panel.x + 22, startY + i * 29);
+    if (this.tab === 'LEVEL WAVES') this.drawWaveEditor(ctx);
+    else this.drawFields(ctx);
 
-    this.drawWaveEditor(ctx);
-
-    this.drawButton(ctx, panel.x + 24, panel.y + panel.h - 104, 110, 30, 'SLOW');
-    this.drawButton(ctx, panel.x + 146, panel.y + panel.h - 104, 120, 30, 'NORMAL');
-    this.drawButton(ctx, panel.x + 278, panel.y + panel.h - 104, 110, 30, 'FAST');
-
-    this.drawButton(ctx, panel.x + 24, panel.y + panel.h - 58, 94, 36, 'SAVE');
-    this.drawButton(ctx, panel.x + 130, panel.y + panel.h - 58, 96, 36, 'RESET');
-    this.drawButton(ctx, panel.x + 238, panel.y + panel.h - 58, 126, 36, 'APPLY');
-    this.drawButton(ctx, panel.x + 376, panel.y + panel.h - 58, 112, 36, 'EXPORT');
-    this.drawButton(ctx, panel.x + 500, panel.y + panel.h - 58, 112, 36, 'RESTART');
-
+    this.drawFooter(ctx);
     this.drawStatus(ctx, panel);
   },
 
-  drawWaveEditor(ctx) {
-    const r = this.waveEditorRects();
-    const level = this.getSelectedLevel();
-    const wave = this.getSelectedWave();
-    const enemy = this.getSelectedEnemyGroup(wave);
-    const levelKey = this.getSelectedLevelKey();
-    const waves = level.waves || [];
+  drawTabs(ctx) {
+    const panel = this.panelRect();
+    for (let i = 0; i < this.tabs.length; i++) {
+      const r = this.tabRect(i);
+      const active = this.tabs[i] === this.tab;
+      ctx.fillStyle = active ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.08)';
+      ctx.fillRect(r.x, r.y, r.w, r.h);
+      ctx.strokeStyle = active ? '#fff' : 'rgba(255,255,255,0.45)';
+      ctx.strokeRect(r.x, r.y, r.w, r.h);
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 13px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(this.tabs[i], r.x + r.w / 2, r.y + 22);
+      ctx.textAlign = 'left';
+    }
+  },
 
-    ctx.fillStyle = 'rgba(255,255,255,0.06)';
-    ctx.fillRect(r.box.x, r.box.y, r.box.w, r.box.h);
-    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
-    ctx.strokeRect(r.box.x, r.box.y, r.box.w, r.box.h);
-
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 18px Arial';
-    ctx.fillText('LEVEL WAVE EDITOR', r.box.x + 18, r.box.y + 30);
-
-    ctx.font = '14px Arial';
-    ctx.fillStyle = '#ccc';
-    ctx.fillText('Level:', r.box.x + 18, r.box.y + 64);
-    this.drawButton(ctx, r.levelPrev.x, r.levelPrev.y, r.levelPrev.w, r.levelPrev.h, '<');
-    this.drawButton(ctx, r.levelNext.x, r.levelNext.y, r.levelNext.w, r.levelNext.h, '>');
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 14px Arial';
-    ctx.fillText(levelKey + ' / ' + level.name, r.box.x + 96, r.box.y + 64);
-
-    ctx.font = '14px Arial';
-    ctx.fillStyle = '#ccc';
-    ctx.fillText('Wave:', r.box.x + 18, r.box.y + 104);
-    this.drawButton(ctx, r.wavePrev.x, r.wavePrev.y, r.wavePrev.w, r.wavePrev.h, '<');
-    this.drawButton(ctx, r.waveNext.x, r.waveNext.y, r.waveNext.w, r.waveNext.h, '>');
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 14px Arial';
-    ctx.fillText(String(this.selectedWaveIndex + 1) + ' / ' + waves.length, r.box.x + 96, r.box.y + 104);
-
-    ctx.font = '14px Arial';
-    ctx.fillStyle = '#ccc';
-    ctx.fillText('Enemy type:', r.box.x + 18, r.box.y + 144);
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 14px Arial';
-    ctx.fillText(enemy.type, r.box.x + 130, r.box.y + 144);
-
-    ctx.font = '14px Arial';
-    ctx.fillStyle = '#ccc';
-    ctx.fillText('Count:', r.box.x + 18, r.box.y + 184);
-    this.drawButton(ctx, r.countMinus.x, r.countMinus.y, r.countMinus.w, r.countMinus.h, '-');
-    this.drawButton(ctx, r.countPlus.x, r.countPlus.y, r.countPlus.w, r.countPlus.h, '+');
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 14px Arial';
-    ctx.fillText(String(enemy.count), r.box.x + 130, r.box.y + 184);
-
-    ctx.font = '14px Arial';
-    ctx.fillStyle = '#ccc';
-    ctx.fillText('Side:', r.box.x + 18, r.box.y + 224);
-    this.drawButton(ctx, r.sideBtn.x, r.sideBtn.y, r.sideBtn.w, r.sideBtn.h, String(enemy.side).toUpperCase());
-
-    ctx.font = '14px Arial';
-    ctx.fillStyle = '#ccc';
-    ctx.fillText('Trigger:', r.box.x + 18, r.box.y + 264);
-    this.drawButton(ctx, r.triggerBtn.x, r.triggerBtn.y, r.triggerBtn.w, r.triggerBtn.h, wave.trigger);
-
-    this.drawButton(ctx, r.addWave.x, r.addWave.y, r.addWave.w, r.addWave.h, 'ADD WAVE');
-    this.drawButton(ctx, r.removeWave.x, r.removeWave.y, r.removeWave.w, r.removeWave.h, 'REMOVE');
-    this.drawButton(ctx, r.copyWave.x, r.copyWave.y, r.copyWave.w, r.copyWave.h, 'COPY');
+  drawFields(ctx) {
+    const fields = this.fieldGroups[this.tab] || [];
+    const panel = this.panelRect();
+    const startY = panel.y + 120;
+    for (let i = 0; i < fields.length; i++) this.drawField(ctx, fields[i], panel.x + 36, startY + i * 32);
   },
 
   drawField(ctx, field, x, y) {
@@ -316,16 +268,78 @@ const DevPanel = {
     ctx.fillStyle = '#fff';
     ctx.fillText(field.label, x, y);
     ctx.fillStyle = '#ccc';
-    ctx.fillText(String(value), x + 210, y);
+    ctx.fillText(String(value), x + 220, y);
 
-    this.drawButton(ctx, x + 278, y - 18, 30, 23, '-');
+    this.drawButton(ctx, x + 314, y - 20, 34, 25, '-');
     ctx.fillStyle = '#222';
-    ctx.fillRect(x + 315, y - 12, 208, 10);
+    ctx.fillRect(x + 359, y - 13, 235, 11);
     ctx.fillStyle = '#55ccff';
-    ctx.fillRect(x + 315, y - 12, 208 * Math.max(0, Math.min(1, ratio)), 10);
+    ctx.fillRect(x + 359, y - 13, 235 * Math.max(0, Math.min(1, ratio)), 11);
     ctx.strokeStyle = '#777';
-    ctx.strokeRect(x + 315, y - 12, 208, 10);
-    this.drawButton(ctx, x + 530, y - 18, 30, 23, '+');
+    ctx.strokeRect(x + 359, y - 13, 235, 11);
+    this.drawButton(ctx, x + 604, y - 20, 34, 25, '+');
+  },
+
+  drawWaveEditor(ctx) {
+    const r = this.waveEditorRects();
+    const level = this.getSelectedLevel();
+    const wave = this.getSelectedWave();
+    const group = this.getSelectedEnemyGroup(wave);
+    const levelKey = this.getSelectedLevelKey();
+
+    ctx.fillStyle = 'rgba(255,255,255,0.06)';
+    ctx.fillRect(r.box.x, r.box.y, r.box.w, r.box.h);
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+    ctx.strokeRect(r.box.x, r.box.y, r.box.w, r.box.h);
+
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 18px Arial';
+    ctx.fillText('LEVEL WAVE EDITOR', r.box.x + 20, r.box.y + 32);
+
+    this.drawRowLabel(ctx, 'Level:', r.box.x + 24, r.box.y + 76);
+    this.drawButton(ctx, r.levelPrev.x, r.levelPrev.y, r.levelPrev.w, r.levelPrev.h, '<');
+    this.drawButton(ctx, r.levelNext.x, r.levelNext.y, r.levelNext.w, r.levelNext.h, '>');
+    this.drawValue(ctx, levelKey + ' / ' + level.name, r.box.x + 145, r.box.y + 76);
+
+    this.drawRowLabel(ctx, 'Wave:', r.box.x + 24, r.box.y + 118);
+    this.drawButton(ctx, r.wavePrev.x, r.wavePrev.y, r.wavePrev.w, r.wavePrev.h, '<');
+    this.drawButton(ctx, r.waveNext.x, r.waveNext.y, r.waveNext.w, r.waveNext.h, '>');
+    this.drawValue(ctx, String(this.selectedWaveIndex + 1) + ' / ' + level.waves.length, r.box.x + 145, r.box.y + 118);
+
+    this.drawRowLabel(ctx, 'Group:', r.box.x + 24, r.box.y + 160);
+    this.drawButton(ctx, r.groupPrev.x, r.groupPrev.y, r.groupPrev.w, r.groupPrev.h, '<');
+    this.drawButton(ctx, r.groupNext.x, r.groupNext.y, r.groupNext.w, r.groupNext.h, '>');
+    this.drawValue(ctx, String(this.selectedGroupIndex + 1) + ' / ' + wave.enemies.length, r.box.x + 145, r.box.y + 160);
+
+    this.drawRowLabel(ctx, 'Enemy type:', r.box.x + 24, r.box.y + 206);
+    this.drawButton(ctx, r.typeBtn.x, r.typeBtn.y, r.typeBtn.w, r.typeBtn.h, group.type);
+
+    this.drawRowLabel(ctx, 'Count:', r.box.x + 24, r.box.y + 252);
+    this.drawButton(ctx, r.countMinus.x, r.countMinus.y, r.countMinus.w, r.countMinus.h, '-');
+    this.drawButton(ctx, r.countPlus.x, r.countPlus.y, r.countPlus.w, r.countPlus.h, '+');
+    this.drawValue(ctx, String(group.count), r.box.x + 145, r.box.y + 252);
+
+    this.drawRowLabel(ctx, 'Side:', r.box.x + 24, r.box.y + 298);
+    this.drawButton(ctx, r.sideBtn.x, r.sideBtn.y, r.sideBtn.w, r.sideBtn.h, String(group.side).toUpperCase());
+
+    this.drawRowLabel(ctx, 'Trigger:', r.box.x + 24, r.box.y + 344);
+    this.drawButton(ctx, r.triggerBtn.x, r.triggerBtn.y, r.triggerBtn.w, r.triggerBtn.h, wave.trigger);
+
+    this.drawButton(ctx, r.addGroup.x, r.addGroup.y, r.addGroup.w, r.addGroup.h, 'ADD GROUP');
+    this.drawButton(ctx, r.removeGroup.x, r.removeGroup.y, r.removeGroup.w, r.removeGroup.h, 'DEL GROUP');
+    this.drawButton(ctx, r.addWave.x, r.addWave.y, r.addWave.w, r.addWave.h, 'ADD WAVE');
+    this.drawButton(ctx, r.removeWave.x, r.removeWave.y, r.removeWave.w, r.removeWave.h, 'DEL WAVE');
+    this.drawButton(ctx, r.copyWave.x, r.copyWave.y, r.copyWave.w, r.copyWave.h, 'COPY WAVE');
+  },
+
+  drawFooter(ctx) {
+    const panel = this.panelRect();
+    const y = panel.y + panel.h - 54;
+    this.drawButton(ctx, panel.x + 24, y, 92, 34, 'SAVE');
+    this.drawButton(ctx, panel.x + 126, y, 96, 34, 'RESET');
+    this.drawButton(ctx, panel.x + 232, y, 116, 34, 'APPLY');
+    this.drawButton(ctx, panel.x + 358, y, 112, 34, 'EXPORT');
+    this.drawButton(ctx, panel.x + 480, y, 112, 34, 'RESTART');
   },
 
   drawButton(ctx, x, y, w, h, text) {
@@ -340,33 +354,60 @@ const DevPanel = {
     ctx.textAlign = 'left';
   },
 
+  drawRowLabel(ctx, text, x, y) {
+    ctx.font = '14px Arial';
+    ctx.fillStyle = '#ccc';
+    ctx.fillText(text, x, y);
+  },
+
+  drawValue(ctx, text, x, y) {
+    ctx.font = 'bold 14px Arial';
+    ctx.fillStyle = '#fff';
+    ctx.fillText(text, x, y);
+  },
+
   drawStatus(ctx, panel) {
     ctx.font = '13px Arial';
     ctx.fillStyle = performance.now() < this.statusUntil ? '#8cff8c' : '#aaa';
-    ctx.fillText('Status: ' + this.statusText, panel.x + 630, panel.y + panel.h - 36);
+    ctx.fillText('Status: ' + this.statusText, panel.x + 620, panel.y + panel.h - 32);
   },
 
   panelRect() {
     return { x: 24, y: 24, w: 1050, h: 670 };
   },
 
+  tabRect(index) {
+    const panel = this.panelRect();
+    return { x: panel.x + 24 + index * 152, y: panel.y + 76, w: 142, h: 34 };
+  },
+
+  getClickedTab(point) {
+    for (let i = 0; i < this.tabs.length; i++) if (this.inRect(point, this.tabRect(i))) return this.tabs[i];
+    return null;
+  },
+
   waveEditorRects() {
     const panel = this.panelRect();
-    const x = panel.x + 650;
-    const y = panel.y + 86;
+    const x = panel.x + 36;
+    const y = panel.y + 124;
     return {
-      box: { x, y, w: 370, h: 380 },
-      levelPrev: { x: x + 72, y: y + 44, w: 32, h: 24 },
-      levelNext: { x: x + 318, y: y + 44, w: 32, h: 24 },
-      wavePrev: { x: x + 72, y: y + 84, w: 32, h: 24 },
-      waveNext: { x: x + 160, y: y + 84, w: 32, h: 24 },
-      countMinus: { x: x + 100, y: y + 164, w: 32, h: 24 },
-      countPlus: { x: x + 160, y: y + 164, w: 32, h: 24 },
-      sideBtn: { x: x + 100, y: y + 204, w: 120, h: 28 },
-      triggerBtn: { x: x + 100, y: y + 244, w: 190, h: 28 },
-      addWave: { x: x + 18, y: y + 314, w: 105, h: 34 },
-      removeWave: { x: x + 135, y: y + 314, w: 95, h: 34 },
-      copyWave: { x: x + 242, y: y + 314, w: 80, h: 34 }
+      box: { x, y, w: 700, h: 450 },
+      levelPrev: { x: x + 92, y: y + 54, w: 36, h: 26 },
+      levelNext: { x: x + 642, y: y + 54, w: 36, h: 26 },
+      wavePrev: { x: x + 92, y: y + 96, w: 36, h: 26 },
+      waveNext: { x: x + 190, y: y + 96, w: 36, h: 26 },
+      groupPrev: { x: x + 92, y: y + 138, w: 36, h: 26 },
+      groupNext: { x: x + 190, y: y + 138, w: 36, h: 26 },
+      typeBtn: { x: x + 132, y: y + 184, w: 160, h: 30 },
+      countMinus: { x: x + 100, y: y + 230, w: 36, h: 26 },
+      countPlus: { x: x + 180, y: y + 230, w: 36, h: 26 },
+      sideBtn: { x: x + 132, y: y + 276, w: 160, h: 30 },
+      triggerBtn: { x: x + 132, y: y + 322, w: 210, h: 30 },
+      addGroup: { x: x + 24, y: y + 386, w: 110, h: 34 },
+      removeGroup: { x: x + 146, y: y + 386, w: 110, h: 34 },
+      addWave: { x: x + 280, y: y + 386, w: 110, h: 34 },
+      removeWave: { x: x + 402, y: y + 386, w: 110, h: 34 },
+      copyWave: { x: x + 524, y: y + 386, w: 110, h: 34 }
     };
   },
 
@@ -383,6 +424,10 @@ const DevPanel = {
     let obj = GAME_CONFIG;
     for (let i = 0; i < parts.length - 1; i++) obj = obj[parts[i]];
     obj[parts[parts.length - 1]] = value;
+  },
+
+  getEnemyTypes() {
+    return Object.keys(GAME_CONFIG.enemies || {});
   },
 
   getLevelKeys() {
@@ -412,8 +457,9 @@ const DevPanel = {
   },
 
   getSelectedEnemyGroup(wave) {
-    if (!wave.enemies || wave.enemies.length === 0) wave.enemies = [{ type: 'dogRegime', count: 1, side: 'right' }];
-    return wave.enemies[0];
+    if (!wave.enemies || wave.enemies.length === 0) wave.enemies = [{ type: this.getEnemyTypes()[0] || 'dogRegime', count: 1, side: 'right' }];
+    this.selectedGroupIndex = Math.min(this.selectedGroupIndex, wave.enemies.length - 1);
+    return wave.enemies[this.selectedGroupIndex];
   },
 
   syncSelectedLevelWithScene(game) {
@@ -422,28 +468,45 @@ const DevPanel = {
     const index = keys.indexOf(game.scene.getLevelKey());
     if (index >= 0) this.selectedLevelIndex = index;
     this.selectedWaveIndex = Math.max(0, game.scene.currentWaveIndex || 0);
+    this.selectedGroupIndex = 0;
   },
 
   createDefaultWave(trigger = 'afterWaveCleared') {
     return { trigger, enemies: [{ type: 'dogRegime', count: 1, side: 'right' }] };
   },
 
+  addEnemyGroup(game) {
+    const wave = this.getSelectedWave();
+    wave.enemies.push({ type: 'dogRegime', count: 1, side: 'right' });
+    this.selectedGroupIndex = wave.enemies.length - 1;
+    this.restartScene(game);
+    this.setStatus('Enemy group added');
+  },
+
+  removeEnemyGroup(game) {
+    const wave = this.getSelectedWave();
+    if (wave.enemies.length <= 1) { this.setStatus('Cannot remove last group'); return; }
+    wave.enemies.splice(this.selectedGroupIndex, 1);
+    this.selectedGroupIndex = Math.max(0, this.selectedGroupIndex - 1);
+    this.restartScene(game);
+    this.setStatus('Enemy group removed');
+  },
+
   addWave(game) {
     const level = this.getSelectedLevel();
     level.waves.push(this.createDefaultWave('afterWaveCleared'));
     this.selectedWaveIndex = level.waves.length - 1;
+    this.selectedGroupIndex = 0;
     this.restartScene(game);
     this.setStatus('Wave added');
   },
 
   removeWave(game) {
     const level = this.getSelectedLevel();
-    if (level.waves.length <= 1) {
-      this.setStatus('Cannot remove last wave');
-      return;
-    }
+    if (level.waves.length <= 1) { this.setStatus('Cannot remove last wave'); return; }
     level.waves.splice(this.selectedWaveIndex, 1);
     this.selectedWaveIndex = Math.max(0, this.selectedWaveIndex - 1);
+    this.selectedGroupIndex = 0;
     this.restartScene(game);
     this.setStatus('Wave removed');
   },
@@ -453,6 +516,7 @@ const DevPanel = {
     const copy = JSON.parse(JSON.stringify(this.getSelectedWave()));
     level.waves.splice(this.selectedWaveIndex + 1, 0, copy);
     this.selectedWaveIndex += 1;
+    this.selectedGroupIndex = 0;
     this.restartScene(game);
     this.setStatus('Wave copied');
   },
@@ -464,6 +528,14 @@ const DevPanel = {
       if (!GAME_CONFIG.levels[key]) GAME_CONFIG.levels[key] = { name: key, waves: [this.createDefaultWave('onEnter')] };
       if (!GAME_CONFIG.levels[key].waves || GAME_CONFIG.levels[key].waves.length === 0) {
         GAME_CONFIG.levels[key].waves = [this.createDefaultWave('onEnter')];
+      }
+      for (const wave of GAME_CONFIG.levels[key].waves) {
+        if (!wave.enemies || wave.enemies.length === 0) wave.enemies = [{ type: 'dogRegime', count: 1, side: 'right' }];
+        for (const group of wave.enemies) {
+          if (!group.type) group.type = 'dogRegime';
+          if (group.count == null) group.count = 1;
+          if (!group.side) group.side = 'right';
+        }
       }
     }
   },
@@ -508,6 +580,7 @@ const DevPanel = {
     this.ensureLevels();
     this.selectedLevelIndex = 0;
     this.selectedWaveIndex = 0;
+    this.selectedGroupIndex = 0;
     this.restartScene(game);
     this.applyToCurrentScene(game);
     this.setStatus('Reset to default config');
