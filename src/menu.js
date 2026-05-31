@@ -1,6 +1,14 @@
 const Menu = {
   selectedIndex: 0,
+  settingsIndex: 0,
   items: ['НОВАЯ ИГРА', 'ТВАРИ', 'НАСТРОЙКИ'],
+  settingsItems: ['СЛОЖНОСТЬ', 'ЗВУК', 'НАЗАД'],
+  difficulties: ['easy', 'normal', 'hard'],
+  difficultyLabels: {
+    easy: 'ЛЕГКО',
+    normal: 'НОРМАЛЬНО',
+    hard: 'СЛОЖНО'
+  },
 
   update(game) {
     if (Input.consume('arrowup') || Input.consume('w')) {
@@ -26,21 +34,66 @@ const Menu = {
     }
   },
 
+  updateSettings(game) {
+    if (Input.consume('escape')) game.setState('mainMenu');
+    if (Input.consume('arrowup') || Input.consume('w')) {
+      this.settingsIndex = (this.settingsIndex + this.settingsItems.length - 1) % this.settingsItems.length;
+    }
+    if (Input.consume('arrowdown') || Input.consume('s')) {
+      this.settingsIndex = (this.settingsIndex + 1) % this.settingsItems.length;
+    }
+    if (Input.consume('arrowleft') || Input.consume('a') || Input.consume('arrowright') || Input.consume('d')) {
+      this.changeSetting(this.settingsIndex, game);
+    }
+
+    const click = Input.consumePointer();
+    if (click) {
+      for (let i = 0; i < this.settingsItems.length; i++) {
+        const box = this.getSettingsBox(i);
+        if (click.x >= box.x && click.x <= box.x + box.w && click.y >= box.y && click.y <= box.y + box.h) {
+          this.settingsIndex = i;
+          this.changeSetting(i, game);
+        }
+      }
+    }
+
+    if (Input.consume('enter') || Input.consume('space')) {
+      this.changeSetting(this.settingsIndex, game);
+    }
+  },
+
   activate(game) {
     const item = this.items[this.selectedIndex];
     if (item === 'НОВАЯ ИГРА') game.setState('characterSelect');
+    if (item === 'НАСТРОЙКИ') game.setState('settings');
+  },
+
+  changeSetting(index, game) {
+    const item = this.settingsItems[index];
+    if (item === 'СЛОЖНОСТЬ') {
+      const current = this.difficulties.indexOf(GAME_CONFIG.settings.difficulty);
+      GAME_CONFIG.settings.difficulty = this.difficulties[(current + 1) % this.difficulties.length];
+    }
+    if (item === 'ЗВУК') {
+      GAME_CONFIG.settings.soundEnabled = !GAME_CONFIG.settings.soundEnabled;
+    }
+    if (item === 'НАЗАД') {
+      game.setState('mainMenu');
+    }
   },
 
   getItemBox(index) {
     return { x: 485, y: 300 + index * 70, w: 310, h: 54 };
   },
 
+  getSettingsBox(index) {
+    return { x: 390, y: 250 + index * 86, w: 500, h: 62 };
+  },
+
   draw(ctx, images) {
     ctx.drawImage(images.main, 0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
     ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
     ctx.fillRect(0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
-
-    this.drawTitle(ctx, 'STREETS OF RUSSIA', 120, 58);
 
     for (let i = 0; i < this.items.length; i++) {
       const box = this.getItemBox(i);
@@ -61,35 +114,62 @@ const Menu = {
     ctx.textAlign = 'left';
   },
 
-  drawSplash(ctx, images) {
+  drawSettings(ctx, images) {
     ctx.drawImage(images.main, 0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.18)';
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
     ctx.fillRect(0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
-    this.drawTitle(ctx, 'STREETS OF RUSSIA', 120, 58);
 
-    ctx.fillStyle = 'rgba(0,0,0,0.28)';
-    ctx.fillRect(470, 560, 340, 62);
-    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
-    ctx.lineWidth = 3;
-    ctx.strokeRect(470, 560, 340, 62);
-    ctx.font = 'bold 34px Arial';
+    ctx.font = 'bold 42px Arial';
     ctx.textAlign = 'center';
     ctx.fillStyle = '#fff';
     ctx.strokeStyle = '#000';
     ctx.lineWidth = 5;
-    ctx.strokeText('START GAME', 640, 602);
-    ctx.fillText('START GAME', 640, 602);
+    ctx.strokeText('НАСТРОЙКИ', GAME_CONFIG.width / 2, 135);
+    ctx.fillText('НАСТРОЙКИ', GAME_CONFIG.width / 2, 135);
+
+    for (let i = 0; i < this.settingsItems.length; i++) {
+      const box = this.getSettingsBox(i);
+      const active = i === this.settingsIndex;
+      const label = this.getSettingsLabel(i);
+      ctx.fillStyle = active ? 'rgba(255,255,255,0.16)' : 'rgba(0,0,0,0.36)';
+      ctx.strokeStyle = active ? '#ffffff' : 'rgba(255,255,255,0.45)';
+      ctx.lineWidth = active ? 4 : 2;
+      ctx.fillRect(box.x, box.y, box.w, box.h);
+      ctx.strokeRect(box.x, box.y, box.w, box.h);
+      ctx.font = 'bold 26px Arial';
+      ctx.fillStyle = '#ffffff';
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 4;
+      ctx.strokeText(label, box.x + box.w / 2, box.y + 40);
+      ctx.fillText(label, box.x + box.w / 2, box.y + 40);
+    }
     ctx.textAlign = 'left';
   },
 
-  drawTitle(ctx, text, y, size) {
-    ctx.font = `bold ${size}px Arial`;
+  getSettingsLabel(index) {
+    const item = this.settingsItems[index];
+    if (item === 'СЛОЖНОСТЬ') return 'СЛОЖНОСТЬ: ' + this.difficultyLabels[GAME_CONFIG.settings.difficulty];
+    if (item === 'ЗВУК') return 'ЗВУК: ' + (GAME_CONFIG.settings.soundEnabled ? 'ВКЛ' : 'ВЫКЛ');
+    return item;
+  },
+
+  drawSplash(ctx, images) {
+    ctx.drawImage(images.main, 0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.18)';
+    ctx.fillRect(0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
+
+    ctx.fillStyle = 'rgba(0,0,0,0.28)';
+    ctx.fillRect(410, 560, 460, 62);
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(410, 560, 460, 62);
+    ctx.font = 'bold 30px Arial';
     ctx.textAlign = 'center';
     ctx.fillStyle = '#fff';
     ctx.strokeStyle = '#000';
-    ctx.lineWidth = 7;
-    ctx.strokeText(text, GAME_CONFIG.width / 2, y);
-    ctx.fillText(text, GAME_CONFIG.width / 2, y);
+    ctx.lineWidth = 5;
+    ctx.strokeText('НАЖМИ ЛЮБУЮ КНОПКУ', 640, 600);
+    ctx.fillText('НАЖМИ ЛЮБУЮ КНОПКУ', 640, 600);
     ctx.textAlign = 'left';
   }
 };
