@@ -59,8 +59,9 @@ const CharacterSelect = {
     ctx.lineWidth = selected ? 5 : 2;
     ctx.strokeRect(box.x, box.y, box.w, box.h);
 
-    if (heroKey === 'boris' && images.borisIdle) {
-      const img = images.borisIdle;
+    const heroImages = images.heroes && images.heroes[heroKey];
+    if (heroImages && heroImages.idle) {
+      const img = heroImages.idle;
       const s = 0.28;
       const w = img.width * s;
       const h = img.height * s;
