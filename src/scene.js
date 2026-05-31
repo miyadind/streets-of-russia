@@ -66,6 +66,7 @@ class LevelScene {
   }
 
   createEnemy(type, x, y, id) {
+    if (type === 'sucker') return new SuckerEnemy(x, y, this.images, id);
     if (GAME_CONFIG.enemies[type]) return new DogRegimeEnemy(x, y, this.images, id, type);
     console.warn('Unknown enemy type:', type);
     return null;
@@ -94,6 +95,7 @@ class LevelScene {
   restartCurrentLevel() {
     this.player.x = 190;
     this.player.y = 620;
+    this.player.releaseFromPin();
     this.spawnInitialWave();
   }
 
@@ -102,6 +104,7 @@ class LevelScene {
       this.screenIndex += 1;
       this.player.x = 190;
       this.player.y = 620;
+      this.player.releaseFromPin();
       this.spawnInitialWave();
     } else {
       this.game.setState('mainMenu');
