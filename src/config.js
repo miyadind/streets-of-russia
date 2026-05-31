@@ -40,6 +40,50 @@ const GAME_CONFIG = {
       speed: 1.35,
       damage: 10
     }
+  },
+
+  levelOrder: ['street01', 'street02', 'street03'],
+
+  levels: {
+    street01: {
+      name: 'Street 01',
+      waves: [
+        {
+          trigger: 'onEnter',
+          enemies: [
+            { type: 'dogRegime', count: 2, side: 'right' }
+          ]
+        }
+      ]
+    },
+    street02: {
+      name: 'Street 02',
+      waves: [
+        {
+          trigger: 'onEnter',
+          enemies: [
+            { type: 'dogRegime', count: 2, side: 'right' }
+          ]
+        },
+        {
+          trigger: 'afterWaveCleared',
+          enemies: [
+            { type: 'dogRegime', count: 2, side: 'left' }
+          ]
+        }
+      ]
+    },
+    street03: {
+      name: 'Street 03',
+      waves: [
+        {
+          trigger: 'onEnter',
+          enemies: [
+            { type: 'dogRegime', count: 3, side: 'right' }
+          ]
+        }
+      ]
+    }
   }
 };
 
