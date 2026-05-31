@@ -23,9 +23,23 @@ class Player {
     this.comboTimer = 0;
     this.attackTimer = 0;
     this.attackHasHit = false;
+    this.knockdownTimer = 0;
+    this.pinnedBy = null;
   }
 
   update(dt, scene) {
+    if (this.state === 'knockdown') {
+      this.knockdownTimer -= dt;
+      if (this.knockdownTimer <= 0) this.releaseFromPin();
+      return;
+    }
+
+    if (this.state === 'pinned') {
+      this.knockdownTimer -= dt;
+      if (this.knockdownTimer <= 0) this.releaseFromPin();
+      return;
+    }
+
     if (this.comboTimer > 0) this.comboTimer -= dt;
     else this.comboStep = 0;
 
@@ -74,7 +88,7 @@ class Player {
   }
 
   startAttack() {
-    if (this.state === 'attack') return;
+    if (this.state === 'attack' || this.state === 'knockdown' || this.state === 'pinned') return;
     this.comboStep += 1;
     if (this.comboStep > 3) this.comboStep = 1;
     this.comboTimer = GAME_CONFIG.comboResetMs;
@@ -123,6 +137,41 @@ class Player {
     };
   }
 
+  getBodyBox() {
+    return { x: this.x - 34, y: this.y - 132, w: 68, h: 132 };
+  }
+
+  canCounterSlide(enemy) {
+    if (this.state !== 'attack') return false;
+    if (!Combat.sameLane(this.y, enemy.y, GAME_CONFIG.enemyAttackRangeY)) return false;
+    return Combat.overlap(this.getHitbox(), enemy.getHurtbox());
+  }
+
+  knockDown(durationMs = 900) {
+    if (this.state === 'pinned') return;
+    this.state = 'knockdown';
+    this.knockdownTimer = durationMs;
+    this.pinnedBy = null;
+    this.attackTimer = 0;
+    this.attackHasHit = false;
+    this.comboStep = 0;
+  }
+
+  pinBy(enemy, durationMs) {
+    this.state = 'pinned';
+    this.knockdownTimer = durationMs;
+    this.pinnedBy = enemy;
+    this.attackTimer = 0;
+    this.attackHasHit = false;
+    this.comboStep = 0;
+  }
+
+  releaseFromPin() {
+    this.state = 'idle';
+    this.knockdownTimer = 0;
+    this.pinnedBy = null;
+  }
+
   nextWalkFrame() {
     this.walkIndex = (this.walkIndex + 1) % this.walkCycle.length;
     this.walkFrame = this.walkCycle[this.walkIndex];
@@ -134,6 +183,7 @@ class Player {
 
   getImage() {
     const heroImages = this.getHeroImages();
+    if (this.state === 'knockdown' || this.state === 'pinned') return heroImages.knockdown || heroImages.idle;
     if (this.state === 'attack') return heroImages.punch[this.comboStep - 1] || heroImages.punch[0] || heroImages.idle;
     if (this.state === 'walk') return heroImages.walk[this.walkFrame] || heroImages.idle;
     return heroImages.idle;
