@@ -32,6 +32,7 @@ class GameApp {
       borisPunch0: Assets.boris.punch[0],
       borisPunch1: Assets.boris.punch[1],
       borisPunch2: Assets.boris.punch[2],
+      borisKnockdown: Assets.boris.knockdown,
 
       alexeyIdle: Assets.alexey.idle,
       alexeyWalk0: Assets.alexey.walk[0],
@@ -40,6 +41,7 @@ class GameApp {
       alexeyPunch0: Assets.alexey.punch[0],
       alexeyPunch1: Assets.alexey.punch[1],
       alexeyPunch2: Assets.alexey.punch[2],
+      alexeyKnockdown: Assets.alexey.knockdown,
 
       dogIdle: Assets.dog.idle,
       dogWalk0: Assets.dog.walk[0],
@@ -53,6 +55,9 @@ class GameApp {
       suckerWalk1: Assets.sucker.walk[1],
       suckerAttack0: Assets.sucker.attack[0],
       suckerAttack1: Assets.sucker.attack[1],
+      suckerSlide: Assets.sucker.slide,
+      suckerBite0: Assets.sucker.bite[0],
+      suckerBite1: Assets.sucker.bite[1],
       suckerDead: Assets.sucker.dead
     };
 
@@ -71,17 +76,20 @@ class GameApp {
       boris: {
         idle: loaded.borisIdle,
         walk: [loaded.borisWalk0, loaded.borisWalk1, loaded.borisWalk2],
-        punch: [loaded.borisPunch0, loaded.borisPunch1, loaded.borisPunch2]
+        punch: [loaded.borisPunch0, loaded.borisPunch1, loaded.borisPunch2],
+        knockdown: loaded.borisKnockdown || loaded.borisIdle
       },
       alexey: {
         idle: loaded.alexeyIdle || loaded.borisIdle,
         walk: [loaded.alexeyWalk0, loaded.alexeyWalk1, loaded.alexeyWalk2],
-        punch: [loaded.alexeyPunch0, loaded.alexeyPunch1, loaded.alexeyPunch2]
+        punch: [loaded.alexeyPunch0, loaded.alexeyPunch1, loaded.alexeyPunch2],
+        knockdown: loaded.alexeyKnockdown || loaded.alexeyIdle || loaded.borisIdle
       },
       anna: {
         idle: loaded.borisIdle,
         walk: [loaded.borisWalk0, loaded.borisWalk1, loaded.borisWalk2],
-        punch: [loaded.borisPunch0, loaded.borisPunch1, loaded.borisPunch2]
+        punch: [loaded.borisPunch0, loaded.borisPunch1, loaded.borisPunch2],
+        knockdown: loaded.borisKnockdown || loaded.borisIdle
       }
     };
 
@@ -102,6 +110,8 @@ class GameApp {
         idle: loaded.suckerIdle || loaded.dogIdle,
         walk: [loaded.suckerWalk0 || loaded.dogWalk0, loaded.suckerWalk1 || loaded.dogWalk1],
         attack: [loaded.suckerAttack0 || loaded.dogAttack0, loaded.suckerAttack1 || loaded.dogAttack1],
+        slide: loaded.suckerSlide || loaded.suckerAttack0 || loaded.dogAttack0,
+        bite: [loaded.suckerBite0 || loaded.suckerAttack0 || loaded.dogAttack0, loaded.suckerBite1 || loaded.suckerAttack1 || loaded.dogAttack1],
         dead: loaded.suckerDead || loaded.dogDead
       }
     };
