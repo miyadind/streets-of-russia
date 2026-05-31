@@ -5,6 +5,7 @@ class SuckerEnemy extends DogRegimeEnemy {
     this.windupTimer = 0;
     this.slideDistance = 0;
     this.slideDirection = -1;
+    this.slideY = y;
     this.recoveryTimer = 0;
     this.pinTimer = 0;
     this.biteTimer = 0;
@@ -19,12 +20,13 @@ class SuckerEnemy extends DogRegimeEnemy {
     this.maxHp = config.hp;
     this.scale = config.scale || GAME_CONFIG.enemyScale;
     this.slideSpeed = config.slideSpeed;
-    this.preferredDistance = config.preferredDistance;
+    this.attackStartDistance = config.attackStartDistance || config.preferredDistance || 420;
     this.minDistance = config.minDistance;
     this.alignToleranceY = config.alignToleranceY;
     this.slideRange = config.slideRange;
     this.windupMs = config.windupMs;
     this.slideRecoveryMs = config.slideRecoveryMs;
+    this.interruptedRecoveryMs = config.interruptedRecoveryMs || config.slideRecoveryMs || 900;
     this.pinDurationMs = config.pinDurationMs;
     this.biteTickMs = config.biteTickMs;
     this.biteDamage = config.biteDamage;
@@ -67,6 +69,11 @@ class SuckerEnemy extends DogRegimeEnemy {
       return;
     }
 
+    if (this.state === 'interrupted') {
+      this.updateInterrupted(dt);
+      return;
+    }
+
     if (this.state === 'pinBite') {
       this.updatePinBite(dt, scene);
       return;
@@ -83,7 +90,7 @@ class SuckerEnemy extends DogRegimeEnemy {
 
     if (absY > this.alignToleranceY) moveY = Math.sign(dy);
     if (absX < this.minDistance) moveX = -Math.sign(dx);
-    else if (absX > this.preferredDistance) moveX = Math.sign(dx);
+    else if (absX > this.attackStartDistance) moveX = Math.sign(dx);
 
     if (moveX !== 0 || moveY !== 0) {
       const len = Math.hypot(moveX, moveY);
@@ -96,11 +103,13 @@ class SuckerEnemy extends DogRegimeEnemy {
 
     this.y = Math.max(GAME_CONFIG.laneTop, Math.min(GAME_CONFIG.laneBottom, this.y));
 
-    const readyDistance = absX >= this.minDistance && absX <= this.preferredDistance + 90;
-    if (absY <= this.alignToleranceY && readyDistance && player.state !== 'knockdown' && player.state !== 'pinned') {
+    const readyDistance = absX >= this.minDistance && absX <= this.attackStartDistance;
+    const playerFree = player.state !== 'knockdown' && player.state !== 'pinned';
+    if (absY <= this.alignToleranceY && readyDistance && playerFree) {
       this.state = 'windup';
       this.windupTimer = 0;
       this.slideDirection = this.facing;
+      this.slideY = this.y;
     }
   }
 
@@ -117,26 +126,28 @@ class SuckerEnemy extends DogRegimeEnemy {
     const player = scene.player;
     this.facing = player.x >= this.x ? 1 : -1;
     this.slideDirection = this.facing;
+    this.slideY = this.y;
 
     if (this.windupTimer >= this.windupMs) {
       this.state = 'slide';
       this.slideDistance = 0;
       this.hasPinnedPlayer = false;
+      this.y = this.slideY;
     }
   }
 
   updateSlide(dt, scene) {
     const step = this.slideSpeed * Math.max(1, dt / 16.67);
     this.x += this.slideDirection * step;
+    this.y = this.slideY;
     this.slideDistance += Math.abs(step);
     this.facing = this.slideDirection;
 
     const player = scene.player;
 
     if (player.canCounterSlide(this)) {
-      this.takeHit(player.damage + 8, player.facing, 70);
-      this.state = 'recovery';
-      this.recoveryTimer = this.slideRecoveryMs;
+      this.interruptSlide(player);
+      scene.hitStop = GAME_CONFIG.playerHitStopMs;
       return;
     }
 
@@ -148,6 +159,30 @@ class SuckerEnemy extends DogRegimeEnemy {
     if (this.slideDistance >= this.slideRange || this.x < 40 || this.x > GAME_CONFIG.width - 40) {
       this.state = 'recovery';
       this.recoveryTimer = this.slideRecoveryMs;
+    }
+  }
+
+  interruptSlide(player) {
+    this.hp -= player.damage + 8;
+    this.flash = 160;
+    this.hitStun = this.interruptedRecoveryMs;
+    this.state = 'interrupted';
+    this.recoveryTimer = this.interruptedRecoveryMs;
+    this.attackTimer = 0;
+    this.attackHasHit = false;
+    this.x += player.facing * 90;
+    if (this.hp <= 0) {
+      this.alive = false;
+      this.state = 'dead';
+      this.deadTimer = 0;
+    }
+  }
+
+  updateInterrupted(dt) {
+    this.recoveryTimer -= dt;
+    if (this.recoveryTimer <= 0 && this.alive) {
+      this.state = 'reposition';
+      this.hitStun = 0;
     }
   }
 
@@ -211,7 +246,7 @@ class SuckerEnemy extends DogRegimeEnemy {
   getSlideHitbox() {
     return {
       x: this.x + (this.facing === 1 ? 8 : -88),
-      y: this.y - 112,
+      y: this.slideY - 112,
       w: 88,
       h: 54
     };
@@ -227,6 +262,7 @@ class SuckerEnemy extends DogRegimeEnemy {
     if (this.state === 'slide') return enemyImages.slide || enemyImages.attack[0];
     if (this.state === 'pinBite') return enemyImages.bite[this.biteFrame] || enemyImages.attack[0];
     if (this.state === 'windup') return enemyImages.idle;
+    if (this.state === 'interrupted') return enemyImages.dead || enemyImages.idle;
     if (this.hitStun > 0) return enemyImages.idle;
     return enemyImages.walk[this.walkFrame] || enemyImages.idle;
   }
