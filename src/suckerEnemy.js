@@ -128,6 +128,12 @@ class SuckerEnemy extends DogRegimeEnemy {
     this.slideDirection = this.facing;
     this.slideY = this.y;
 
+    if (player.canCounterSlide(this)) {
+      this.interruptSlide(player);
+      scene.hitStop = GAME_CONFIG.playerHitStopMs;
+      return;
+    }
+
     if (this.windupTimer >= this.windupMs) {
       this.state = 'slide';
       this.slideDistance = 0;
