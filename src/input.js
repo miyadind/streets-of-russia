@@ -7,6 +7,7 @@ const Input = {
     window.addEventListener('keydown', (event) => {
       const key = this.normalizeKey(event);
       if (!this.keys[key]) this.just[key] = true;
+      this.just.any = true;
       this.keys[key] = true;
 
       if (event.code === 'Backquote') {
@@ -58,6 +59,12 @@ const Input = {
   consume(key) {
     const value = !!this.just[key];
     this.just[key] = false;
+    return value;
+  },
+
+  consumeAnyKey() {
+    const value = !!this.just.any;
+    this.just.any = false;
     return value;
   },
 
