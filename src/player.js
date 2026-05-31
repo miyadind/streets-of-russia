@@ -128,10 +128,15 @@ class Player {
     this.walkFrame = this.walkCycle[this.walkIndex];
   }
 
+  getHeroImages() {
+    return (this.images.heroes && this.images.heroes[this.heroKey]) || this.images.heroes.boris;
+  }
+
   getImage() {
-    if (this.state === 'attack') return this.images.borisPunch[this.comboStep - 1] || this.images.borisPunch[0];
-    if (this.state === 'walk') return this.images.borisWalk[this.walkFrame] || this.images.borisIdle;
-    return this.images.borisIdle;
+    const heroImages = this.getHeroImages();
+    if (this.state === 'attack') return heroImages.punch[this.comboStep - 1] || heroImages.punch[0] || heroImages.idle;
+    if (this.state === 'walk') return heroImages.walk[this.walkFrame] || heroImages.idle;
+    return heroImages.idle;
   }
 
   draw(ctx, debug = false) {
