@@ -8,10 +8,21 @@ window.Assets = {
     walk:['assets/characters/boris/walk0.png','assets/characters/boris/walk1.png','assets/characters/boris/walk2.png'],
     punch:['assets/characters/boris/punch0.png','assets/characters/boris/punch1.png','assets/characters/boris/punch2.png']
   },
+  alexey:{
+    idle:'assets/characters/alex/Idle.png',
+    walk:['assets/characters/alex/walk0.png','assets/characters/alex/walk1.png','assets/characters/alex/walk2.png'],
+    punch:['assets/characters/alex/punch0.png','assets/characters/alex/punch1.png','assets/characters/alex/punch2.png']
+  },
   dog:{
     idle:'assets/enemies/dog-regime/idle.png',
     walk:['assets/enemies/dog-regime/walk0.png','assets/enemies/dog-regime/walk1.png'],
     attack:['assets/enemies/dog-regime/punch0.png','assets/enemies/dog-regime/punch1.png'],
     dead:'assets/enemies/dog-regime/dead.png'
+  },
+  sucker:{
+    idle:'assets/enemies/sucker/idle.png',
+    walk:['assets/enemies/sucker/walk0.png','assets/enemies/sucker/walk1.png'],
+    attack:['assets/enemies/sucker/punch0.png','assets/enemies/sucker/punch1.png'],
+    dead:'assets/enemies/sucker/dead.png'
   }
 };
