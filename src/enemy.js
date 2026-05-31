@@ -1,7 +1,8 @@
 class DogRegimeEnemy {
-  constructor(x, y, images, id = 0) {
+  constructor(x, y, images, id = 0, enemyType = 'dogRegime') {
     this.id = id;
     this.images = images;
+    this.enemyType = enemyType;
     this.x = x;
     this.y = y;
     this.facing = -1;
@@ -24,10 +25,11 @@ class DogRegimeEnemy {
   }
 
   applyTuning(resetHp = false) {
-    const config = GAME_CONFIG.enemies.dogRegime;
+    const config = GAME_CONFIG.enemies[this.enemyType] || GAME_CONFIG.enemies.dogRegime;
     this.speed = config.speed;
     this.damage = config.damage;
     this.maxHp = config.hp;
+    this.scale = config.scale || GAME_CONFIG.enemyScale;
     this.hp = resetHp ? this.maxHp : Math.min(this.hp, this.maxHp);
   }
 
@@ -140,17 +142,28 @@ class DogRegimeEnemy {
     return { x: this.x + (this.facing === 1 ? 30 : -108), y: this.y - 112, w: 108, h: 50 };
   }
 
+  getEnemyImages() {
+    const enemies = this.images.enemies || {};
+    return enemies[this.enemyType] || enemies.dogRegime || {
+      idle: this.images.dogIdle,
+      walk: this.images.dogWalk,
+      attack: this.images.dogAttack,
+      dead: this.images.dogDead
+    };
+  }
+
   getImage() {
-    if (!this.alive) return this.images.dogDead;
-    if (this.state === 'attack') return this.attackTimer < GAME_CONFIG.enemyWindupMs ? this.images.dogAttack[0] : this.images.dogAttack[1];
-    if (this.hitStun > 0) return this.images.dogIdle;
-    return this.images.dogWalk[this.walkFrame] || this.images.dogIdle;
+    const enemyImages = this.getEnemyImages();
+    if (!this.alive) return enemyImages.dead;
+    if (this.state === 'attack') return this.attackTimer < GAME_CONFIG.enemyWindupMs ? enemyImages.attack[0] : enemyImages.attack[1];
+    if (this.hitStun > 0) return enemyImages.idle;
+    return enemyImages.walk[this.walkFrame] || enemyImages.idle;
   }
 
   draw(ctx, debug = false) {
     const img = this.getImage();
     if (!img) return;
-    const scale = GAME_CONFIG.enemyScale;
+    const scale = this.scale || GAME_CONFIG.enemyScale;
     const w = img.width * scale;
     const h = img.height * scale;
 
@@ -171,7 +184,7 @@ class DogRegimeEnemy {
       const by = this.y - h - 12;
       ctx.fillStyle = '#220000';
       ctx.fillRect(bx, by, 76, 6);
-      ctx.fillStyle = this.hp > 55 ? 'lime' : this.hp > 25 ? 'yellow' : 'red';
+      ctx.fillStyle = this.hp > this.maxHp * 0.6 ? 'lime' : this.hp > this.maxHp * 0.28 ? 'yellow' : 'red';
       ctx.fillRect(bx, by, 76 * Math.max(0, this.hp / this.maxHp), 6);
     }
 
