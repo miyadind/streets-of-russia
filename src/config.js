@@ -5,6 +5,11 @@ const GAME_CONFIG = {
 
   adminTuningEnabled: true,
 
+  settings: {
+    difficulty: 'normal',
+    soundEnabled: true
+  },
+
   laneTop: 515,
   laneBottom: 675,
 
@@ -39,6 +44,13 @@ const GAME_CONFIG = {
       hp: 90,
       speed: 1.35,
       damage: 10
+    },
+    sucker: {
+      name: 'Sucker',
+      hp: 180,
+      speed: 1.15,
+      damage: 18,
+      scale: 0.13
     }
   },
 
@@ -79,7 +91,13 @@ const GAME_CONFIG = {
         {
           trigger: 'onEnter',
           enemies: [
-            { type: 'dogRegime', count: 3, side: 'right' }
+            { type: 'dogRegime', count: 2, side: 'right' }
+          ]
+        },
+        {
+          trigger: 'afterWaveCleared',
+          enemies: [
+            { type: 'sucker', count: 1, side: 'right' }
           ]
         }
       ]
