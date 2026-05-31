@@ -143,7 +143,18 @@ class Player {
 
   canCounterSlide(enemy) {
     if (this.state !== 'attack') return false;
-    if (!Combat.sameLane(this.y, enemy.y, GAME_CONFIG.enemyAttackRangeY)) return false;
+
+    const config = GAME_CONFIG.enemies.sucker || {};
+    const counterRangeX = config.counterRangeX || 120;
+    const counterRangeY = config.counterRangeY || GAME_CONFIG.enemyAttackRangeY;
+    const dx = enemy.x - this.x;
+    const dy = enemy.y - this.y;
+    const facingEnemy = Math.sign(dx || this.facing) === this.facing;
+
+    if (!facingEnemy) return false;
+    if (Math.abs(dy) > counterRangeY) return false;
+    if (Math.abs(dx) <= counterRangeX) return true;
+
     return Combat.overlap(this.getHitbox(), enemy.getHurtbox());
   }
 
@@ -207,6 +218,11 @@ class Player {
       ctx.strokeStyle = 'lime';
       ctx.lineWidth = 2;
       ctx.strokeRect(hb.x, hb.y, hb.w, hb.h);
+
+      const counterRangeX = (GAME_CONFIG.enemies.sucker && GAME_CONFIG.enemies.sucker.counterRangeX) || 120;
+      const counterRangeY = (GAME_CONFIG.enemies.sucker && GAME_CONFIG.enemies.sucker.counterRangeY) || GAME_CONFIG.enemyAttackRangeY;
+      ctx.strokeStyle = 'rgba(0,255,255,0.75)';
+      ctx.strokeRect(this.x + (this.facing === 1 ? 0 : -counterRangeX), this.y - counterRangeY, counterRangeX, counterRangeY * 2);
     }
   }
 }
