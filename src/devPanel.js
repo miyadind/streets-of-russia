@@ -34,13 +34,14 @@ const DevPanel = {
       { label: 'Sucker HP', path: 'enemies.sucker.hp', min: 20, max: 500, step: 5 },
       { label: 'Sucker damage', path: 'enemies.sucker.damage', min: 1, max: 60, step: 1 },
       { label: 'Sucker scale', path: 'enemies.sucker.scale', min: 0.05, max: 0.25, step: 0.005 },
-      { label: 'Slide speed', path: 'enemies.sucker.slideSpeed', min: 2, max: 18, step: 0.25 },
-      { label: 'Slide range', path: 'enemies.sucker.slideRange', min: 120, max: 900, step: 20 },
-      { label: 'Preferred dist', path: 'enemies.sucker.preferredDistance', min: 120, max: 700, step: 10 },
-      { label: 'Min dist', path: 'enemies.sucker.minDistance', min: 60, max: 500, step: 10 },
+      { label: 'Attack start dist', path: 'enemies.sucker.attackStartDistance', min: 100, max: 900, step: 20 },
+      { label: 'Min dist', path: 'enemies.sucker.minDistance', min: 40, max: 500, step: 10 },
       { label: 'Align Y', path: 'enemies.sucker.alignToleranceY', min: 8, max: 90, step: 2 },
+      { label: 'Slide speed', path: 'enemies.sucker.slideSpeed', min: 2, max: 24, step: 0.25 },
+      { label: 'Slide range', path: 'enemies.sucker.slideRange', min: 120, max: 1100, step: 20 },
       { label: 'Windup ms', path: 'enemies.sucker.windupMs', min: 80, max: 1200, step: 20 },
       { label: 'Recovery ms', path: 'enemies.sucker.slideRecoveryMs', min: 100, max: 1400, step: 20 },
+      { label: 'Interrupt recovery', path: 'enemies.sucker.interruptedRecoveryMs', min: 100, max: 2000, step: 25 },
       { label: 'Pin ms', path: 'enemies.sucker.pinDurationMs', min: 400, max: 3500, step: 50 },
       { label: 'Bite tick', path: 'enemies.sucker.biteTickMs', min: 150, max: 1200, step: 25 },
       { label: 'Bite damage', path: 'enemies.sucker.biteDamage', min: 1, max: 40, step: 1 },
@@ -566,12 +567,20 @@ const DevPanel = {
     try {
       const data = JSON.parse(saved);
       this.deepMerge(GAME_CONFIG, data);
+      this.migrateConfig();
       this.ensureLevels();
       this.setStatus('Loaded saved tuning');
     } catch (error) {
       console.warn('Failed to load tuning', error);
       this.setStatus('Failed to load saved tuning');
     }
+  },
+
+  migrateConfig() {
+    const sucker = GAME_CONFIG.enemies && GAME_CONFIG.enemies.sucker;
+    if (!sucker) return;
+    if (sucker.attackStartDistance === undefined && sucker.preferredDistance !== undefined) sucker.attackStartDistance = sucker.preferredDistance;
+    if (sucker.interruptedRecoveryMs === undefined) sucker.interruptedRecoveryMs = sucker.slideRecoveryMs || 900;
   },
 
   reset(game) {
