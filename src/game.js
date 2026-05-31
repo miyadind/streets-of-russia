@@ -24,6 +24,7 @@ class GameApp {
       street0: Assets.backgrounds.level1[0],
       street1: Assets.backgrounds.level1[1],
       street2: Assets.backgrounds.level1[2],
+
       borisIdle: Assets.boris.idle,
       borisWalk0: Assets.boris.walk[0],
       borisWalk1: Assets.boris.walk[1],
@@ -31,12 +32,28 @@ class GameApp {
       borisPunch0: Assets.boris.punch[0],
       borisPunch1: Assets.boris.punch[1],
       borisPunch2: Assets.boris.punch[2],
+
+      alexeyIdle: Assets.alexey.idle,
+      alexeyWalk0: Assets.alexey.walk[0],
+      alexeyWalk1: Assets.alexey.walk[1],
+      alexeyWalk2: Assets.alexey.walk[2],
+      alexeyPunch0: Assets.alexey.punch[0],
+      alexeyPunch1: Assets.alexey.punch[1],
+      alexeyPunch2: Assets.alexey.punch[2],
+
       dogIdle: Assets.dog.idle,
       dogWalk0: Assets.dog.walk[0],
       dogWalk1: Assets.dog.walk[1],
       dogAttack0: Assets.dog.attack[0],
       dogAttack1: Assets.dog.attack[1],
-      dogDead: Assets.dog.dead
+      dogDead: Assets.dog.dead,
+
+      suckerIdle: Assets.sucker.idle,
+      suckerWalk0: Assets.sucker.walk[0],
+      suckerWalk1: Assets.sucker.walk[1],
+      suckerAttack0: Assets.sucker.attack[0],
+      suckerAttack1: Assets.sucker.attack[1],
+      suckerDead: Assets.sucker.dead
     };
 
     const loaded = {};
@@ -49,10 +66,46 @@ class GameApp {
     })));
 
     loaded.streets = [loaded.street0, loaded.street1, loaded.street2];
-    loaded.borisWalk = [loaded.borisWalk0, loaded.borisWalk1, loaded.borisWalk2];
-    loaded.borisPunch = [loaded.borisPunch0, loaded.borisPunch1, loaded.borisPunch2];
+
+    loaded.heroes = {
+      boris: {
+        idle: loaded.borisIdle,
+        walk: [loaded.borisWalk0, loaded.borisWalk1, loaded.borisWalk2],
+        punch: [loaded.borisPunch0, loaded.borisPunch1, loaded.borisPunch2]
+      },
+      alexey: {
+        idle: loaded.alexeyIdle || loaded.borisIdle,
+        walk: [loaded.alexeyWalk0, loaded.alexeyWalk1, loaded.alexeyWalk2],
+        punch: [loaded.alexeyPunch0, loaded.alexeyPunch1, loaded.alexeyPunch2]
+      },
+      anna: {
+        idle: loaded.borisIdle,
+        walk: [loaded.borisWalk0, loaded.borisWalk1, loaded.borisWalk2],
+        punch: [loaded.borisPunch0, loaded.borisPunch1, loaded.borisPunch2]
+      }
+    };
+
+    loaded.borisWalk = loaded.heroes.boris.walk;
+    loaded.borisPunch = loaded.heroes.boris.punch;
+
     loaded.dogWalk = [loaded.dogWalk0, loaded.dogWalk1];
     loaded.dogAttack = [loaded.dogAttack0, loaded.dogAttack1];
+
+    loaded.enemies = {
+      dogRegime: {
+        idle: loaded.dogIdle,
+        walk: [loaded.dogWalk0, loaded.dogWalk1],
+        attack: [loaded.dogAttack0, loaded.dogAttack1],
+        dead: loaded.dogDead
+      },
+      sucker: {
+        idle: loaded.suckerIdle || loaded.dogIdle,
+        walk: [loaded.suckerWalk0 || loaded.dogWalk0, loaded.suckerWalk1 || loaded.dogWalk1],
+        attack: [loaded.suckerAttack0 || loaded.dogAttack0, loaded.suckerAttack1 || loaded.dogAttack1],
+        dead: loaded.suckerDead || loaded.dogDead
+      }
+    };
+
     return loaded;
   }
 
@@ -74,9 +127,11 @@ class GameApp {
 
     if (this.state === 'splash') {
       const click = Input.consumePointer();
-      if (Input.consume('enter') || Input.consume('space') || click) this.setState('mainMenu');
+      if (Input.consumeAnyKey() || click) this.setState('mainMenu');
     } else if (this.state === 'mainMenu') {
       Menu.update(this);
+    } else if (this.state === 'settings') {
+      Menu.updateSettings(this);
     } else if (this.state === 'characterSelect') {
       CharacterSelect.update(this);
     } else if (this.state === 'level' && this.scene) {
@@ -99,6 +154,8 @@ class GameApp {
       Menu.drawSplash(ctx, this.images);
     } else if (this.state === 'mainMenu') {
       Menu.draw(ctx, this.images);
+    } else if (this.state === 'settings') {
+      Menu.drawSettings(ctx, this.images);
     } else if (this.state === 'characterSelect') {
       CharacterSelect.draw(ctx, this.images);
     } else if (this.state === 'level' && this.scene) {
@@ -114,7 +171,7 @@ class GameApp {
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 34px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('LOADING...', GAME_CONFIG.width / 2, GAME_CONFIG.height / 2);
+    ctx.fillText('ЗАГРУЗКА...', GAME_CONFIG.width / 2, GAME_CONFIG.height / 2);
     ctx.textAlign = 'left';
   }
 
