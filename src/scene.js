@@ -9,16 +9,92 @@ class LevelScene {
     this.encounterActive = false;
     this.encounterCleared = false;
     this.debug = false;
-    this.spawnEncounter();
+    this.currentWaveIndex = -1;
+    this.spawnInitialWave();
   }
 
-  spawnEncounter() {
-    this.enemies = [
-      new DogRegimeEnemy(760, 548, this.images, 0),
-      new DogRegimeEnemy(845, 660, this.images, 1)
-    ];
-    this.encounterActive = true;
+  getLevelKey() {
+    return GAME_CONFIG.levelOrder[this.screenIndex] || 'street01';
+  }
+
+  getLevelConfig() {
+    return GAME_CONFIG.levels[this.getLevelKey()] || GAME_CONFIG.levels.street01;
+  }
+
+  spawnInitialWave() {
+    this.currentWaveIndex = -1;
+    this.enemies = [];
+    this.encounterActive = false;
     this.encounterCleared = false;
+    this.spawnNextWave('onEnter');
+  }
+
+  spawnNextWave(expectedTrigger = 'afterWaveCleared') {
+    const level = this.getLevelConfig();
+    const waves = level.waves || [];
+
+    for (let i = this.currentWaveIndex + 1; i < waves.length; i++) {
+      const wave = waves[i];
+      if (wave.trigger !== expectedTrigger) continue;
+      this.currentWaveIndex = i;
+      this.spawnWave(wave);
+      this.encounterActive = true;
+      this.encounterCleared = false;
+      return true;
+    }
+
+    this.encounterActive = false;
+    this.encounterCleared = true;
+    return false;
+  }
+
+  spawnWave(wave) {
+    this.enemies = [];
+    let enemyId = 0;
+
+    for (const group of wave.enemies || []) {
+      const count = Math.max(0, Number(group.count) || 0);
+      for (let i = 0; i < count; i++) {
+        const spawn = this.getSpawnPoint(group.side, i, count);
+        const enemy = this.createEnemy(group.type, spawn.x, spawn.y, enemyId);
+        if (enemy) {
+          this.enemies.push(enemy);
+          enemyId += 1;
+        }
+      }
+    }
+  }
+
+  createEnemy(type, x, y, id) {
+    if (type === 'dogRegime') return new DogRegimeEnemy(x, y, this.images, id);
+    console.warn('Unknown enemy type:', type);
+    return null;
+  }
+
+  getSpawnPoint(side, index, count) {
+    const safeSide = side || 'right';
+    const rowRatio = count <= 1 ? 0.5 : index / Math.max(1, count - 1);
+    const y = GAME_CONFIG.laneTop + 28 + rowRatio * (GAME_CONFIG.laneBottom - GAME_CONFIG.laneTop - 56);
+
+    if (safeSide === 'left') {
+      return { x: 120 + index * 34, y };
+    }
+
+    if (safeSide === 'both') {
+      const fromLeft = index % 2 === 0;
+      return {
+        x: fromLeft ? 110 + index * 18 : GAME_CONFIG.width - 110 - index * 18,
+        y
+      };
+    }
+
+    return { x: GAME_CONFIG.width - 130 - index * 34, y };
+  }
+
+  restartCurrentLevel() {
+    this.player.x = 190;
+    this.player.y = 620;
+    this.spawnInitialWave();
   }
 
   nextScreen() {
@@ -26,7 +102,7 @@ class LevelScene {
       this.screenIndex += 1;
       this.player.x = 190;
       this.player.y = 620;
-      this.spawnEncounter();
+      this.spawnInitialWave();
     } else {
       this.game.setState('mainMenu');
     }
@@ -47,8 +123,11 @@ class LevelScene {
     this.enemies = this.enemies.filter(enemy => !enemy.remove);
 
     if (this.encounterActive && !this.enemies.some(enemy => enemy.alive)) {
-      this.encounterActive = false;
-      this.encounterCleared = true;
+      const spawnedNext = this.spawnNextWave('afterWaveCleared');
+      if (!spawnedNext) {
+        this.encounterActive = false;
+        this.encounterCleared = true;
+      }
     }
 
     if (this.encounterCleared && this.player.x > GAME_CONFIG.width - 95) {
