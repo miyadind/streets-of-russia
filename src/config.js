@@ -43,14 +43,26 @@ const GAME_CONFIG = {
       name: 'Пёс режима',
       hp: 90,
       speed: 1.35,
-      damage: 10
+      damage: 10,
+      scale: 0.105
     },
     sucker: {
       name: 'Sucker',
       hp: 180,
       speed: 1.15,
-      damage: 18,
-      scale: 0.13
+      damage: 12,
+      scale: 0.13,
+      preferredDistance: 360,
+      minDistance: 220,
+      alignToleranceY: 30,
+      slideSpeed: 8.5,
+      slideRange: 520,
+      windupMs: 420,
+      slideRecoveryMs: 560,
+      pinDurationMs: 1700,
+      biteTickMs: 450,
+      biteDamage: 6,
+      otherEnemyScatterDistance: 120
     }
   },
 
