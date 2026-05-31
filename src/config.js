@@ -44,7 +44,19 @@ const GAME_CONFIG = {
       hp: 90,
       speed: 1.35,
       damage: 10,
-      scale: 0.105
+      scale: 0.105,
+      minDistanceX: 54,
+      preferredDistanceX: 92,
+      attackRangeX: 72,
+      attackRangeY: 34,
+      maxAttackers: 1,
+      decisionMinMs: 350,
+      decisionMaxMs: 850,
+      strafeChance: 0.45,
+      retreatChance: 0.22,
+      attackChance: 0.55,
+      slotSpacingX: 72,
+      slotSpacingY: 34
     },
     sucker: {
       name: 'Sucker',
