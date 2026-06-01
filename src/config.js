@@ -9,6 +9,7 @@ const GAME_CONFIG = {
     difficulty: 'normal',
     soundEnabled: true,
     musicEnabled: true,
+    sfxEnabled: true,
     sfxVolume: 0.85,
     musicVolume: 0.45
   },
