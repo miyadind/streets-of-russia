@@ -43,6 +43,15 @@ class GameApp {
       alexeyPunch2: Assets.alexey.punch[2],
       alexeyKnockdown: Assets.alexey.knockdown,
 
+      annaIdle: Assets.anna.idle,
+      annaWalk0: Assets.anna.walk[0],
+      annaWalk1: Assets.anna.walk[1],
+      annaWalk2: Assets.anna.walk[2],
+      annaPunch0: Assets.anna.punch[0],
+      annaPunch1: Assets.anna.punch[1],
+      annaPunch2: Assets.anna.punch[2],
+      annaKnockdown: Assets.anna.knockdown,
+
       dogIdle: Assets.dog.idle,
       dogWalk0: Assets.dog.walk[0],
       dogWalk1: Assets.dog.walk[1],
@@ -58,7 +67,13 @@ class GameApp {
       suckerSlide: Assets.sucker.slide,
       suckerBite0: Assets.sucker.bite[0],
       suckerBite1: Assets.sucker.bite[1],
-      suckerDead: Assets.sucker.dead
+      suckerDead: Assets.sucker.dead,
+
+      bastardIdle: Assets.bastard.idle,
+      bastardFall: Assets.bastard.fall,
+      bastardWalk0: Assets.bastard.walk[0],
+      bastardWalk1: Assets.bastard.walk[1],
+      bastardWalk2: Assets.bastard.walk[2]
     };
 
     const loaded = {};
@@ -81,15 +96,15 @@ class GameApp {
       },
       alexey: {
         idle: loaded.alexeyIdle || loaded.borisIdle,
-        walk: [loaded.alexeyWalk0, loaded.alexeyWalk1, loaded.alexeyWalk2],
-        punch: [loaded.alexeyPunch0, loaded.alexeyPunch1, loaded.alexeyPunch2],
+        walk: [loaded.alexeyWalk0 || loaded.borisWalk0, loaded.alexeyWalk1 || loaded.borisWalk1, loaded.alexeyWalk2 || loaded.borisWalk2],
+        punch: [loaded.alexeyPunch0 || loaded.borisPunch0, loaded.alexeyPunch1 || loaded.borisPunch1, loaded.alexeyPunch2 || loaded.borisPunch2],
         knockdown: loaded.alexeyKnockdown || loaded.alexeyIdle || loaded.borisIdle
       },
       anna: {
-        idle: loaded.borisIdle,
-        walk: [loaded.borisWalk0, loaded.borisWalk1, loaded.borisWalk2],
-        punch: [loaded.borisPunch0, loaded.borisPunch1, loaded.borisPunch2],
-        knockdown: loaded.borisKnockdown || loaded.borisIdle
+        idle: loaded.annaIdle || loaded.borisIdle,
+        walk: [loaded.annaWalk0 || loaded.borisWalk0, loaded.annaWalk1 || loaded.borisWalk1, loaded.annaWalk2 || loaded.borisWalk2],
+        punch: [loaded.annaPunch0 || loaded.borisPunch0, loaded.annaPunch1 || loaded.borisPunch1, loaded.annaPunch2 || loaded.borisPunch2],
+        knockdown: loaded.annaKnockdown || loaded.annaIdle || loaded.borisKnockdown || loaded.borisIdle
       }
     };
 
@@ -113,6 +128,15 @@ class GameApp {
         slide: loaded.suckerSlide || loaded.suckerAttack0 || loaded.dogAttack0,
         bite: [loaded.suckerBite0 || loaded.suckerAttack0 || loaded.dogAttack0, loaded.suckerBite1 || loaded.suckerAttack1 || loaded.dogAttack1],
         dead: loaded.suckerDead || loaded.dogDead
+      },
+      bastard: {
+        idle: loaded.bastardIdle || loaded.dogIdle,
+        fall: loaded.bastardFall || loaded.dogDead || loaded.bastardIdle || loaded.dogIdle,
+        walk: [
+          loaded.bastardWalk0 || loaded.bastardIdle || loaded.dogWalk0,
+          loaded.bastardWalk1 || loaded.bastardIdle || loaded.dogWalk1,
+          loaded.bastardWalk2 || loaded.bastardIdle || loaded.dogWalk0
+        ]
       }
     };
 
