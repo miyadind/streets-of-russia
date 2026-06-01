@@ -23,4 +23,6 @@
   add({ label: 'Attack chance', path: 'enemies.dogRegime.attackChance', min: 0, max: 1, step: 0.05 });
   add({ label: 'Slot spacing X', path: 'enemies.dogRegime.slotSpacingX', min: 0, max: 180, step: 4 });
   add({ label: 'Slot spacing Y', path: 'enemies.dogRegime.slotSpacingY', min: 0, max: 120, step: 4 });
+  add({ label: 'Flank distance X', path: 'enemies.dogRegime.flankDistanceX', min: 60, max: 240, step: 4 });
+  add({ label: 'Pressure distance X', path: 'enemies.dogRegime.pressureDistanceX', min: 80, max: 320, step: 4 });
 })();
