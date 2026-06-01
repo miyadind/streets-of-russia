@@ -150,8 +150,10 @@ const DevPanel = {
     const group = this.getSelectedEnemyGroup(wave);
     const enemyTypes = this.getEnemyTypes();
 
-    if (this.inRect(point, r.levelPrev)) { this.selectedLevelIndex = this.wrap(this.selectedLevelIndex - 1, levelKeys.length); this.selectedWaveIndex = 0; this.selectedGroupIndex = 0; this.setStatus('Level: ' + this.getSelectedLevelKey()); return true; }
-    if (this.inRect(point, r.levelNext)) { this.selectedLevelIndex = this.wrap(this.selectedLevelIndex + 1, levelKeys.length); this.selectedWaveIndex = 0; this.selectedGroupIndex = 0; this.setStatus('Level: ' + this.getSelectedLevelKey()); return true; }
+    if (this.inRect(point, r.levelPrev)) { this.selectedLevelIndex = this.wrap(this.selectedLevelIndex - 1, levelKeys.length); this.selectedWaveIndex = 0; this.selectedGroupIndex = 0; this.applyLevelMusic(game); this.setStatus('Level: ' + this.getSelectedLevelKey()); return true; }
+    if (this.inRect(point, r.levelNext)) { this.selectedLevelIndex = this.wrap(this.selectedLevelIndex + 1, levelKeys.length); this.selectedWaveIndex = 0; this.selectedGroupIndex = 0; this.applyLevelMusic(game); this.setStatus('Level: ' + this.getSelectedLevelKey()); return true; }
+    if (this.inRect(point, r.musicPrev)) { this.changeLevelMusic(-1, game); return true; }
+    if (this.inRect(point, r.musicNext)) { this.changeLevelMusic(1, game); return true; }
     if (this.inRect(point, r.wavePrev)) { this.selectedWaveIndex = Math.max(0, this.selectedWaveIndex - 1); this.selectedGroupIndex = 0; this.setStatus('Wave: ' + (this.selectedWaveIndex + 1)); return true; }
     if (this.inRect(point, r.waveNext)) { this.selectedWaveIndex = Math.min(level.waves.length - 1, this.selectedWaveIndex + 1); this.selectedGroupIndex = 0; this.setStatus('Wave: ' + (this.selectedWaveIndex + 1)); return true; }
     if (this.inRect(point, r.groupPrev)) { this.selectedGroupIndex = Math.max(0, this.selectedGroupIndex - 1); this.setStatus('Group: ' + (this.selectedGroupIndex + 1)); return true; }
@@ -226,7 +228,7 @@ const DevPanel = {
     ctx.fillText('DEVELOPER PANEL', panel.x + 22, panel.y + 38);
     ctx.font = '13px Arial';
     ctx.fillStyle = '#aaa';
-    ctx.fillText('Tabs: balance, enemies, and level waves. SAVE stores in localStorage. EXPORT prints JSON.', panel.x + 22, panel.y + 58);
+    ctx.fillText('Tabs: balance, enemies, level waves, and per-level music. SAVE stores in localStorage.', panel.x + 22, panel.y + 58);
 
     this.drawButton(ctx, panel.x + panel.w - 78, panel.y + 14, 56, 32, 'X');
     this.drawTabs(ctx);
@@ -287,6 +289,7 @@ const DevPanel = {
     const wave = this.getSelectedWave();
     const group = this.getSelectedEnemyGroup(wave);
     const levelKey = this.getSelectedLevelKey();
+    const musicKeys = this.getMusicKeys();
 
     ctx.fillStyle = 'rgba(255,255,255,0.06)';
     ctx.fillRect(r.box.x, r.box.y, r.box.w, r.box.h);
@@ -302,28 +305,33 @@ const DevPanel = {
     this.drawButton(ctx, r.levelNext.x, r.levelNext.y, r.levelNext.w, r.levelNext.h, '>');
     this.drawValue(ctx, levelKey + ' / ' + level.name, r.box.x + 145, r.box.y + 76);
 
-    this.drawRowLabel(ctx, 'Wave:', r.box.x + 24, r.box.y + 118);
+    this.drawRowLabel(ctx, 'Music:', r.box.x + 24, r.box.y + 118);
+    this.drawButton(ctx, r.musicPrev.x, r.musicPrev.y, r.musicPrev.w, r.musicPrev.h, '<');
+    this.drawButton(ctx, r.musicNext.x, r.musicNext.y, r.musicNext.w, r.musicNext.h, '>');
+    this.drawValue(ctx, (level.music || 'levelTheme') + '  [' + musicKeys.length + ' tracks]', r.box.x + 145, r.box.y + 118);
+
+    this.drawRowLabel(ctx, 'Wave:', r.box.x + 24, r.box.y + 160);
     this.drawButton(ctx, r.wavePrev.x, r.wavePrev.y, r.wavePrev.w, r.wavePrev.h, '<');
     this.drawButton(ctx, r.waveNext.x, r.waveNext.y, r.waveNext.w, r.waveNext.h, '>');
-    this.drawValue(ctx, String(this.selectedWaveIndex + 1) + ' / ' + level.waves.length, r.box.x + 145, r.box.y + 118);
+    this.drawValue(ctx, String(this.selectedWaveIndex + 1) + ' / ' + level.waves.length, r.box.x + 145, r.box.y + 160);
 
-    this.drawRowLabel(ctx, 'Group:', r.box.x + 24, r.box.y + 160);
+    this.drawRowLabel(ctx, 'Group:', r.box.x + 24, r.box.y + 202);
     this.drawButton(ctx, r.groupPrev.x, r.groupPrev.y, r.groupPrev.w, r.groupPrev.h, '<');
     this.drawButton(ctx, r.groupNext.x, r.groupNext.y, r.groupNext.w, r.groupNext.h, '>');
-    this.drawValue(ctx, String(this.selectedGroupIndex + 1) + ' / ' + wave.enemies.length, r.box.x + 145, r.box.y + 160);
+    this.drawValue(ctx, String(this.selectedGroupIndex + 1) + ' / ' + wave.enemies.length, r.box.x + 145, r.box.y + 202);
 
-    this.drawRowLabel(ctx, 'Enemy type:', r.box.x + 24, r.box.y + 206);
+    this.drawRowLabel(ctx, 'Enemy type:', r.box.x + 24, r.box.y + 248);
     this.drawButton(ctx, r.typeBtn.x, r.typeBtn.y, r.typeBtn.w, r.typeBtn.h, group.type);
 
-    this.drawRowLabel(ctx, 'Count:', r.box.x + 24, r.box.y + 252);
+    this.drawRowLabel(ctx, 'Count:', r.box.x + 24, r.box.y + 294);
     this.drawButton(ctx, r.countMinus.x, r.countMinus.y, r.countMinus.w, r.countMinus.h, '-');
     this.drawButton(ctx, r.countPlus.x, r.countPlus.y, r.countPlus.w, r.countPlus.h, '+');
-    this.drawValue(ctx, String(group.count), r.box.x + 145, r.box.y + 252);
+    this.drawValue(ctx, String(group.count), r.box.x + 145, r.box.y + 294);
 
-    this.drawRowLabel(ctx, 'Side:', r.box.x + 24, r.box.y + 298);
+    this.drawRowLabel(ctx, 'Side:', r.box.x + 24, r.box.y + 340);
     this.drawButton(ctx, r.sideBtn.x, r.sideBtn.y, r.sideBtn.w, r.sideBtn.h, String(group.side).toUpperCase());
 
-    this.drawRowLabel(ctx, 'Trigger:', r.box.x + 24, r.box.y + 344);
+    this.drawRowLabel(ctx, 'Trigger:', r.box.x + 24, r.box.y + 386);
     this.drawButton(ctx, r.triggerBtn.x, r.triggerBtn.y, r.triggerBtn.w, r.triggerBtn.h, wave.trigger);
 
     this.drawButton(ctx, r.addGroup.x, r.addGroup.y, r.addGroup.w, r.addGroup.h, 'ADD GROUP');
@@ -392,23 +400,25 @@ const DevPanel = {
     const x = panel.x + 36;
     const y = panel.y + 124;
     return {
-      box: { x, y, w: 700, h: 450 },
+      box: { x, y, w: 700, h: 492 },
       levelPrev: { x: x + 92, y: y + 54, w: 36, h: 26 },
       levelNext: { x: x + 642, y: y + 54, w: 36, h: 26 },
-      wavePrev: { x: x + 92, y: y + 96, w: 36, h: 26 },
-      waveNext: { x: x + 190, y: y + 96, w: 36, h: 26 },
-      groupPrev: { x: x + 92, y: y + 138, w: 36, h: 26 },
-      groupNext: { x: x + 190, y: y + 138, w: 36, h: 26 },
-      typeBtn: { x: x + 132, y: y + 184, w: 160, h: 30 },
-      countMinus: { x: x + 100, y: y + 230, w: 36, h: 26 },
-      countPlus: { x: x + 180, y: y + 230, w: 36, h: 26 },
-      sideBtn: { x: x + 132, y: y + 276, w: 160, h: 30 },
-      triggerBtn: { x: x + 132, y: y + 322, w: 210, h: 30 },
-      addGroup: { x: x + 24, y: y + 386, w: 110, h: 34 },
-      removeGroup: { x: x + 146, y: y + 386, w: 110, h: 34 },
-      addWave: { x: x + 280, y: y + 386, w: 110, h: 34 },
-      removeWave: { x: x + 402, y: y + 386, w: 110, h: 34 },
-      copyWave: { x: x + 524, y: y + 386, w: 110, h: 34 }
+      musicPrev: { x: x + 92, y: y + 96, w: 36, h: 26 },
+      musicNext: { x: x + 642, y: y + 96, w: 36, h: 26 },
+      wavePrev: { x: x + 92, y: y + 138, w: 36, h: 26 },
+      waveNext: { x: x + 190, y: y + 138, w: 36, h: 26 },
+      groupPrev: { x: x + 92, y: y + 180, w: 36, h: 26 },
+      groupNext: { x: x + 190, y: y + 180, w: 36, h: 26 },
+      typeBtn: { x: x + 132, y: y + 226, w: 160, h: 30 },
+      countMinus: { x: x + 100, y: y + 272, w: 36, h: 26 },
+      countPlus: { x: x + 180, y: y + 272, w: 36, h: 26 },
+      sideBtn: { x: x + 132, y: y + 318, w: 160, h: 30 },
+      triggerBtn: { x: x + 132, y: y + 364, w: 210, h: 30 },
+      addGroup: { x: x + 24, y: y + 428, w: 110, h: 34 },
+      removeGroup: { x: x + 146, y: y + 428, w: 110, h: 34 },
+      addWave: { x: x + 280, y: y + 428, w: 110, h: 34 },
+      removeWave: { x: x + 402, y: y + 428, w: 110, h: 34 },
+      copyWave: { x: x + 524, y: y + 428, w: 110, h: 34 }
     };
   },
 
@@ -431,6 +441,28 @@ const DevPanel = {
     return Object.keys(GAME_CONFIG.enemies || {});
   },
 
+  getMusicKeys() {
+    const keys = Object.keys((Assets.audio && Assets.audio.music) || {});
+    return keys.length ? keys : ['levelTheme'];
+  },
+
+  changeLevelMusic(direction, game) {
+    const level = this.getSelectedLevel();
+    const musicKeys = this.getMusicKeys();
+    const current = level.music || 'levelTheme';
+    const currentIndex = Math.max(0, musicKeys.indexOf(current));
+    level.music = musicKeys[this.wrap(currentIndex + direction, musicKeys.length)];
+    this.applyLevelMusic(game);
+    this.setStatus('Level music: ' + level.music);
+  },
+
+  applyLevelMusic(game) {
+    const level = this.getSelectedLevel();
+    if (game && game.scene && game.scene.getLevelKey && game.scene.getLevelKey() === this.getSelectedLevelKey()) {
+      AudioManager.playMusic(level.music || 'levelTheme', true);
+    }
+  },
+
   getLevelKeys() {
     this.ensureLevels();
     return GAME_CONFIG.levelOrder || Object.keys(GAME_CONFIG.levels);
@@ -445,6 +477,7 @@ const DevPanel = {
   getSelectedLevel() {
     const key = this.getSelectedLevelKey();
     if (!GAME_CONFIG.levels[key]) GAME_CONFIG.levels[key] = { name: key, waves: [] };
+    if (!GAME_CONFIG.levels[key].music) GAME_CONFIG.levels[key].music = 'levelTheme';
     if (!GAME_CONFIG.levels[key].waves || GAME_CONFIG.levels[key].waves.length === 0) {
       GAME_CONFIG.levels[key].waves = [this.createDefaultWave('onEnter')];
     }
@@ -526,7 +559,8 @@ const DevPanel = {
     if (!GAME_CONFIG.levelOrder) GAME_CONFIG.levelOrder = ['street01', 'street02', 'street03'];
     if (!GAME_CONFIG.levels) GAME_CONFIG.levels = {};
     for (const key of GAME_CONFIG.levelOrder) {
-      if (!GAME_CONFIG.levels[key]) GAME_CONFIG.levels[key] = { name: key, waves: [this.createDefaultWave('onEnter')] };
+      if (!GAME_CONFIG.levels[key]) GAME_CONFIG.levels[key] = { name: key, music: 'levelTheme', waves: [this.createDefaultWave('onEnter')] };
+      if (!GAME_CONFIG.levels[key].music) GAME_CONFIG.levels[key].music = 'levelTheme';
       if (!GAME_CONFIG.levels[key].waves || GAME_CONFIG.levels[key].waves.length === 0) {
         GAME_CONFIG.levels[key].waves = [this.createDefaultWave('onEnter')];
       }
@@ -578,9 +612,11 @@ const DevPanel = {
 
   migrateConfig() {
     const sucker = GAME_CONFIG.enemies && GAME_CONFIG.enemies.sucker;
-    if (!sucker) return;
-    if (sucker.attackStartDistance === undefined && sucker.preferredDistance !== undefined) sucker.attackStartDistance = sucker.preferredDistance;
-    if (sucker.interruptedRecoveryMs === undefined) sucker.interruptedRecoveryMs = sucker.slideRecoveryMs || 900;
+    if (sucker) {
+      if (sucker.attackStartDistance === undefined && sucker.preferredDistance !== undefined) sucker.attackStartDistance = sucker.preferredDistance;
+      if (sucker.interruptedRecoveryMs === undefined) sucker.interruptedRecoveryMs = sucker.slideRecoveryMs || 900;
+    }
+    this.ensureLevels();
   },
 
   reset(game) {
@@ -597,6 +633,8 @@ const DevPanel = {
 
   exportConfig() {
     const exportData = {
+      settings: GAME_CONFIG.settings,
+      audio: GAME_CONFIG.audio,
       playerScale: GAME_CONFIG.playerScale,
       enemyScale: GAME_CONFIG.enemyScale,
       walkFrameMs: GAME_CONFIG.walkFrameMs,
