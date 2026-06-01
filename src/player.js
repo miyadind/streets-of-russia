@@ -89,6 +89,7 @@ class Player {
 
   startAttack() {
     if (this.state === 'attack' || this.state === 'knockdown' || this.state === 'pinned') return;
+    AudioManager.playSfx('punch', 0.72);
     this.comboStep += 1;
     if (this.comboStep > 3) this.comboStep = 1;
     this.comboTimer = GAME_CONFIG.comboResetMs;
@@ -107,6 +108,7 @@ class Player {
         if (!enemy.alive) continue;
         if (Combat.sameLane(this.y, enemy.y) && Combat.overlap(hitbox, enemy.getHurtbox())) {
           enemy.takeHit(data.damage, this.facing, data.knockback);
+          AudioManager.playSfx(enemy.enemyType === 'bastard' ? 'enemyDown' : 'hit', enemy.enemyType === 'bastard' ? 0.75 : 0.9);
           this.attackHasHit = true;
           scene.hitStop = GAME_CONFIG.playerHitStopMs;
           break;
@@ -160,6 +162,7 @@ class Player {
 
   knockDown(durationMs = 900) {
     if (this.state === 'pinned') return;
+    AudioManager.playSfx('playerDown', 0.85);
     this.state = 'knockdown';
     this.knockdownTimer = durationMs;
     this.pinnedBy = null;
@@ -169,6 +172,7 @@ class Player {
   }
 
   pinBy(enemy, durationMs) {
+    AudioManager.playSfx('playerDown', 0.85);
     this.state = 'pinned';
     this.knockdownTimer = durationMs;
     this.pinnedBy = enemy;
