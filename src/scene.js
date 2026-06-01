@@ -66,15 +66,22 @@ class LevelScene {
     }
   }
 
-  handleWaveAudio(wave) {
-    const hasBoss = (wave.enemies || []).some(group => {
+  getBossMusicKey(wave) {
+    for (const group of wave.enemies || []) {
       const enemyConfig = GAME_CONFIG.enemies[group.type] || {};
-      return enemyConfig.bossMusic === true || group.boss === true;
-    });
+      const isBoss = enemyConfig.bossMusic === true || group.boss === true;
+      if (!isBoss) continue;
+      return group.bossMusicKey || enemyConfig.bossMusicKey || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.boss) || 'bossTheme';
+    }
+    return null;
+  }
 
-    if (hasBoss) {
+  handleWaveAudio(wave) {
+    const bossMusicKey = this.getBossMusicKey(wave);
+
+    if (bossMusicKey) {
       AudioManager.playSfx('bossAppear', 0.9);
-      AudioManager.playMusic((GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.boss) || 'bossTheme', true);
+      AudioManager.playMusic(bossMusicKey, true);
     } else {
       AudioManager.playSfx('waveStart', 0.55);
       const level = this.getLevelConfig();
