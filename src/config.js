@@ -7,7 +7,10 @@ const GAME_CONFIG = {
 
   settings: {
     difficulty: 'normal',
-    soundEnabled: true
+    soundEnabled: true,
+    musicEnabled: true,
+    sfxVolume: 0.85,
+    musicVolume: 0.45
   },
 
   laneTop: 515,
@@ -38,6 +41,25 @@ const GAME_CONFIG = {
     boris: { name: 'Борис', role: 'tank', hp: 160, speed: 2.25, damage: 22, strength: 7, speedStat: 3, health: 8, color: '#5fd65f' }
   },
 
+  audio: {
+    music: {
+      menu: 'menuTheme',
+      level: 'levelTheme',
+      boss: 'bossTheme'
+    },
+    sfx: {
+      menuMove: 'menuMove',
+      menuSelect: 'menuSelect',
+      punch: 'punch',
+      hit: 'hit',
+      enemyDown: 'enemyDown',
+      playerDown: 'playerDown',
+      waveStart: 'waveStart',
+      waveClear: 'waveClear',
+      bossAppear: 'bossAppear'
+    }
+  },
+
   enemies: {
     dogRegime: {
       name: 'Пёс режима',
@@ -66,6 +88,7 @@ const GAME_CONFIG = {
       speed: 1.15,
       damage: 12,
       scale: 0.13,
+      bossMusic: true,
       attackStartDistance: 420,
       minDistance: 220,
       alignToleranceY: 30,
@@ -108,6 +131,7 @@ const GAME_CONFIG = {
   levels: {
     street01: {
       name: 'Street 01',
+      music: 'levelTheme',
       waves: [
         {
           trigger: 'onEnter',
@@ -119,6 +143,7 @@ const GAME_CONFIG = {
     },
     street02: {
       name: 'Street 02',
+      music: 'levelTheme',
       waves: [
         {
           trigger: 'onEnter',
@@ -136,6 +161,7 @@ const GAME_CONFIG = {
     },
     street03: {
       name: 'Street 03',
+      music: 'levelTheme',
       waves: [
         {
           trigger: 'onEnter',
