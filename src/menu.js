@@ -13,13 +13,16 @@ const Menu = {
   update(game) {
     if (Input.consume('arrowup') || Input.consume('w')) {
       this.selectedIndex = (this.selectedIndex + this.items.length - 1) % this.items.length;
+      AudioManager.playSfx('menuMove', 0.75);
     }
     if (Input.consume('arrowdown') || Input.consume('s')) {
       this.selectedIndex = (this.selectedIndex + 1) % this.items.length;
+      AudioManager.playSfx('menuMove', 0.75);
     }
 
     const click = Input.consumePointer();
     if (click) {
+      AudioManager.unlock();
       for (let i = 0; i < this.items.length; i++) {
         const box = this.getItemBox(i);
         if (click.x >= box.x && click.x <= box.x + box.w && click.y >= box.y && click.y <= box.y + box.h) {
@@ -30,17 +33,23 @@ const Menu = {
     }
 
     if (Input.consume('enter') || Input.consume('space')) {
+      AudioManager.unlock();
       this.activate(game);
     }
   },
 
   updateSettings(game) {
-    if (Input.consume('escape')) game.setState('mainMenu');
+    if (Input.consume('escape')) {
+      AudioManager.playSfx('menuSelect', 0.75);
+      game.setState('mainMenu');
+    }
     if (Input.consume('arrowup') || Input.consume('w')) {
       this.settingsIndex = (this.settingsIndex + this.settingsItems.length - 1) % this.settingsItems.length;
+      AudioManager.playSfx('menuMove', 0.75);
     }
     if (Input.consume('arrowdown') || Input.consume('s')) {
       this.settingsIndex = (this.settingsIndex + 1) % this.settingsItems.length;
+      AudioManager.playSfx('menuMove', 0.75);
     }
     if (Input.consume('arrowleft') || Input.consume('a') || Input.consume('arrowright') || Input.consume('d')) {
       this.changeSetting(this.settingsIndex, game);
@@ -48,6 +57,7 @@ const Menu = {
 
     const click = Input.consumePointer();
     if (click) {
+      AudioManager.unlock();
       for (let i = 0; i < this.settingsItems.length; i++) {
         const box = this.getSettingsBox(i);
         if (click.x >= box.x && click.x <= box.x + box.w && click.y >= box.y && click.y <= box.y + box.h) {
@@ -58,24 +68,28 @@ const Menu = {
     }
 
     if (Input.consume('enter') || Input.consume('space')) {
+      AudioManager.unlock();
       this.changeSetting(this.settingsIndex, game);
     }
   },
 
   activate(game) {
     const item = this.items[this.selectedIndex];
+    AudioManager.playSfx('menuSelect', 0.85);
     if (item === 'НОВАЯ ИГРА') game.setState('characterSelect');
     if (item === 'НАСТРОЙКИ') game.setState('settings');
   },
 
   changeSetting(index, game) {
     const item = this.settingsItems[index];
+    AudioManager.playSfx('menuSelect', 0.75);
     if (item === 'СЛОЖНОСТЬ') {
       const current = this.difficulties.indexOf(GAME_CONFIG.settings.difficulty);
       GAME_CONFIG.settings.difficulty = this.difficulties[(current + 1) % this.difficulties.length];
     }
     if (item === 'ЗВУК') {
       GAME_CONFIG.settings.soundEnabled = !GAME_CONFIG.settings.soundEnabled;
+      AudioManager.refreshSettings();
     }
     if (item === 'НАЗАД') {
       game.setState('mainMenu');
