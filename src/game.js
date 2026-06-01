@@ -16,6 +16,7 @@ class GameApp {
     DevPanel.init();
     this.images = await this.loadImages();
     this.setState('splash');
+    AudioManager.playMusic(this.getMenuMusicKey());
     requestAnimationFrame((time) => this.loop(time));
   }
 
@@ -144,6 +145,10 @@ class GameApp {
     return loaded;
   }
 
+  getMenuMusicKey() {
+    return (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.menu) || 'menuTheme';
+  }
+
   setState(nextState) {
     const previousState = this.state;
     this.state = nextState;
@@ -152,7 +157,7 @@ class GameApp {
 
   updateMusicForState(_previousState, nextState) {
     if (nextState === 'splash' || nextState === 'mainMenu' || nextState === 'settings' || nextState === 'characterSelect') {
-      AudioManager.playMusic((GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.menu) || 'menuTheme');
+      AudioManager.playMusic(this.getMenuMusicKey());
       return;
     }
 
@@ -173,24 +178,85 @@ class GameApp {
 
     DevPanel.update(this);
 
+    const click = Input.consumePointer();
+    if (click && this.handleSpeakerClick(click)) return;
+
     if (DevPanel.open) return;
 
     if (this.state === 'splash') {
-      const click = Input.consumePointer();
       if (Input.consumeAnyKey() || click) {
         AudioManager.unlock();
         AudioManager.playSfx('menuSelect');
         this.setState('mainMenu');
       }
     } else if (this.state === 'mainMenu') {
+      if (click) Input.restorePointer(click);
       Menu.update(this);
     } else if (this.state === 'settings') {
+      if (click) Input.restorePointer(click);
       Menu.updateSettings(this);
     } else if (this.state === 'characterSelect') {
+      if (click) Input.restorePointer(click);
       CharacterSelect.update(this);
     } else if (this.state === 'level' && this.scene) {
+      if (click) Input.restorePointer(click);
       this.scene.update(dt);
     }
+  }
+
+  getSpeakerRect() {
+    return { x: GAME_CONFIG.width - 72, y: 16, w: 48, h: 48 };
+  }
+
+  handleSpeakerClick(point) {
+    const r = this.getSpeakerRect();
+    if (point.x < r.x || point.x > r.x + r.w || point.y < r.y || point.y > r.y + r.h) return false;
+    AudioManager.unlock();
+    AudioManager.toggleMusic();
+    AudioManager.playSfx('menuSelect', 0.7);
+    return true;
+  }
+
+  drawSpeaker(ctx) {
+    const r = this.getSpeakerRect();
+    const on = GAME_CONFIG.settings.musicEnabled !== false;
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.48)';
+    ctx.fillRect(r.x, r.y, r.w, r.h);
+    ctx.strokeStyle = on ? 'rgba(255,255,255,0.85)' : 'rgba(255,80,80,0.95)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(r.x, r.y, r.w, r.h);
+
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.moveTo(r.x + 12, r.y + 22);
+    ctx.lineTo(r.x + 20, r.y + 22);
+    ctx.lineTo(r.x + 31, r.y + 12);
+    ctx.lineTo(r.x + 31, r.y + 36);
+    ctx.lineTo(r.x + 20, r.y + 26);
+    ctx.lineTo(r.x + 12, r.y + 26);
+    ctx.closePath();
+    ctx.fill();
+
+    if (on) {
+      ctx.strokeStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(r.x + 31, r.y + 24, 7, -0.75, 0.75);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(r.x + 31, r.y + 24, 13, -0.65, 0.65);
+      ctx.stroke();
+    } else {
+      ctx.strokeStyle = '#ff5555';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(r.x + 12, r.y + 12);
+      ctx.lineTo(r.x + 36, r.y + 36);
+      ctx.moveTo(r.x + 36, r.y + 12);
+      ctx.lineTo(r.x + 12, r.y + 36);
+      ctx.stroke();
+    }
+    ctx.restore();
   }
 
   draw() {
@@ -216,6 +282,7 @@ class GameApp {
       this.scene.draw(ctx);
     }
 
+    this.drawSpeaker(ctx);
     DevPanel.draw(ctx);
   }
 
