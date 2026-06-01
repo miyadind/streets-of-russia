@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sprite Edge Cleaner</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #101014;
+      --panel: #1a1b22;
+      --panel-2: #232532;
+      --text: #f3f3f6;
+      --muted: #a9adba;
+      --accent: #63d6ff;
+      --danger: #ff6b6b;
+      --ok: #86efac;
+      --border: rgba(255,255,255,0.12);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: radial-gradient(circle at top, #202231, var(--bg) 56%);
+      color: var(--text);
+    }
+
+    main {
+      width: min(1180px, calc(100vw - 32px));
+      margin: 24px auto 48px;
+    }
+
+    h1 { margin: 0 0 8px; font-size: 30px; }
+    p { color: var(--muted); line-height: 1.45; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .card {
+      background: rgba(26, 27, 34, 0.92);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 18px 50px rgba(0,0,0,0.28);
+    }
+
+    .drop {
+      border: 2px dashed rgba(99,214,255,0.45);
+      background: rgba(99,214,255,0.06);
+      border-radius: 16px;
+      min-height: 170px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: 20px;
+      cursor: pointer;
+      transition: 0.15s ease;
+    }
+
+    .drop.dragover {
+      background: rgba(99,214,255,0.16);
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+
+    .drop strong { display: block; font-size: 18px; margin-bottom: 8px; }
+    .drop span { color: var(--muted); font-size: 14px; }
+
+    input[type="file"] { display: none; }
+
+    .row { margin: 16px 0; }
+    .row label {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 14px;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+
+    .row label output { color: var(--accent); font-weight: bold; }
+    input[type="range"] { width: 100%; }
+
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    button {
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 11px 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button.primary {
+      background: linear-gradient(180deg, #55cfff, #289fd4);
+      color: #061018;
+      border-color: rgba(255,255,255,0.3);
+    }
+
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .status {
+      margin-top: 14px;
+      padding: 12px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.06);
+      color: var(--muted);
+      min-height: 44px;
+      font-size: 14px;
+      white-space: pre-wrap;
+    }
+
+    .previewWrap {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .preview {
+      min-height: 300px;
+      background:
+        linear-gradient(45deg, #111 25%, transparent 25%),
+        linear-gradient(-45deg, #111 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #111 75%),
+        linear-gradient(-45deg, transparent 75%, #111 75%),
+        #2b2b2f;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+      background-size: 20px 20px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .preview.dark { background: #09090c; }
+    .preview img, .preview canvas {
+      max-width: 94%;
+      max-height: 275px;
+      image-rendering: auto;
+    }
+
+    .previewTitle {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0,0,0,0.65);
+      border: 1px solid var(--border);
+      padding: 5px 8px;
+      border-radius: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .fileList {
+      margin-top: 14px;
+      max-height: 230px;
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: rgba(255,255,255,0.04);
+    }
+
+    .fileItem {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      padding: 9px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .fileItem:last-child { border-bottom: 0; }
+    .fileItem.active { background: rgba(99,214,255,0.14); }
+    .fileItem small { color: var(--muted); }
+
+    .note {
+      font-size: 13px;
+      color: var(--muted);
+      border-left: 3px solid var(--accent);
+      padding-left: 10px;
+      margin-top: 14px;
+    }
+
+    @media (max-width: 900px) {
+      .grid, .previewWrap { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Sprite Edge Cleaner</h1>
+    <p>Локальный инструмент для пакетной очистки белой каймы у PNG-спрайтов. Файлы не отправляются в интернет: обработка идёт прямо в браузере.</p>
+
+    <div class="grid">
+      <section class="card">
+        <div id="dropZone" class="drop">
+          <div>
+            <strong>Перетащи PNG сюда</strong>
+            <span>Можно файлы или целую папку. Также можно выбрать папку кнопкой ниже.</span>
+          </div>
+        </div>
+
+        <input id="fileInput" type="file" accept="image/png" multiple />
+        <input id="folderInput" type="file" accept="image/png" multiple webkitdirectory />
+
+        <div class="buttons">
+          <button id="pickFilesBtn">Выбрать PNG</button>
+          <button id="pickFolderBtn">Выбрать папку</button>
+          <button id="clearBtn">Очистить список</button>
+        </div>
+
+        <div class="row">
+          <label>White threshold <output id="whiteThresholdOut">218</output></label>
+          <input id="whiteThreshold" type="range" min="160" max="255" step="1" value="218" />
+        </div>
+
+        <div class="row">
+          <label>Edge radius <output id="edgeRadiusOut">2</output></label>
+          <input id="edgeRadius" type="range" min="1" max="6" step="1" value="2" />
+        </div>
+
+        <div class="row">
+          <label>Alpha reduction <output id="alphaReductionOut">0.72</output></label>
+          <input id="alphaReduction" type="range" min="0" max="1" step="0.01" value="0.72" />
+        </div>
+
+        <div class="row">
+          <label>White matte removal <output id="matteRemovalOut">0.55</output></label>
+          <input id="matteRemoval" type="range" min="0" max="1" step="0.01" value="0.55" />
+        </div>
+
+        <div class="row">
+          <label>Transparent neighbor alpha <output id="neighborAlphaOut">28</output></label>
+          <input id="neighborAlpha" type="range" min="0" max="160" step="1" value="28" />
+        </div>
+
+        <div class="buttons">
+          <button id="previewBtn">Обновить preview</button>
+          <button id="processBtn" class="primary">Обработать и сохранить</button>
+        </div>
+
+        <div class="note">
+          Для сохранения папкой нужен Chrome или Edge. Браузер спросит, куда писать файлы. Внутри выбранной папки будет создана папка <b>cleaned-sprites</b>.
+        </div>
+
+        <div id="status" class="status">Файлы пока не выбраны.</div>
+      </section>
+
+      <section class="card">
+        <div class="previewWrap">
+          <div class="preview dark">
+            <div class="previewTitle">Original on dark background</div>
+            <img id="originalPreview" alt="original preview" />
+          </div>
+          <div class="preview dark">
+            <div class="previewTitle">Cleaned preview</div>
+            <canvas id="cleanPreview"></canvas>
+          </div>
+        </div>
+
+        <div id="fileList" class="fileList"></div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const state = {
+      files: [],
+      selectedIndex: 0,
+      lastPreviewUrl: null
+    };
+
+    const els = {
+      dropZone: document.getElementById('dropZone'),
+      fileInput: document.getElementById('fileInput'),
+      folderInput: document.getElementById('folderInput'),
+      pickFilesBtn: document.getElementById('pickFilesBtn'),
+      pickFolderBtn: document.getElementById('pickFolderBtn'),
+      clearBtn: document.getElementById('clearBtn'),
+      previewBtn: document.getElementById('previewBtn'),
+      processBtn: document.getElementById('processBtn'),
+      status: document.getElementById('status'),
+      fileList: document.getElementById('fileList'),
+      originalPreview: document.getElementById('originalPreview'),
+      cleanPreview: document.getElementById('cleanPreview'),
+      whiteThreshold: document.getElementById('whiteThreshold'),
+      edgeRadius: document.getElementById('edgeRadius'),
+      alphaReduction: document.getElementById('alphaReduction'),
+      matteRemoval: document.getElementById('matteRemoval'),
+      neighborAlpha: document.getElementById('neighborAlpha'),
+      whiteThresholdOut: document.getElementById('whiteThresholdOut'),
+      edgeRadiusOut: document.getElementById('edgeRadiusOut'),
+      alphaReductionOut: document.getElementById('alphaReductionOut'),
+      matteRemovalOut: document.getElementById('matteRemovalOut'),
+      neighborAlphaOut: document.getElementById('neighborAlphaOut')
+    };
+
+    function settings() {
+      return {
+        whiteThreshold: Number(els.whiteThreshold.value),
+        edgeRadius: Number(els.edgeRadius.value),
+        alphaReduction: Number(els.alphaReduction.value),
+        matteRemoval: Number(els.matteRemoval.value),
+        neighborAlpha: Number(els.neighborAlpha.value)
+      };
+    }
+
+    function syncOutputs() {
+      els.whiteThresholdOut.textContent = els.whiteThreshold.value;
+      els.edgeRadiusOut.textContent = els.edgeRadius.value;
+      els.alphaReductionOut.textContent = Number(els.alphaReduction.value).toFixed(2);
+      els.matteRemovalOut.textContent = Number(els.matteRemoval.value).toFixed(2);
+      els.neighborAlphaOut.textContent = els.neighborAlpha.value;
+    }
+
+    for (const input of [els.whiteThreshold, els.edgeRadius, els.alphaReduction, els.matteRemoval, els.neighborAlpha]) {
+      input.addEventListener('input', () => {
+        syncOutputs();
+        debouncePreview();
+      });
+    }
+
+    let previewTimer = 0;
+    function debouncePreview() {
+      clearTimeout(previewTimer);
+      previewTimer = setTimeout(updatePreview, 140);
+    }
+
+    els.pickFilesBtn.addEventListener('click', () => els.fileInput.click());
+    els.pickFolderBtn.addEventListener('click', () => els.folderInput.click());
+    els.clearBtn.addEventListener('click', clearFiles);
+    els.previewBtn.addEventListener('click', updatePreview);
+    els.processBtn.addEventListener('click', processAndSave);
+
+    els.fileInput.addEventListener('change', () => addFiles([...els.fileInput.files].map(file => ({ file, relativePath: file.name }))));
+    els.folderInput.addEventListener('change', () => addFiles([...els.folderInput.files].map(file => ({ file, relativePath: file.webkitRelativePath || file.name }))));
+
+    els.dropZone.addEventListener('click', () => els.fileInput.click());
+    els.dropZone.addEventListener('dragover', event => {
+      event.preventDefault();
+      els.dropZone.classList.add('dragover');
+    });
+    els.dropZone.addEventListener('dragleave', () => els.dropZone.classList.remove('dragover'));
+    els.dropZone.addEventListener('drop', async event => {
+      event.preventDefault();
+      els.dropZone.classList.remove('dragover');
+      const items = [...event.dataTransfer.items];
+      if (items.length && items[0].webkitGetAsEntry) {
+        const entries = await collectDroppedEntries(items);
+        addFiles(entries);
+      } else {
+        addFiles([...event.dataTransfer.files].map(file => ({ file, relativePath: file.name })));
+      }
+    });
+
+    async function collectDroppedEntries(items) {
+      const results = [];
+      for (const item of items) {
+        const entry = item.webkitGetAsEntry();
+        if (entry) await walkEntry(entry, '', results);
+      }
+      return results;
+    }
+
+    async function walkEntry(entry, prefix, results) {
+      if (entry.isFile) {
+        const file = await new Promise(resolve => entry.file(resolve));
+        if (file.type === 'image/png' || file.name.toLowerCase().endsWith('.png')) {
+          results.push({ file, relativePath: prefix + file.name });
+        }
+        return;
+      }
+
+      if (entry.isDirectory) {
+        const reader = entry.createReader();
+        const dirPrefix = prefix + entry.name + '/';
+        let batch;
+        do {
+          batch = await new Promise(resolve => reader.readEntries(resolve));
+          for (const child of batch) await walkEntry(child, dirPrefix, results);
+        } while (batch.length > 0);
+      }
+    }
+
+    function addFiles(entries) {
+      const pngs = entries.filter(entry => entry.file && (entry.file.type === 'image/png' || entry.file.name.toLowerCase().endsWith('.png')));
+      const existing = new Set(state.files.map(item => item.relativePath));
+      for (const item of pngs) {
+        const safePath = normalizePath(item.relativePath || item.file.webkitRelativePath || item.file.name);
+        if (!existing.has(safePath)) {
+          state.files.push({ file: item.file, relativePath: safePath });
+          existing.add(safePath);
+        }
+      }
+      if (state.selectedIndex >= state.files.length) state.selectedIndex = 0;
+      renderFileList();
+      updateStatus(`Выбрано PNG: ${state.files.length}`);
+      updatePreview();
+    }
+
+    function normalizePath(path) {
+      return String(path || '').replace(/\\/g, '/').replace(/^\/+/, '').replace(/\.\./g, '').trim();
+    }
+
+    function clearFiles() {
+      state.files = [];
+      state.selectedIndex = 0;
+      renderFileList();
+      els.originalPreview.removeAttribute('src');
+      const ctx = els.cleanPreview.getContext('2d');
+      ctx.clearRect(0, 0, els.cleanPreview.width, els.cleanPreview.height);
+      updateStatus('Файлы пока не выбраны.');
+    }
+
+    function renderFileList() {
+      els.fileList.innerHTML = '';
+      for (let i = 0; i < state.files.length; i++) {
+        const item = state.files[i];
+        const div = document.createElement('div');
+        div.className = 'fileItem' + (i === state.selectedIndex ? ' active' : '');
+        div.innerHTML = `<span>${escapeHtml(item.relativePath)}</span><small>${Math.round(item.file.size / 1024)} KB</small>`;
+        div.addEventListener('click', () => {
+          state.selectedIndex = i;
+          renderFileList();
+          updatePreview();
+        });
+        els.fileList.appendChild(div);
+      }
+    }
+
+    function escapeHtml(text) {
+      return String(text).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+    }
+
+    async function updatePreview() {
+      if (!state.files.length) return;
+      const item = state.files[state.selectedIndex] || state.files[0];
+      if (!item) return;
+
+      if (state.lastPreviewUrl) URL.revokeObjectURL(state.lastPreviewUrl);
+      state.lastPreviewUrl = URL.createObjectURL(item.file);
+      els.originalPreview.src = state.lastPreviewUrl;
+
+      try {
+        const image = await loadImage(item.file);
+        const cleanedCanvas = cleanImageToCanvas(image, settings());
+        const preview = els.cleanPreview;
+        preview.width = cleanedCanvas.width;
+        preview.height = cleanedCanvas.height;
+        preview.getContext('2d').clearRect(0, 0, preview.width, preview.height);
+        preview.getContext('2d').drawImage(cleanedCanvas, 0, 0);
+        updateStatus(`Preview: ${item.relativePath}\nРазмер: ${image.width}×${image.height}`);
+      } catch (error) {
+        console.error(error);
+        updateStatus('Ошибка preview: ' + error.message);
+      }
+    }
+
+    async function processAndSave() {
+      if (!state.files.length) {
+        updateStatus('Сначала добавь PNG-файлы.');
+        return;
+      }
+
+      if (!window.showDirectoryPicker) {
+        updateStatus('Этот браузер не поддерживает запись папок. Открой файл в Chrome или Edge.');
+        return;
+      }
+
+      els.processBtn.disabled = true;
+      try {
+        const root = await window.showDirectoryPicker({ mode: 'readwrite' });
+        const outputRoot = await root.getDirectoryHandle('cleaned-sprites', { create: true });
+        const cfg = settings();
+        let ok = 0;
+
+        for (let i = 0; i < state.files.length; i++) {
+          const item = state.files[i];
+          updateStatus(`Обработка ${i + 1}/${state.files.length}: ${item.relativePath}`);
+          const image = await loadImage(item.file);
+          const canvas = cleanImageToCanvas(image, cfg);
+          const blob = await canvasToBlob(canvas);
+          await writeBlob(outputRoot, item.relativePath, blob);
+          ok += 1;
+        }
+
+        updateStatus(`Готово. Обработано файлов: ${ok}\nРезультат сохранён в выбранной папке: cleaned-sprites/`);
+      } catch (error) {
+        if (error && error.name === 'AbortError') updateStatus('Сохранение отменено.');
+        else {
+          console.error(error);
+          updateStatus('Ошибка сохранения: ' + error.message);
+        }
+      } finally {
+        els.processBtn.disabled = false;
+      }
+    }
+
+    async function writeBlob(rootHandle, relativePath, blob) {
+      const parts = normalizePath(relativePath).split('/').filter(Boolean);
+      const fileName = parts.pop();
+      let dir = rootHandle;
+      for (const part of parts) dir = await dir.getDirectoryHandle(part, { create: true });
+      const fileHandle = await dir.getFileHandle(fileName, { create: true });
+      const writable = await fileHandle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+    }
+
+    function loadImage(file) {
+      return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+          resolve(img);
+        };
+        img.onerror = () => {
+          URL.revokeObjectURL(url);
+          reject(new Error('Cannot load image: ' + file.name));
+        };
+        img.src = url;
+      });
+    }
+
+    function canvasToBlob(canvas) {
+      return new Promise((resolve, reject) => {
+        canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Cannot encode PNG')), 'image/png');
+      });
+    }
+
+    function cleanImageToCanvas(image, cfg) {
+      const canvas = document.createElement('canvas');
+      canvas.width = image.naturalWidth || image.width;
+      canvas.height = image.naturalHeight || image.height;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(image, 0, 0);
+
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const src = imgData.data;
+      const out = new Uint8ClampedArray(src);
+      const w = canvas.width;
+      const h = canvas.height;
+      const radius = cfg.edgeRadius;
+
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const idx = (y * w + x) * 4;
+          const a = src[idx + 3];
+          if (a === 0) continue;
+
+          const r = src[idx];
+          const g = src[idx + 1];
+          const b = src[idx + 2];
+          const brightness = (r + g + b) / 3;
+          const maxC = Math.max(r, g, b);
+          const minC = Math.min(r, g, b);
+          const saturation = maxC - minC;
+          const whiteAmount = smoothstep(cfg.whiteThreshold, 255, brightness) * (1 - Math.min(1, saturation / 70));
+          if (whiteAmount <= 0.001) continue;
+
+          const edgeAmount = transparentNeighborAmount(src, w, h, x, y, radius, cfg.neighborAlpha);
+          if (edgeAmount <= 0) continue;
+
+          const matteStrength = cfg.matteRemoval * whiteAmount * edgeAmount;
+          const alpha = Math.max(1, a) / 255;
+          const matte = 255;
+
+          // Remove white matte from RGB first. This helps semi-transparent pixels stop glowing white.
+          if (matteStrength > 0) {
+            const correctedR = clamp((r - matte * (1 - alpha) * matteStrength) / Math.max(alpha, 0.08), 0, 255);
+            const correctedG = clamp((g - matte * (1 - alpha) * matteStrength) / Math.max(alpha, 0.08), 0, 255);
+            const correctedB = clamp((b - matte * (1 - alpha) * matteStrength) / Math.max(alpha, 0.08), 0, 255);
+            out[idx] = lerp(r, correctedR, matteStrength);
+            out[idx + 1] = lerp(g, correctedG, matteStrength);
+            out[idx + 2] = lerp(b, correctedB, matteStrength);
+          }
+
+          // Then reduce alpha for the actual white fringe on the outer edge.
+          const reduce = cfg.alphaReduction * whiteAmount * edgeAmount;
+          out[idx + 3] = clamp(a * (1 - reduce), 0, 255);
+        }
+      }
+
+      imgData.data.set(out);
+      ctx.putImageData(imgData, 0, 0);
+      return canvas;
+    }
+
+    function transparentNeighborAmount(data, w, h, x, y, radius, neighborAlpha) {
+      let total = 0;
+      let hits = 0;
+      let checked = 0;
+
+      for (let oy = -radius; oy <= radius; oy++) {
+        for (let ox = -radius; ox <= radius; ox++) {
+          if (ox === 0 && oy === 0) continue;
+          if (ox * ox + oy * oy > radius * radius) continue;
+          const nx = x + ox;
+          const ny = y + oy;
+          if (nx < 0 || nx >= w || ny < 0 || ny >= h) {
+            hits += 1;
+            total += 1;
+            checked += 1;
+            continue;
+          }
+          const a = data[(ny * w + nx) * 4 + 3];
+          checked += 1;
+          if (a <= neighborAlpha) {
+            hits += 1;
+            total += 1 - a / Math.max(1, neighborAlpha + 1);
+          }
+        }
+      }
+
+      if (!checked || !hits) return 0;
+      return Math.min(1, total / Math.max(1, checked * 0.35));
+    }
+
+    function smoothstep(edge0, edge1, x) {
+      const t = clamp((x - edge0) / Math.max(1, edge1 - edge0), 0, 1);
+      return t * t * (3 - 2 * t);
+    }
+
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
+    function updateStatus(text) { els.status.textContent = text; }
+
+    syncOutputs();
+  </script>
+</body>
+</html>
