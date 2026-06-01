@@ -74,6 +74,13 @@ const Input = {
     return value;
   },
 
+  restorePointer(point) {
+    if (!point) return;
+    this.pointer.x = point.x;
+    this.pointer.y = point.y;
+    this.pointer.justDown = true;
+  },
+
   endFrame() {
     this.just = {};
     this.pointer.justDown = false;
