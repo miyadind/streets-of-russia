@@ -12,6 +12,7 @@ class GameApp {
   async init() {
     Responsive.init(this.canvas, this.ctx);
     Input.init(this.canvas);
+    AudioManager.init();
     DevPanel.init();
     this.images = await this.loadImages();
     this.setState('splash');
@@ -144,7 +145,22 @@ class GameApp {
   }
 
   setState(nextState) {
+    const previousState = this.state;
     this.state = nextState;
+    this.updateMusicForState(previousState, nextState);
+  }
+
+  updateMusicForState(_previousState, nextState) {
+    if (nextState === 'splash' || nextState === 'mainMenu' || nextState === 'settings' || nextState === 'characterSelect') {
+      AudioManager.playMusic((GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.menu) || 'menuTheme');
+      return;
+    }
+
+    if (nextState === 'level') {
+      const levelKey = this.scene && this.scene.getLevelKey ? this.scene.getLevelKey() : null;
+      const level = levelKey && GAME_CONFIG.levels ? GAME_CONFIG.levels[levelKey] : null;
+      AudioManager.playMusic((level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme');
+    }
   }
 
   startLevel() {
@@ -161,7 +177,11 @@ class GameApp {
 
     if (this.state === 'splash') {
       const click = Input.consumePointer();
-      if (Input.consumeAnyKey() || click) this.setState('mainMenu');
+      if (Input.consumeAnyKey() || click) {
+        AudioManager.unlock();
+        AudioManager.playSfx('menuSelect');
+        this.setState('mainMenu');
+      }
     } else if (this.state === 'mainMenu') {
       Menu.update(this);
     } else if (this.state === 'settings') {
