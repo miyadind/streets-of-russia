@@ -3,6 +3,24 @@ window.Assets = {
     main:'assets/backgrounds/Main.png',
     level1:['assets/backgrounds/street01.png','assets/backgrounds/street02.png','assets/backgrounds/street03.png']
   },
+  audio:{
+    music:{
+      menuTheme:'assets/audio/music/menu-theme.mp3',
+      levelTheme:'assets/audio/music/level-theme.mp3',
+      bossTheme:'assets/audio/music/boss-theme.mp3'
+    },
+    sfx:{
+      menuMove:'assets/audio/sfx/menu-move.wav',
+      menuSelect:'assets/audio/sfx/menu-select.wav',
+      punch:'assets/audio/sfx/punch.wav',
+      hit:'assets/audio/sfx/hit.wav',
+      enemyDown:'assets/audio/sfx/enemy-down.wav',
+      playerDown:'assets/audio/sfx/player-down.wav',
+      waveStart:'assets/audio/sfx/wave-start.wav',
+      waveClear:'assets/audio/sfx/wave-clear.wav',
+      bossAppear:'assets/audio/sfx/boss-appear.wav'
+    }
+  },
   boris:{
     idle:'assets/characters/boris/Idle.png',
     walk:['assets/characters/boris/walk0.png','assets/characters/boris/walk1.png','assets/characters/boris/walk2.png'],
