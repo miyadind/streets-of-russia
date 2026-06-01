@@ -7,6 +7,9 @@ window.Assets = {
     music:{
       menuTheme:'assets/audio/music/menu-theme.mp3',
       levelTheme:'assets/audio/music/level-theme.mp3',
+      street01Theme:'assets/audio/music/street01-theme.mp3',
+      street02Theme:'assets/audio/music/street02-theme.mp3',
+      street03Theme:'assets/audio/music/street03-theme.mp3',
       bossTheme:'assets/audio/music/boss-theme.mp3'
     },
     sfx:{
