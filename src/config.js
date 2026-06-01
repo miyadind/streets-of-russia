@@ -80,6 +80,26 @@ const GAME_CONFIG = {
       biteTickMs: 450,
       biteDamage: 6,
       otherEnemyScatterDistance: 120
+    },
+    bastard: {
+      name: 'Bastard',
+      hp: 9999,
+      speed: 0.75,
+      damage: 0,
+      scale: 0.12,
+      canAttack: false,
+      canDie: false,
+      blocksWaveClear: false,
+      wanderMinMs: 700,
+      wanderMaxMs: 1900,
+      idleMinMs: 900,
+      idleMaxMs: 2200,
+      fallenMinMs: 1300,
+      fallenMaxMs: 2600,
+      idleChance: 0.32,
+      fallChance: 0.04,
+      turnChance: 0.3,
+      knockbackX: 34
     }
   },
 
