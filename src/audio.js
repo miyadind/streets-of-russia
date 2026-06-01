@@ -40,7 +40,7 @@ const AudioManager = {
       audio.load();
     }
 
-    if (this.currentMusicKey) this.playMusic(this.currentMusicKey, true);
+    if (this.currentMusicKey) this.playMusic(this.currentMusicKey, false);
   },
 
   isSoundOn() {
@@ -49,6 +49,10 @@ const AudioManager = {
 
   isMusicOn() {
     return this.isSoundOn() && (!GAME_CONFIG.settings || GAME_CONFIG.settings.musicEnabled !== false);
+  },
+
+  isSfxOn() {
+    return this.isSoundOn() && (!GAME_CONFIG.settings || GAME_CONFIG.settings.sfxEnabled !== false);
   },
 
   getSfxVolume(volume = 1) {
@@ -61,8 +65,28 @@ const AudioManager = {
     return Math.max(0, Math.min(1, base));
   },
 
+  setMusicVolume(value) {
+    GAME_CONFIG.settings.musicVolume = Math.max(0, Math.min(1, value));
+    this.refreshSettings();
+  },
+
+  setSfxVolume(value) {
+    GAME_CONFIG.settings.sfxVolume = Math.max(0, Math.min(1, value));
+  },
+
+  toggleMusic() {
+    GAME_CONFIG.settings.musicEnabled = !GAME_CONFIG.settings.musicEnabled;
+    this.refreshSettings();
+    return GAME_CONFIG.settings.musicEnabled;
+  },
+
+  toggleSfx() {
+    GAME_CONFIG.settings.sfxEnabled = !GAME_CONFIG.settings.sfxEnabled;
+    return GAME_CONFIG.settings.sfxEnabled;
+  },
+
   playSfx(key, volume = 1) {
-    if (!this.isSoundOn()) return;
+    if (!this.isSfxOn()) return;
     const src = this.sfx[key];
     if (!src) return;
 
@@ -94,7 +118,7 @@ const AudioManager = {
 
     this.stopMusic();
     this.currentMusic = next;
-    next.currentTime = 0;
+    if (forceRestart) next.currentTime = 0;
     next.volume = this.getMusicVolume();
     next.play().catch(() => {});
   },
@@ -109,6 +133,6 @@ const AudioManager = {
   refreshSettings() {
     if (this.currentMusic) this.currentMusic.volume = this.getMusicVolume();
     if (!this.isMusicOn()) this.stopMusic();
-    else if (this.currentMusicKey && !this.currentMusic) this.playMusic(this.currentMusicKey, true);
+    else if (this.currentMusicKey && !this.currentMusic) this.playMusic(this.currentMusicKey, false);
   }
 };
