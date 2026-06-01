@@ -38,6 +38,7 @@ class LevelScene {
       if (wave.trigger !== expectedTrigger) continue;
       this.currentWaveIndex = i;
       this.spawnWave(wave);
+      this.handleWaveAudio(wave);
       this.encounterActive = this.hasWaveBlockers();
       this.encounterCleared = !this.encounterActive;
       return true;
@@ -62,6 +63,22 @@ class LevelScene {
           enemyId += 1;
         }
       }
+    }
+  }
+
+  handleWaveAudio(wave) {
+    const hasBoss = (wave.enemies || []).some(group => {
+      const enemyConfig = GAME_CONFIG.enemies[group.type] || {};
+      return enemyConfig.bossMusic === true || group.boss === true;
+    });
+
+    if (hasBoss) {
+      AudioManager.playSfx('bossAppear', 0.9);
+      AudioManager.playMusic((GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.boss) || 'bossTheme', true);
+    } else {
+      AudioManager.playSfx('waveStart', 0.55);
+      const level = this.getLevelConfig();
+      AudioManager.playMusic((level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme');
     }
   }
 
@@ -105,6 +122,8 @@ class LevelScene {
     this.player.x = 190;
     this.player.y = 620;
     this.player.releaseFromPin();
+    const level = this.getLevelConfig();
+    AudioManager.playMusic((level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme');
     this.spawnInitialWave();
   }
 
@@ -114,6 +133,8 @@ class LevelScene {
       this.player.x = 190;
       this.player.y = 620;
       this.player.releaseFromPin();
+      const level = this.getLevelConfig();
+      AudioManager.playMusic((level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme');
       this.spawnInitialWave();
     } else {
       this.game.setState('mainMenu');
@@ -135,6 +156,7 @@ class LevelScene {
     this.enemies = this.enemies.filter(enemy => !enemy.remove);
 
     if (this.encounterActive && !this.enemies.some(enemy => this.isWaveBlocker(enemy))) {
+      AudioManager.playSfx('waveClear', 0.7);
       const spawnedNext = this.spawnNextWave('afterWaveCleared');
       if (!spawnedNext) {
         this.encounterActive = false;
