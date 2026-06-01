@@ -38,8 +38,8 @@ class LevelScene {
       if (wave.trigger !== expectedTrigger) continue;
       this.currentWaveIndex = i;
       this.spawnWave(wave);
-      this.encounterActive = true;
-      this.encounterCleared = false;
+      this.encounterActive = this.hasWaveBlockers();
+      this.encounterCleared = !this.encounterActive;
       return true;
     }
 
@@ -67,9 +67,18 @@ class LevelScene {
 
   createEnemy(type, x, y, id) {
     if (type === 'sucker') return new SuckerEnemy(x, y, this.images, id);
+    if (type === 'bastard') return new BastardEnemy(x, y, this.images, id);
     if (GAME_CONFIG.enemies[type]) return new DogRegimeEnemy(x, y, this.images, id, type);
     console.warn('Unknown enemy type:', type);
     return null;
+  }
+
+  hasWaveBlockers() {
+    return this.enemies.some(enemy => this.isWaveBlocker(enemy));
+  }
+
+  isWaveBlocker(enemy) {
+    return enemy && enemy.alive && enemy.blocksWaveClear !== false;
   }
 
   getSpawnPoint(side, index, count) {
@@ -125,7 +134,7 @@ class LevelScene {
     for (const enemy of this.enemies) enemy.update(dt, this);
     this.enemies = this.enemies.filter(enemy => !enemy.remove);
 
-    if (this.encounterActive && !this.enemies.some(enemy => enemy.alive)) {
+    if (this.encounterActive && !this.enemies.some(enemy => this.isWaveBlocker(enemy))) {
       const spawnedNext = this.spawnNextWave('afterWaveCleared');
       if (!spawnedNext) {
         this.encounterActive = false;
