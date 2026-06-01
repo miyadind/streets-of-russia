@@ -15,6 +15,12 @@ window.Assets = {
     punch:['assets/characters/alex/punch0.png','assets/characters/alex/punch1.png','assets/characters/alex/punch2.png'],
     knockdown:'assets/characters/alex/knockdown.png'
   },
+  anna:{
+    idle:'assets/characters/anna/idle.png',
+    walk:['assets/characters/anna/walk0.png','assets/characters/anna/walk1.png','assets/characters/anna/walk2.png'],
+    punch:['assets/characters/anna/punch0.png','assets/characters/anna/punch1.png','assets/characters/anna/punch2.png'],
+    knockdown:'assets/characters/anna/knockdown.png'
+  },
   dog:{
     idle:'assets/enemies/dog-regime/idle.png',
     walk:['assets/enemies/dog-regime/walk0.png','assets/enemies/dog-regime/walk1.png'],
@@ -28,5 +34,10 @@ window.Assets = {
     slide:'assets/enemies/sucker/slideAttack0.png',
     bite:['assets/enemies/sucker/bite0.png','assets/enemies/sucker/bite1.png'],
     dead:'assets/enemies/sucker/dead.png'
+  },
+  bastard:{
+    idle:'assets/enemies/bastard/idle.png',
+    fall:'assets/enemies/bastard/fall.png',
+    walk:['assets/enemies/bastard/walk0.png','assets/enemies/bastard/walk1.png','assets/enemies/bastard/walk2.png']
   }
 };
