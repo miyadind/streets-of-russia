@@ -7,6 +7,7 @@ class Player {
     this.hp = hero.hp;
     this.speed = hero.speed;
     this.damage = hero.damage;
+    this.scale = hero.scale || GAME_CONFIG.playerScale;
     this.images = images;
 
     this.x = 220;
@@ -207,7 +208,8 @@ class Player {
   draw(ctx, debug = false) {
     const img = this.getImage();
     if (!img) return;
-    const scale = GAME_CONFIG.playerScale;
+    const hero = GAME_CONFIG.heroes[this.heroKey] || {};
+    const scale = hero.scale || this.scale || GAME_CONFIG.playerScale;
     const w = img.width * scale;
     const h = img.height * scale;
 
