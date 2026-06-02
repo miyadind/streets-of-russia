@@ -180,6 +180,66 @@ class LevelScene {
     }
   }
 
+  shouldShowFutureGraffiti() {
+    return this.getLevelKey() === 'street01' && this.encounterCleared;
+  }
+
+  drawFutureGraffiti(ctx) {
+    ctx.save();
+
+    // Right building wall graffiti area. This overlays the original "НЕТ БУДУЩЕГО" text.
+    ctx.translate(994, 268);
+    ctx.rotate(-0.025);
+
+    // Rough black paint strokes over the old word "НЕТ".
+    ctx.globalAlpha = 0.82;
+    ctx.strokeStyle = 'rgba(8, 8, 8, 0.95)';
+    ctx.lineWidth = 9;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(2, -24);
+    ctx.lineTo(88, -13);
+    ctx.moveTo(4, -9);
+    ctx.lineTo(94, -24);
+    ctx.moveTo(10, -34);
+    ctx.lineTo(84, 2);
+    ctx.stroke();
+
+    ctx.globalAlpha = 0.94;
+    ctx.fillStyle = 'rgba(8, 8, 8, 0.70)';
+    ctx.fillRect(-4, -37, 106, 45);
+
+    // New optimistic graffiti.
+    ctx.globalAlpha = 1;
+    ctx.font = 'bold 31px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#59ff5f';
+    ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+    ctx.lineWidth = 4;
+    ctx.strokeText('РОССИЯ', 0, 0);
+    ctx.fillText('РОССИЯ', 0, 0);
+
+    ctx.font = 'bold 21px Arial';
+    ctx.fillStyle = 'rgba(210,255,210,0.88)';
+    ctx.strokeStyle = 'rgba(0,0,0,0.75)';
+    ctx.lineWidth = 3;
+    ctx.strokeText('БУДУЩЕГО', 2, 30);
+    ctx.fillText('БУДУЩЕГО', 2, 30);
+
+    // Small fresh paint arrow, matching the existing green arrow mood.
+    ctx.strokeStyle = '#35ff45';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(122, 10);
+    ctx.lineTo(172, 10);
+    ctx.lineTo(158, 0);
+    ctx.moveTo(172, 10);
+    ctx.lineTo(158, 20);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
   draw(ctx) {
     const bg = this.images.streets[this.screenIndex] || this.images.streets[0];
     if (bg) ctx.drawImage(bg, 0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
@@ -187,6 +247,8 @@ class LevelScene {
       ctx.fillStyle = '#222';
       ctx.fillRect(0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
     }
+
+    if (this.shouldShowFutureGraffiti()) this.drawFutureGraffiti(ctx);
 
     ctx.fillStyle = 'rgba(255,255,255,0.025)';
     ctx.fillRect(0, GAME_CONFIG.laneTop, GAME_CONFIG.width, GAME_CONFIG.laneBottom - GAME_CONFIG.laneTop);
