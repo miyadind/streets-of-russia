@@ -16,7 +16,7 @@ class GameApp {
     DevPanel.init();
     this.images = await this.loadImages();
     this.setState('splash');
-    AudioManager.playMusic(this.getMenuMusicKey());
+    this.ensureMenuMusic();
     requestAnimationFrame((time) => this.loop(time));
   }
 
@@ -149,28 +149,35 @@ class GameApp {
     return (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.menu) || 'menuTheme';
   }
 
+  isMenuState(state) {
+    return state === 'splash' || state === 'mainMenu' || state === 'settings' || state === 'characterSelect';
+  }
+
+  ensureMenuMusic() {
+    AudioManager.playMusic(this.getMenuMusicKey(), false, true);
+  }
+
   setState(nextState) {
     const previousState = this.state;
     this.state = nextState;
     this.updateMusicForState(previousState, nextState);
   }
 
-  updateMusicForState(_previousState, nextState) {
-    if (nextState === 'splash' || nextState === 'mainMenu' || nextState === 'settings' || nextState === 'characterSelect') {
-      AudioManager.playMusic(this.getMenuMusicKey());
+  updateMusicForState(previousState, nextState) {
+    if (this.isMenuState(nextState)) {
+      if (!this.isMenuState(previousState) || AudioManager.currentMusicKey !== this.getMenuMusicKey()) {
+        this.ensureMenuMusic();
+      }
       return;
-    }
-
-    if (nextState === 'level') {
-      const levelKey = this.scene && this.scene.getLevelKey ? this.scene.getLevelKey() : null;
-      const level = levelKey && GAME_CONFIG.levels ? GAME_CONFIG.levels[levelKey] : null;
-      AudioManager.playMusic((level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme');
     }
   }
 
   startLevel() {
     this.scene = new LevelScene(this, this.images);
     this.setState('level');
+    const levelKey = this.scene && this.scene.getLevelKey ? this.scene.getLevelKey() : null;
+    const level = levelKey && GAME_CONFIG.levels ? GAME_CONFIG.levels[levelKey] : null;
+    AudioManager.playMusic((level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme', true);
   }
 
   update(dt) {
@@ -186,6 +193,7 @@ class GameApp {
     if (this.state === 'splash') {
       if (Input.consumeAnyKey() || click) {
         AudioManager.unlock();
+        this.ensureMenuMusic();
         AudioManager.playSfx('menuSelect');
         this.setState('mainMenu');
       }
