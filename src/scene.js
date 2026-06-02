@@ -10,10 +10,6 @@ class LevelScene {
     this.encounterCleared = false;
     this.debug = false;
     this.currentWaveIndex = -1;
-    this.posterRemoved = {};
-    this.posterPromptFlash = 0;
-    this.altBackgrounds = {};
-    this.preloadEventBackgrounds();
     this.spawnInitialWave();
   }
 
@@ -23,16 +19,6 @@ class LevelScene {
 
   getLevelConfig() {
     return GAME_CONFIG.levels[this.getLevelKey()] || GAME_CONFIG.levels.street01;
-  }
-
-  preloadEventBackgrounds() {
-    const alternates = (Assets.backgrounds && Assets.backgrounds.alternate) || {};
-    for (const [levelKey, src] of Object.entries(alternates)) {
-      const img = new Image();
-      img.onload = () => { this.altBackgrounds[levelKey] = img; };
-      img.onerror = () => { console.warn('Missing alternate background:', src); };
-      img.src = src;
-    }
   }
 
   spawnInitialWave() {
@@ -143,8 +129,6 @@ class LevelScene {
     this.player.x = 190;
     this.player.y = 620;
     this.player.releaseFromPin();
-    this.posterRemoved[this.getLevelKey()] = false;
-    this.posterPromptFlash = 0;
     const level = this.getLevelConfig();
     AudioManager.playMusic((level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme');
     this.spawnInitialWave();
@@ -156,7 +140,6 @@ class LevelScene {
       this.player.x = 190;
       this.player.y = 620;
       this.player.releaseFromPin();
-      this.posterPromptFlash = 0;
       const level = this.getLevelConfig();
       AudioManager.playMusic((level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme');
       this.spawnInitialWave();
@@ -165,52 +148,9 @@ class LevelScene {
     }
   }
 
-  requiresPosterAction() {
-    return this.getLevelKey() === 'street02';
-  }
-
-  isPosterRemoved() {
-    return this.posterRemoved[this.getLevelKey()] === true;
-  }
-
-  isExitUnlocked() {
-    return !this.requiresPosterAction() || this.isPosterRemoved();
-  }
-
-  getPosterActionZone() {
-    return { x: 890, y: GAME_CONFIG.laneTop, w: 280, h: GAME_CONFIG.laneBottom - GAME_CONFIG.laneTop };
-  }
-
-  getPosterHitbox() {
-    return { x: 900, y: GAME_CONFIG.laneTop - 220, w: 250, h: 260 };
-  }
-
-  isPlayerNearPoster() {
-    const zone = this.getPosterActionZone();
-    return this.player.x >= zone.x && this.player.x <= zone.x + zone.w && this.player.y >= zone.y && this.player.y <= zone.y + zone.h;
-  }
-
-  didPlayerPunchPoster() {
-    if (this.player.state !== 'attack') return false;
-    if (!Combat.overlap(this.player.getHitbox(), this.getPosterHitbox())) return false;
-    return true;
-  }
-
-  removePoster() {
-    if (!this.encounterCleared || !this.requiresPosterAction() || this.isPosterRemoved()) return;
-    if (!this.isPlayerNearPoster() && !this.didPlayerPunchPoster()) {
-      this.posterPromptFlash = 650;
-      return;
-    }
-    this.posterRemoved[this.getLevelKey()] = true;
-    this.posterPromptFlash = 0;
-    AudioManager.playSfx('enemyDown', 0.8);
-  }
-
   update(dt) {
     if (Input.consume('h')) this.debug = !this.debug;
     if (Input.consume('escape')) this.game.setState('mainMenu');
-    if (this.posterPromptFlash > 0) this.posterPromptFlash -= dt;
 
     if (this.hitStop > 0) {
       this.hitStop -= dt;
@@ -231,11 +171,7 @@ class LevelScene {
       }
     }
 
-    if (this.encounterCleared && this.requiresPosterAction() && !this.isPosterRemoved() && this.didPlayerPunchPoster()) {
-      this.removePoster();
-    }
-
-    if (this.encounterCleared && this.isExitUnlocked() && this.player.x > GAME_CONFIG.width - 95) {
+    if (this.encounterCleared && this.player.x > GAME_CONFIG.width - 95) {
       this.nextScreen();
     }
 
@@ -244,68 +180,8 @@ class LevelScene {
     }
   }
 
-  getCurrentBackground() {
-    const levelKey = this.getLevelKey();
-    if (levelKey === 'street02' && this.isPosterRemoved() && this.altBackgrounds.street02) {
-      return this.altBackgrounds.street02;
-    }
-    return this.images.streets[this.screenIndex] || this.images.streets[0];
-  }
-
-  drawPosterObjective(ctx) {
-    if (!this.encounterCleared || !this.requiresPosterAction() || this.isPosterRemoved()) return;
-
-    const near = this.isPlayerNearPoster();
-    const zone = this.getPosterActionZone();
-
-    ctx.save();
-    ctx.fillStyle = near ? 'rgba(60,255,90,0.10)' : 'rgba(255,255,255,0.045)';
-    ctx.strokeStyle = near ? 'rgba(80,255,100,0.70)' : 'rgba(255,255,255,0.18)';
-    ctx.lineWidth = 2;
-    ctx.fillRect(zone.x, zone.y, zone.w, zone.h);
-    ctx.strokeRect(zone.x, zone.y, zone.w, zone.h);
-
-    ctx.font = 'bold 27px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#ffffff';
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 5;
-    ctx.strokeText('СОРВИ ПЛАКАТ ГОЛОСОВАНИЯ', GAME_CONFIG.width / 2, 106);
-    ctx.fillText('СОРВИ ПЛАКАТ ГОЛОСОВАНИЯ', GAME_CONFIG.width / 2, 106);
-
-    const promptY = near ? 465 : 150;
-    const promptText = near ? 'SPACE — УДАРИТЬ ПО ПЛАКАТУ' : 'ПОДОЙДИ К ПЛАКАТУ И УДАРЬ';
-    ctx.font = 'bold 22px Arial';
-    ctx.fillStyle = near ? '#5dff68' : '#ffffff';
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 4;
-    ctx.strokeText(promptText, GAME_CONFIG.width / 2, promptY);
-    ctx.fillText(promptText, GAME_CONFIG.width / 2, promptY);
-
-    if (this.posterPromptFlash > 0) {
-      ctx.font = 'bold 20px Arial';
-      ctx.fillStyle = '#ffdddd';
-      ctx.strokeStyle = '#000000';
-      ctx.lineWidth = 4;
-      ctx.strokeText('СНАЧАЛА ПОДОЙДИ К ПЛАКАТУ', GAME_CONFIG.width / 2, 500);
-      ctx.fillText('СНАЧАЛА ПОДОЙДИ К ПЛАКАТУ', GAME_CONFIG.width / 2, 500);
-    }
-
-    ctx.restore();
-  }
-
-  drawExitArrow(ctx) {
-    if (!this.encounterCleared || !this.isExitUnlocked()) return;
-    ctx.font = 'bold 42px Arial';
-    ctx.fillStyle = 'lime';
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 5;
-    ctx.strokeText('→', GAME_CONFIG.width - 90, 380);
-    ctx.fillText('→', GAME_CONFIG.width - 90, 380);
-  }
-
   draw(ctx) {
-    const bg = this.getCurrentBackground();
+    const bg = this.images.streets[this.screenIndex] || this.images.streets[0];
     if (bg) ctx.drawImage(bg, 0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
     else {
       ctx.fillStyle = '#222';
@@ -332,24 +208,21 @@ class LevelScene {
       ctx.textAlign = 'left';
     }
 
-    this.drawPosterObjective(ctx);
-    this.drawExitArrow(ctx);
+    if (this.encounterCleared) {
+      ctx.font = 'bold 42px Arial';
+      ctx.fillStyle = 'lime';
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 5;
+      ctx.strokeText('→', GAME_CONFIG.width - 90, 380);
+      ctx.fillText('→', GAME_CONFIG.width - 90, 380);
+    }
 
     HUD.draw(ctx, this);
 
     if (this.debug) {
       ctx.strokeStyle = 'rgba(255,255,255,0.25)';
       ctx.lineWidth = 2;
-      ctx.strokeRect(0, GAME_CONFIG.laneTop, GAME_CONFIG.width, GAME_CONFIG.laneBottom - GAME_CONFIG.laneTop);
-
-      if (this.requiresPosterAction()) {
-        const zone = this.getPosterActionZone();
-        const poster = this.getPosterHitbox();
-        ctx.strokeStyle = 'rgba(80,255,100,0.9)';
-        ctx.strokeRect(zone.x, zone.y, zone.w, zone.h);
-        ctx.strokeStyle = 'rgba(255,120,80,0.9)';
-        ctx.strokeRect(poster.x, poster.y, poster.w, poster.h);
-      }
+      ctx.strokeRect(0, GAME_CONFIG.laneTop, GAME_CONFIG.width - 0, GAME_CONFIG.laneBottom - GAME_CONFIG.laneTop);
     }
   }
 }
