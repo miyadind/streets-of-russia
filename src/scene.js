@@ -10,8 +10,6 @@ class LevelScene {
     this.encounterCleared = false;
     this.debug = false;
     this.currentWaveIndex = -1;
-    this.graffitiChanged = false;
-    this.graffitiPromptFlash = 0;
     this.spawnInitialWave();
   }
 
@@ -131,8 +129,6 @@ class LevelScene {
     this.player.x = 190;
     this.player.y = 620;
     this.player.releaseFromPin();
-    this.graffitiChanged = false;
-    this.graffitiPromptFlash = 0;
     const level = this.getLevelConfig();
     AudioManager.playMusic((level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme');
     this.spawnInitialWave();
@@ -144,8 +140,6 @@ class LevelScene {
       this.player.x = 190;
       this.player.y = 620;
       this.player.releaseFromPin();
-      this.graffitiChanged = false;
-      this.graffitiPromptFlash = 0;
       const level = this.getLevelConfig();
       AudioManager.playMusic((level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme');
       this.spawnInitialWave();
@@ -154,38 +148,9 @@ class LevelScene {
     }
   }
 
-  requiresGraffitiAction() {
-    return this.getLevelKey() === 'street01';
-  }
-
-  isExitUnlocked() {
-    return !this.requiresGraffitiAction() || this.graffitiChanged;
-  }
-
-  getGraffitiActionZone() {
-    return { x: 925, y: GAME_CONFIG.laneTop, w: 260, h: GAME_CONFIG.laneBottom - GAME_CONFIG.laneTop };
-  }
-
-  isPlayerNearGraffiti() {
-    const zone = this.getGraffitiActionZone();
-    return this.player.x >= zone.x && this.player.x <= zone.x + zone.w && this.player.y >= zone.y && this.player.y <= zone.y + zone.h;
-  }
-
-  completeGraffitiAction() {
-    if (!this.encounterCleared || !this.requiresGraffitiAction() || this.graffitiChanged) return;
-    if (!this.isPlayerNearGraffiti()) {
-      this.graffitiPromptFlash = 650;
-      return;
-    }
-    this.graffitiChanged = true;
-    this.graffitiPromptFlash = 0;
-    AudioManager.playSfx('waveClear', 0.75);
-  }
-
   update(dt) {
     if (Input.consume('h')) this.debug = !this.debug;
     if (Input.consume('escape')) this.game.setState('mainMenu');
-    if (this.graffitiPromptFlash > 0) this.graffitiPromptFlash -= dt;
 
     if (this.hitStop > 0) {
       this.hitStop -= dt;
@@ -206,129 +171,13 @@ class LevelScene {
       }
     }
 
-    if (this.encounterCleared && this.requiresGraffitiAction() && !this.graffitiChanged && Input.consume('e')) {
-      this.completeGraffitiAction();
-    }
-
-    if (this.encounterCleared && this.isExitUnlocked() && this.player.x > GAME_CONFIG.width - 95) {
+    if (this.encounterCleared && this.player.x > GAME_CONFIG.width - 95) {
       this.nextScreen();
     }
 
     if (this.player.hp <= 0) {
       this.game.setState('characterSelect');
     }
-  }
-
-  shouldShowFutureGraffiti() {
-    return this.getLevelKey() === 'street01' && this.graffitiChanged;
-  }
-
-  drawFutureGraffiti(ctx) {
-    ctx.save();
-
-    // Right building wall graffiti area. This overlays the original "НЕТ БУДУЩЕГО" text.
-    ctx.translate(994, 268);
-    ctx.rotate(-0.025);
-
-    // Rough black paint strokes over the old word "НЕТ".
-    ctx.globalAlpha = 0.82;
-    ctx.strokeStyle = 'rgba(8, 8, 8, 0.95)';
-    ctx.lineWidth = 9;
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(2, -24);
-    ctx.lineTo(88, -13);
-    ctx.moveTo(4, -9);
-    ctx.lineTo(94, -24);
-    ctx.moveTo(10, -34);
-    ctx.lineTo(84, 2);
-    ctx.stroke();
-
-    ctx.globalAlpha = 0.94;
-    ctx.fillStyle = 'rgba(8, 8, 8, 0.70)';
-    ctx.fillRect(-4, -37, 106, 45);
-
-    // New optimistic graffiti.
-    ctx.globalAlpha = 1;
-    ctx.font = 'bold 31px Arial';
-    ctx.textAlign = 'left';
-    ctx.fillStyle = '#59ff5f';
-    ctx.strokeStyle = 'rgba(0,0,0,0.85)';
-    ctx.lineWidth = 4;
-    ctx.strokeText('РОССИЯ', 0, 0);
-    ctx.fillText('РОССИЯ', 0, 0);
-
-    ctx.font = 'bold 21px Arial';
-    ctx.fillStyle = 'rgba(210,255,210,0.88)';
-    ctx.strokeStyle = 'rgba(0,0,0,0.75)';
-    ctx.lineWidth = 3;
-    ctx.strokeText('БУДУЩЕГО', 2, 30);
-    ctx.fillText('БУДУЩЕГО', 2, 30);
-
-    // Small fresh paint arrow, matching the existing green arrow mood.
-    ctx.strokeStyle = '#35ff45';
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.moveTo(122, 10);
-    ctx.lineTo(172, 10);
-    ctx.lineTo(158, 0);
-    ctx.moveTo(172, 10);
-    ctx.lineTo(158, 20);
-    ctx.stroke();
-
-    ctx.restore();
-  }
-
-  drawGraffitiObjective(ctx) {
-    if (!this.encounterCleared || !this.requiresGraffitiAction() || this.graffitiChanged) return;
-
-    const near = this.isPlayerNearGraffiti();
-    const zone = this.getGraffitiActionZone();
-
-    ctx.save();
-    ctx.fillStyle = near ? 'rgba(60,255,90,0.12)' : 'rgba(255,255,255,0.06)';
-    ctx.strokeStyle = near ? 'rgba(80,255,100,0.75)' : 'rgba(255,255,255,0.22)';
-    ctx.lineWidth = 2;
-    ctx.fillRect(zone.x, zone.y, zone.w, zone.h);
-    ctx.strokeRect(zone.x, zone.y, zone.w, zone.h);
-
-    ctx.font = 'bold 27px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#ffffff';
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 5;
-    ctx.strokeText('ИЗМЕНИ НАДПИСЬ НА СТЕНЕ', GAME_CONFIG.width / 2, 106);
-    ctx.fillText('ИЗМЕНИ НАДПИСЬ НА СТЕНЕ', GAME_CONFIG.width / 2, 106);
-
-    const promptY = near ? 465 : 150;
-    const promptText = near ? 'E — НАПИСАТЬ: РОССИЯ БУДУЩЕГО' : 'ПОДОЙДИ К НАДПИСИ СПРАВА';
-    ctx.font = 'bold 22px Arial';
-    ctx.fillStyle = near ? '#5dff68' : '#ffffff';
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 4;
-    ctx.strokeText(promptText, GAME_CONFIG.width / 2, promptY);
-    ctx.fillText(promptText, GAME_CONFIG.width / 2, promptY);
-
-    if (this.graffitiPromptFlash > 0) {
-      ctx.font = 'bold 20px Arial';
-      ctx.fillStyle = '#ffdddd';
-      ctx.strokeStyle = '#000000';
-      ctx.lineWidth = 4;
-      ctx.strokeText('СНАЧАЛА ПОДОЙДИ К СТЕНЕ', GAME_CONFIG.width / 2, 500);
-      ctx.fillText('СНАЧАЛА ПОДОЙДИ К СТЕНЕ', GAME_CONFIG.width / 2, 500);
-    }
-
-    ctx.restore();
-  }
-
-  drawExitArrow(ctx) {
-    if (!this.encounterCleared || !this.isExitUnlocked()) return;
-    ctx.font = 'bold 42px Arial';
-    ctx.fillStyle = 'lime';
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 5;
-    ctx.strokeText('→', GAME_CONFIG.width - 90, 380);
-    ctx.fillText('→', GAME_CONFIG.width - 90, 380);
   }
 
   draw(ctx) {
@@ -338,8 +187,6 @@ class LevelScene {
       ctx.fillStyle = '#222';
       ctx.fillRect(0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
     }
-
-    if (this.shouldShowFutureGraffiti()) this.drawFutureGraffiti(ctx);
 
     ctx.fillStyle = 'rgba(255,255,255,0.025)';
     ctx.fillRect(0, GAME_CONFIG.laneTop, GAME_CONFIG.width, GAME_CONFIG.laneBottom - GAME_CONFIG.laneTop);
@@ -361,8 +208,14 @@ class LevelScene {
       ctx.textAlign = 'left';
     }
 
-    this.drawGraffitiObjective(ctx);
-    this.drawExitArrow(ctx);
+    if (this.encounterCleared) {
+      ctx.font = 'bold 42px Arial';
+      ctx.fillStyle = 'lime';
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 5;
+      ctx.strokeText('→', GAME_CONFIG.width - 90, 380);
+      ctx.fillText('→', GAME_CONFIG.width - 90, 380);
+    }
 
     HUD.draw(ctx, this);
 
@@ -370,10 +223,6 @@ class LevelScene {
       ctx.strokeStyle = 'rgba(255,255,255,0.25)';
       ctx.lineWidth = 2;
       ctx.strokeRect(0, GAME_CONFIG.laneTop, GAME_CONFIG.width, GAME_CONFIG.laneBottom - GAME_CONFIG.laneTop);
-
-      const zone = this.getGraffitiActionZone();
-      ctx.strokeStyle = 'rgba(80,255,100,0.9)';
-      ctx.strokeRect(zone.x, zone.y, zone.w, zone.h);
     }
   }
 }
