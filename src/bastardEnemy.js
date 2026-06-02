@@ -6,6 +6,7 @@ class BastardEnemy {
     this.x = x;
     this.y = y;
     this.facing = Math.random() < 0.5 ? -1 : 1;
+    this.fallFacing = this.facing;
 
     this.applyTuning(true);
 
@@ -70,7 +71,7 @@ class BastardEnemy {
     const roll = Math.random();
 
     if (roll < this.fallChance) {
-      this.fallDown();
+      this.fallDown(this.facing);
       return;
     }
 
@@ -117,18 +118,21 @@ class BastardEnemy {
     }
   }
 
-  fallDown() {
+  fallDown(fallFacing = this.facing) {
     this.state = 'fallen';
+    this.fallFacing = fallFacing >= 0 ? 1 : -1;
+    this.facing = this.fallFacing;
     this.fallenTimer = this.randomBetween(this.fallenMinMs, this.fallenMaxMs);
     this.walkTimer = 0;
   }
 
   takeHit(_damage, direction) {
-    this.x += direction * this.knockbackX;
+    const hitDirection = direction >= 0 ? 1 : -1;
+    this.x += hitDirection * this.knockbackX;
     this.x = Math.max(70, Math.min(GAME_CONFIG.width - 70, this.x));
     this.knockdowns += 1;
     this.flash = 100;
-    this.fallDown();
+    this.fallDown(hitDirection);
   }
 
   getHurtbox() {
@@ -150,17 +154,23 @@ class BastardEnemy {
     return enemyImages.idle;
   }
 
+  getDrawFacing() {
+    if (this.state === 'fallen') return this.fallFacing || this.facing || 1;
+    return this.facing || 1;
+  }
+
   draw(ctx, debug = false) {
     const img = this.getImage();
     if (!img) return;
 
     const w = img.width * this.scale;
     const h = img.height * this.scale;
+    const drawFacing = this.getDrawFacing();
 
     ctx.save();
     if (this.flash > 0) ctx.globalAlpha = 0.65;
     ctx.translate(this.x, this.y);
-    if (this.facing === -1) ctx.scale(-1, 1);
+    if (drawFacing === -1) ctx.scale(-1, 1);
     ctx.drawImage(img, -w / 2, -h, w, h);
     ctx.restore();
     ctx.globalAlpha = 1;
@@ -173,7 +183,7 @@ class BastardEnemy {
 
       ctx.font = '12px Arial';
       ctx.fillStyle = '#ffff66';
-      ctx.fillText('bastard: ' + this.state, this.x - 38, this.y - h - 12);
+      ctx.fillText('bastard: ' + this.state + ' facing=' + drawFacing, this.x - 38, this.y - h - 12);
     }
   }
 
