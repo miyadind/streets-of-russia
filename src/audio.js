@@ -4,6 +4,7 @@ const AudioManager = {
   currentMusicKey: null,
   currentMusic: null,
   unlocked: false,
+  musicActuallyPlaying: false,
 
   init() {
     this.sfx = {};
@@ -11,6 +12,7 @@ const AudioManager = {
     this.currentMusicKey = null;
     this.currentMusic = null;
     this.unlocked = false;
+    this.musicActuallyPlaying = false;
 
     for (const [key, src] of Object.entries((Assets.audio && Assets.audio.sfx) || {})) {
       this.sfx[key] = this.createAudio(src, false);
@@ -40,7 +42,7 @@ const AudioManager = {
       audio.load();
     }
 
-    if (this.currentMusicKey) this.playMusic(this.currentMusicKey, false);
+    if (this.currentMusicKey) this.playMusic(this.currentMusicKey, false, true);
   },
 
   isSoundOn() {
@@ -99,7 +101,7 @@ const AudioManager = {
     }
   },
 
-  playMusic(key, forceRestart = false) {
+  playMusic(key, forceRestart = false, retryIfBlocked = false) {
     if (!key) return;
     this.currentMusicKey = key;
 
@@ -111,16 +113,29 @@ const AudioManager = {
     const next = this.music[key];
     if (!next) return;
 
-    if (this.currentMusic === next && !forceRestart) {
+    if (this.currentMusic === next && !forceRestart && this.musicActuallyPlaying) {
       next.volume = this.getMusicVolume();
       return;
     }
 
-    this.stopMusic();
-    this.currentMusic = next;
-    if (forceRestart) next.currentTime = 0;
+    if (this.currentMusic !== next || forceRestart) {
+      this.stopMusic();
+      this.currentMusic = next;
+      if (forceRestart) next.currentTime = 0;
+    }
+
+    if (retryIfBlocked && next.paused) {
+      next.currentTime = next.currentTime || 0;
+    }
+
     next.volume = this.getMusicVolume();
-    next.play().catch(() => {});
+    next.play()
+      .then(() => {
+        this.musicActuallyPlaying = true;
+      })
+      .catch(() => {
+        this.musicActuallyPlaying = false;
+      });
   },
 
   stopMusic() {
@@ -128,11 +143,12 @@ const AudioManager = {
     this.currentMusic.pause();
     this.currentMusic.currentTime = 0;
     this.currentMusic = null;
+    this.musicActuallyPlaying = false;
   },
 
   refreshSettings() {
     if (this.currentMusic) this.currentMusic.volume = this.getMusicVolume();
     if (!this.isMusicOn()) this.stopMusic();
-    else if (this.currentMusicKey && !this.currentMusic) this.playMusic(this.currentMusicKey, false);
+    else if (this.currentMusicKey) this.playMusic(this.currentMusicKey, false, true);
   }
 };
