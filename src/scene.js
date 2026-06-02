@@ -181,20 +181,30 @@ class LevelScene {
     return { x: 890, y: GAME_CONFIG.laneTop, w: 280, h: GAME_CONFIG.laneBottom - GAME_CONFIG.laneTop };
   }
 
+  getPosterHitbox() {
+    return { x: 900, y: GAME_CONFIG.laneTop - 220, w: 250, h: 260 };
+  }
+
   isPlayerNearPoster() {
     const zone = this.getPosterActionZone();
     return this.player.x >= zone.x && this.player.x <= zone.x + zone.w && this.player.y >= zone.y && this.player.y <= zone.y + zone.h;
   }
 
+  didPlayerPunchPoster() {
+    if (this.player.state !== 'attack') return false;
+    if (!Combat.overlap(this.player.getHitbox(), this.getPosterHitbox())) return false;
+    return true;
+  }
+
   removePoster() {
     if (!this.encounterCleared || !this.requiresPosterAction() || this.isPosterRemoved()) return;
-    if (!this.isPlayerNearPoster()) {
+    if (!this.isPlayerNearPoster() && !this.didPlayerPunchPoster()) {
       this.posterPromptFlash = 650;
       return;
     }
     this.posterRemoved[this.getLevelKey()] = true;
     this.posterPromptFlash = 0;
-    AudioManager.playSfx('waveClear', 0.75);
+    AudioManager.playSfx('enemyDown', 0.8);
   }
 
   update(dt) {
@@ -221,7 +231,7 @@ class LevelScene {
       }
     }
 
-    if (this.encounterCleared && this.requiresPosterAction() && !this.isPosterRemoved() && Input.consume('e')) {
+    if (this.encounterCleared && this.requiresPosterAction() && !this.isPosterRemoved() && this.didPlayerPunchPoster()) {
       this.removePoster();
     }
 
@@ -264,7 +274,7 @@ class LevelScene {
     ctx.fillText('СОРВИ ПЛАКАТ ГОЛОСОВАНИЯ', GAME_CONFIG.width / 2, 106);
 
     const promptY = near ? 465 : 150;
-    const promptText = near ? 'E — СОРВАТЬ ПЛАКАТ' : 'ПОДОЙДИ К ПЛАКАТУ';
+    const promptText = near ? 'SPACE — УДАРИТЬ ПО ПЛАКАТУ' : 'ПОДОЙДИ К ПЛАКАТУ И УДАРЬ';
     ctx.font = 'bold 22px Arial';
     ctx.fillStyle = near ? '#5dff68' : '#ffffff';
     ctx.strokeStyle = '#000000';
@@ -334,8 +344,11 @@ class LevelScene {
 
       if (this.requiresPosterAction()) {
         const zone = this.getPosterActionZone();
+        const poster = this.getPosterHitbox();
         ctx.strokeStyle = 'rgba(80,255,100,0.9)';
         ctx.strokeRect(zone.x, zone.y, zone.w, zone.h);
+        ctx.strokeStyle = 'rgba(255,120,80,0.9)';
+        ctx.strokeRect(poster.x, poster.y, poster.w, poster.h);
       }
     }
   }
