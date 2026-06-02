@@ -26,6 +26,10 @@ class DogRegimeEnemy {
     this.deadTimer = 0;
     this.alive = true;
     this.remove = false;
+
+    this.halfHpKnockdownDone = false;
+    this.knockdownTimer = 0;
+    this.knockdownDuration = 900;
   }
 
   applyTuning(resetHp = false) {
@@ -51,19 +55,38 @@ class DogRegimeEnemy {
     this.hp = resetHp ? this.maxHp : Math.min(this.hp, this.maxHp);
   }
 
+  clampToScreen() {
+    this.x = Math.max(45, Math.min(GAME_CONFIG.width - 45, this.x));
+    this.y = Math.max(GAME_CONFIG.laneTop, Math.min(GAME_CONFIG.laneBottom, this.y));
+  }
+
   update(dt, scene) {
     if (this.remove) return;
 
     if (!this.alive) {
       this.deadTimer += dt;
       if (this.deadTimer > GAME_CONFIG.enemyDeathFadeMs) this.remove = true;
+      this.clampToScreen();
       return;
     }
 
     if (this.flash > 0) this.flash -= dt;
 
+    if (this.state === 'knockdown') {
+      this.knockdownTimer -= dt;
+      this.clampToScreen();
+      if (this.knockdownTimer <= 0) {
+        this.state = 'walk';
+        this.intent = 'flank';
+        this.hitStun = 0;
+        this.cooldown = 360 + Math.random() * 260;
+      }
+      return;
+    }
+
     if (this.hitStun > 0) {
       this.hitStun -= dt;
+      this.clampToScreen();
       return;
     }
 
@@ -78,6 +101,7 @@ class DogRegimeEnemy {
 
     if (this.state === 'attack') {
       this.updateAttack(dt, scene);
+      this.clampToScreen();
       return;
     }
 
@@ -91,11 +115,12 @@ class DogRegimeEnemy {
       this.state = 'attack';
       this.attackTimer = 0;
       this.attackHasHit = false;
+      this.clampToScreen();
       return;
     }
 
     this.moveWithSpacing(dt, scene, canAttackNow);
-    this.y = Math.max(GAME_CONFIG.laneTop, Math.min(GAME_CONFIG.laneBottom, this.y));
+    this.clampToScreen();
   }
 
   chooseIntent(player, canAttackNow, inAttackRange) {
@@ -200,6 +225,7 @@ class DogRegimeEnemy {
     moveY /= len;
     this.x += moveX * this.speed;
     this.y += moveY * this.speed * GAME_CONFIG.ySpeedMultiplier;
+    this.clampToScreen();
 
     this.walkTimer += dt;
     if (this.walkTimer >= GAME_CONFIG.enemyWalkFrameMs) {
@@ -249,10 +275,26 @@ class DogRegimeEnemy {
     }
   }
 
+  startKnockdown(direction, knockback = 82) {
+    this.x += direction * knockback;
+    this.clampToScreen();
+    this.state = 'knockdown';
+    this.knockdownTimer = this.knockdownDuration;
+    this.hitStun = 0;
+    this.flash = 160;
+    this.intent = 'flank';
+    this.retreatTimer = 0;
+    this.attackTimer = 0;
+    this.attackHasHit = false;
+    this.facing = -direction;
+  }
+
   takeHit(damage, direction, knockback) {
     if (!this.alive) return;
+    const oldHp = this.hp;
     this.hp -= damage;
     this.x += direction * knockback;
+    this.clampToScreen();
     this.hitStun = GAME_CONFIG.enemyHitStunMs;
     this.flash = 120;
     this.state = 'hit';
@@ -265,6 +307,13 @@ class DogRegimeEnemy {
       this.alive = false;
       this.state = 'dead';
       this.deadTimer = 0;
+      this.clampToScreen();
+      return;
+    }
+
+    if (!this.halfHpKnockdownDone && oldHp > this.maxHp * 0.5 && this.hp <= this.maxHp * 0.5) {
+      this.halfHpKnockdownDone = true;
+      this.startKnockdown(direction, Math.max(72, knockback + 42));
     }
   }
 
@@ -289,6 +338,7 @@ class DogRegimeEnemy {
   getImage() {
     const enemyImages = this.getEnemyImages();
     if (!this.alive) return enemyImages.dead;
+    if (this.state === 'knockdown') return enemyImages.dead || enemyImages.idle;
     if (this.state === 'attack') return this.attackTimer < GAME_CONFIG.enemyWindupMs ? enemyImages.attack[0] : enemyImages.attack[1];
     if (this.hitStun > 0) return enemyImages.idle;
     return enemyImages.walk[this.walkFrame] || enemyImages.idle;
