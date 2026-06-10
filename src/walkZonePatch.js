@@ -5,6 +5,8 @@
 (function () {
   if (typeof GAME_CONFIG === 'undefined') return;
 
+  const EXTRA_BOTTOM_TUNING = 220;
+
   const DEFAULT_ZONE = {
     left: 70,
     right: 1210,
@@ -24,6 +26,10 @@
   function num(value, fallback) {
     const n = Number(value);
     return Number.isFinite(n) ? n : fallback;
+  }
+
+  function bottomTuningMax() {
+    return GAME_CONFIG.height + EXTRA_BOTTOM_TUNING;
   }
 
   function levelKeys() {
@@ -64,8 +70,8 @@
     const raw = (level && level.walkZone) || DEFAULT_ZONE;
     const left = clamp(num(raw.left, DEFAULT_ZONE.left), 0, GAME_CONFIG.width - 1);
     const right = clamp(num(raw.right, DEFAULT_ZONE.right), left + 1, GAME_CONFIG.width);
-    const top = clamp(num(raw.top, DEFAULT_ZONE.top), 0, GAME_CONFIG.height - 1);
-    const bottom = clamp(num(raw.bottom, DEFAULT_ZONE.bottom), top + 1, GAME_CONFIG.height);
+    const top = clamp(num(raw.top, DEFAULT_ZONE.top), 0, bottomTuningMax() - 1);
+    const bottom = clamp(num(raw.bottom, DEFAULT_ZONE.bottom), top + 1, bottomTuningMax());
     return { left, right, top, bottom };
   }
 
@@ -317,10 +323,10 @@
       return [
         { key: 'left', label: 'Left limit', path: 'levels.' + key + '.walkZone.left', min: 0, max: GAME_CONFIG.width - 100, step: 5 },
         { key: 'right', label: 'Right limit', path: 'levels.' + key + '.walkZone.right', min: 100, max: GAME_CONFIG.width, step: 5 },
-        { key: 'top', label: 'Top line', path: 'levels.' + key + '.walkZone.top', min: 260, max: GAME_CONFIG.height - 80, step: 5 },
-        { key: 'bottom', label: 'Bottom line', path: 'levels.' + key + '.walkZone.bottom', min: 320, max: GAME_CONFIG.height - 10, step: 5 },
+        { key: 'top', label: 'Top line', path: 'levels.' + key + '.walkZone.top', min: 260, max: GAME_CONFIG.height - 20, step: 5 },
+        { key: 'bottom', label: 'Bottom line', path: 'levels.' + key + '.walkZone.bottom', min: 320, max: bottomTuningMax(), step: 5 },
         { key: 'playerX', label: 'Player start X', path: 'levels.' + key + '.playerStart.x', min: 0, max: GAME_CONFIG.width, step: 5 },
-        { key: 'playerY', label: 'Player start Y', path: 'levels.' + key + '.playerStart.y', min: 260, max: GAME_CONFIG.height, step: 5 },
+        { key: 'playerY', label: 'Player start Y', path: 'levels.' + key + '.playerStart.y', min: 260, max: bottomTuningMax(), step: 5 },
         { key: 'spawnX', label: 'Enemy spawn X margin', path: 'levels.' + key + '.enemySpawnMargin.x', min: 0, max: 240, step: 5 },
         { key: 'spawnY', label: 'Enemy spawn Y margin', path: 'levels.' + key + '.enemySpawnMargin.y', min: 0, max: 120, step: 2 }
       ];
@@ -421,7 +427,7 @@
       if (z.right <= z.left + 80) z.right = z.left + 80;
       if (z.bottom <= z.top + 40) z.bottom = z.top + 40;
       z.right = clamp(z.right, z.left + 80, GAME_CONFIG.width);
-      z.bottom = clamp(z.bottom, z.top + 40, GAME_CONFIG.height);
+      z.bottom = clamp(z.bottom, z.top + 40, bottomTuningMax());
       level.playerStart.x = clamp(level.playerStart.x, z.left, z.right);
       level.playerStart.y = clamp(level.playerStart.y, z.top, z.bottom);
     };
