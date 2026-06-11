@@ -193,7 +193,7 @@ const Intro = {
     ctx.lineWidth = 4;
 
     const lines = this.getWrappedLines(ctx);
-    let y = 655 - this.scrollY;
+    let y = 130 - this.scrollY;
     const lineHeight = 34;
 
     lines.forEach((line) => {
