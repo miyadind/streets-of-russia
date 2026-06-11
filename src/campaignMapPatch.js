@@ -59,8 +59,8 @@
 
   const INTRO_BACKGROUND = 'assets/backgrounds/Intro.png';
   const INTRO_TYPEWRITER_SOUND = 'assets/audio/sfx/typewriter-key.mp3';
-  const INTRO_MUSIC = 'assets/audio/music/intro-theme.mp3';
-  const INTRO_TYPE_SPEED = 24; // characters per second for visible line typing
+  const INTRO_VOICE = 'assets/audio/music/intro-voice.mp3';
+  const INTRO_TYPE_SPEED = 24; // fallback characters per second when voice is unavailable
   const INTRO_FAST_MULTIPLIER = 7;
   const INTRO_LINE_HOLD = 0.18;
   const INTRO_BLANK_LINE_TIME = 0.34;
@@ -131,6 +131,10 @@
     return Math.max(0.55, line.length / INTRO_TYPE_SPEED + INTRO_LINE_HOLD);
   }
 
+  function getTimelineDuration(lines) {
+    return lines.reduce((sum, line) => sum + lineDuration(line), INTRO_END_HOLD_SECONDS + INTRO_END_FADE_SECONDS);
+  }
+
   function getTimelineState(lines, timeSeconds) {
     let t = Math.max(0, timeSeconds);
 
@@ -198,21 +202,40 @@
       readyToContinue: false,
       readerScroll: 0,
       layoutLines: [],
+      totalTimelineDuration: 0,
       lastTypedCursor: 0,
       lastTypeSoundAt: 0,
       audioContext: null,
       typewriterSound: loadPatchAudio(INTRO_TYPEWRITER_SOUND, false, 0.35),
       typewriterSoundMissing: false,
-      music: loadPatchAudio(INTRO_MUSIC, true, 0.42),
-      musicMissing: false,
+      voice: loadPatchAudio(INTRO_VOICE, false, 0.72),
+      voiceMissing: false,
+      voiceStarted: false,
+      music: null,
+      musicMissing: true,
       wheelBound: false
     };
+    this.intro.voice.addEventListener('loadedmetadata', () => {
+      console.log('[CAMPAIGN INTRO] Voice loaded:', INTRO_VOICE, 'duration:', this.intro.voice.duration);
+    });
+    this.intro.voice.addEventListener('play', () => {
+      this.intro.voiceStarted = true;
+    });
+    this.intro.voice.addEventListener('ended', () => {
+      this.intro.voiceStarted = false;
+      this.intro.time = this.intro.totalTimelineDuration || this.intro.time;
+      this.intro.readyToContinue = true;
+    });
+    this.intro.voice.addEventListener('error', () => {
+      this.intro.voiceMissing = true;
+      console.warn('[CAMPAIGN INTRO] Missing intro voice:', INTRO_VOICE);
+    });
     await originalInit.call(this);
   };
 
   const originalIsMenuState = GameApp.prototype.isMenuState;
   GameApp.prototype.isMenuState = function (state) {
-    return state === 'campaignMap' || state === 'intro' || originalIsMenuState.call(this, state);
+    return state === 'campaignMap' || originalIsMenuState.call(this, state);
   };
 
   GameApp.prototype.hasSeenIntro = function () {
@@ -239,29 +262,46 @@
     }, { passive: false });
   };
 
-  GameApp.prototype.playIntroMusic = function () {
-    const music = this.intro.music;
-    if (!music || this.intro.musicMissing || !AudioManager.isMusicOn()) return;
+  GameApp.prototype.syncIntroVoiceVolume = function () {
+    const voice = this.intro && this.intro.voice;
+    if (!voice) return;
+    voice.volume = AudioManager.isMusicOn() ? 0.72 : 0;
+  };
+
+  GameApp.prototype.playIntroVoice = function () {
+    const voice = this.intro.voice;
+    if (!voice || this.intro.voiceMissing) return;
 
     try {
       AudioManager.stopMusic();
-      music.volume = AudioManager.getMusicVolume ? AudioManager.getMusicVolume() : 0.42;
-      music.currentTime = 0;
-      music.play().catch(() => {
-        this.intro.musicMissing = true;
+      this.syncIntroVoiceVolume();
+      voice.currentTime = 0;
+      voice.play().catch((error) => {
+        this.intro.voiceStarted = false;
+        console.warn('[CAMPAIGN INTRO] Voice autoplay blocked or failed:', error);
       });
     } catch (error) {
-      this.intro.musicMissing = true;
+      this.intro.voiceMissing = true;
+      console.warn('[CAMPAIGN INTRO] Cannot play intro voice:', error);
     }
   };
 
-  GameApp.prototype.stopIntroMusic = function () {
-    const music = this.intro.music;
-    if (!music) return;
+  GameApp.prototype.stopIntroVoice = function () {
+    const voice = this.intro.voice;
+    if (!voice) return;
     try {
-      music.pause();
-      music.currentTime = 0;
+      voice.pause();
+      voice.currentTime = 0;
     } catch (error) {}
+    this.intro.voiceStarted = false;
+  };
+
+  GameApp.prototype.playIntroMusic = function () {
+    this.playIntroVoice();
+  };
+
+  GameApp.prototype.stopIntroMusic = function () {
+    this.stopIntroVoice();
   };
 
   GameApp.prototype.startIntro = function () {
@@ -272,16 +312,18 @@
     this.intro.readerScroll = 0;
     this.intro.lastTypedCursor = 0;
     this.intro.lastTypeSoundAt = 0;
+    this.intro.voiceStarted = false;
     if (this.intro.typewriterSound) this.intro.typewriterSound.load();
-    if (this.intro.music) this.intro.music.load();
+    if (this.intro.voice) this.intro.voice.load();
     this.bindIntroWheel();
+    AudioManager.stopMusic();
     this.setState('intro');
-    this.playIntroMusic();
+    this.playIntroVoice();
   };
 
   GameApp.prototype.finishIntro = function () {
     this.markIntroSeen();
-    this.stopIntroMusic();
+    this.stopIntroVoice();
     this.setState('campaignMap');
     this.ensureMenuMusic();
   };
@@ -369,10 +411,22 @@
     this.intro.readerScroll = Math.max(0, Math.min(limits.max, this.intro.readerScroll + direction * INTRO_READER_SCROLL_STEP));
   };
 
+  GameApp.prototype.getIntroVoiceProgress = function () {
+    const voice = this.intro && this.intro.voice;
+    if (!voice || this.intro.voiceMissing || !this.intro.voiceStarted) return null;
+    const duration = Number.isFinite(voice.duration) && voice.duration > 0 ? voice.duration : 0;
+    if (!duration || !Number.isFinite(voice.currentTime)) return null;
+    return Math.max(0, Math.min(1, voice.currentTime / duration));
+  };
+
   GameApp.prototype.updateIntro = function (dt) {
     const click = Input.consumePointer();
     const anyKey = Input.consumeAnyKey();
     const requestedAction = !!(click || anyKey);
+
+    this.syncIntroVoiceVolume();
+
+    if (click && this.handleSpeakerClick(click)) return;
 
     if (this.intro.readyToContinue) {
       if (click && pointInRect(click, getStartButtonRect())) {
@@ -391,6 +445,12 @@
 
     if (!this.intro.firstRun && requestedAction) {
       this.intro.fastForward = true;
+    }
+
+    const voiceProgress = this.getIntroVoiceProgress();
+    if (voiceProgress != null && this.intro.totalTimelineDuration > 0 && !this.intro.fastForward) {
+      this.intro.time = voiceProgress * this.intro.totalTimelineDuration;
+      return;
     }
 
     const multiplier = this.intro.fastForward ? INTRO_FAST_MULTIPLIER : 1;
@@ -491,6 +551,7 @@
     const clipBottom = GAME_CONFIG.height - 84;
     const lines = wrapText(ctx, this.intro.text, maxWidth);
     this.intro.layoutLines = lines;
+    this.intro.totalTimelineDuration = getTimelineDuration(lines);
 
     const state = getTimelineState(lines, this.intro.time);
     if (state.complete) {
@@ -620,6 +681,7 @@
       }
 
       this.drawIntro(ctx);
+      this.drawSpeaker(ctx);
       DevPanel.draw(ctx);
       return;
     }
@@ -659,20 +721,29 @@
   };
 
   GameApp.prototype.handleSpeakerClick = function (point) {
-    if (this.state === 'splash' || this.state === 'loading' || this.state === 'intro') return false;
+    if (this.state === 'splash' || this.state === 'loading') return false;
 
     const r = this.getSpeakerHitRect();
     if (point.x < r.x || point.x > r.x + r.w || point.y < r.y || point.y > r.y + r.h) return false;
 
     AudioManager.unlock();
     const musicOn = AudioManager.toggleMusic();
-    if (musicOn && this.isMenuState(this.state)) this.ensureMenuMusic();
+
+    if (this.state === 'intro') {
+      this.syncIntroVoiceVolume();
+      if (musicOn && this.intro.voice && this.intro.voice.paused && !this.intro.readyToContinue) {
+        this.intro.voice.play().catch(() => {});
+      }
+    } else if (musicOn && this.isMenuState(this.state)) {
+      this.ensureMenuMusic();
+    }
+
     AudioManager.playSfx('menuSelect', 0.7);
     return true;
   };
 
   GameApp.prototype.drawSpeaker = function (ctx) {
-    if (this.state === 'splash' || this.state === 'loading' || this.state === 'intro') return;
+    if (this.state === 'splash' || this.state === 'loading') return;
 
     const r = this.getSpeakerRect();
     const on = GAME_CONFIG.settings.musicEnabled !== false;
