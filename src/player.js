@@ -94,18 +94,21 @@ class Player {
     this.comboStep += 1;
     if (this.comboStep > 3) this.comboStep = 1;
 
-    this.playComboPunchSound();
+    this.playAttackSwingSound();
     this.comboTimer = GAME_CONFIG.comboResetMs;
     this.state = 'attack';
     this.attackTimer = 0;
     this.attackHasHit = false;
   }
 
-  playComboPunchSound() {
+  playAttackSwingSound() {
+    AudioManager.playSfx('punch', 0.48);
+  }
+
+  playComboHitSound() {
     const key = this.comboStep === 3 ? 'punch3' : this.comboStep === 2 ? 'punch2' : 'punch1';
-    const fallbackKey = 'punch';
     const hasCustomSound = AudioManager.sfx && AudioManager.sfx[key];
-    AudioManager.playSfx(hasCustomSound ? key : fallbackKey, this.comboStep === 3 ? 0.82 : 0.72);
+    AudioManager.playSfx(hasCustomSound ? key : 'hit', this.comboStep === 3 ? 0.92 : 0.82);
   }
 
   updateAttack(dt, scene) {
@@ -118,7 +121,11 @@ class Player {
         if (!enemy.alive) continue;
         if (Combat.sameLane(this.y, enemy.y) && Combat.overlap(hitbox, enemy.getHurtbox())) {
           enemy.takeHit(data.damage, this.facing, data.knockback);
-          AudioManager.playSfx(enemy.enemyType === 'bastard' ? 'enemyDown' : 'hit', enemy.enemyType === 'bastard' ? 0.75 : 0.9);
+          if (enemy.enemyType === 'bastard') {
+            AudioManager.playSfx('enemyDown', 0.75);
+          } else {
+            this.playComboHitSound();
+          }
           this.attackHasHit = true;
           scene.hitStop = GAME_CONFIG.playerHitStopMs;
           break;
