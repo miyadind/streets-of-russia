@@ -47,7 +47,8 @@ const CampaignMapScreen = {
   },
 
   init() {
-    this.activeIndex = this.loadProgress();
+    this.activeIndex = 0;
+    this.clearSavedProgress();
     this.images = this.createImageSet(this.sources);
   },
 
@@ -76,19 +77,22 @@ const CampaignMapScreen = {
   },
 
   loadProgress() {
-    const raw = localStorage.getItem(this.storageKey);
-    const value = Number(raw);
-    if (!Number.isFinite(value)) return 0;
-    return Math.max(0, Math.min(value, this.order.length - 1));
+    return 0;
   },
 
   saveProgress() {
-    localStorage.setItem(this.storageKey, String(this.activeIndex));
+    // Сохранения кампании пока отключены: прогресс живёт только до перезагрузки страницы.
+  },
+
+  clearSavedProgress() {
+    try {
+      localStorage.removeItem(this.storageKey);
+    } catch (error) {}
   },
 
   resetProgress() {
     this.activeIndex = 0;
-    this.saveProgress();
+    this.clearSavedProgress();
   },
 
   getActiveRegionId() {
@@ -99,7 +103,6 @@ const CampaignMapScreen = {
     if (this.activeIndex < this.order.length - 1) {
       this.activeIndex += 1;
     }
-    this.saveProgress();
   },
 
   update(game, dt) {
