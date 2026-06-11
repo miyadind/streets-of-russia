@@ -108,7 +108,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
     this.facing = player.x >= this.x ? 1 : -1;
     this.attackTimer = 0;
     this.attackHasHit = false;
-    AudioManager.playSfx('punch', 0.38, { playbackRate: 0.72, startAt: 0.01 });
+    AudioManager.playSfx('zetnikPreparing', 0.9, { playbackRate: 1, startAt: 0.01 });
   }
 
   updatePrepareJump(dt, scene) {
@@ -180,7 +180,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
     this.deadTimer = 0;
     this.flash = 180;
     this.hp = 0;
-    AudioManager.playSfx('enemyDown', 0.9, { playbackRate: 1.18, startAt: 0.01 });
+    AudioManager.playSfx('zetnikCrash', 1, { playbackRate: 1, startAt: 0.01 });
     scene.hitStop = Math.max(scene.hitStop || 0, 55);
   }
 
@@ -209,7 +209,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
   getImage() {
     const enemyImages = this.getEnemyImages();
     if (!this.alive || this.state === 'crash') return enemyImages.dead || enemyImages.attack[0] || enemyImages.idle;
-    if (this.state === 'prepareJump') return enemyImages.attack[0] || enemyImages.idle;
+    if (this.state === 'prepareJump') return enemyImages.preparing || enemyImages.attack[0] || enemyImages.idle;
     if (this.state === 'jump') return enemyImages.fly || enemyImages.attack[0] || enemyImages.idle;
     if (this.hitStun > 0) return enemyImages.idle;
     return enemyImages.walk[this.walkFrame] || enemyImages.idle;
