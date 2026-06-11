@@ -6,6 +6,8 @@
   const INTRO_VOICE_VOLUME = 0.72;
   const INTRO_SKIP_REVEAL_SECONDS = 0.9;
   const INTRO_VOICE_TEXT_SCALE = 0.90;
+  const INTRO_FINAL_CATCHUP_START = 0.76;
+  const INTRO_END_TEXT_HOLD_SECONDS = 2.15;
   const TYPE_CLICK_MIN_INTERVAL_MS = 165;
   const TYPE_CLICK_EVERY_CHARS = 5;
 
@@ -27,6 +29,20 @@
     return point && point.x >= rect.x && point.x <= rect.x + rect.w && point.y >= rect.y && point.y <= rect.y + rect.h;
   }
 
+  function smoothStep(t) {
+    const x = Math.max(0, Math.min(1, t));
+    return x * x * (3 - 2 * x);
+  }
+
+  function mapVoiceProgressToTextProgress(progress) {
+    const p = Math.max(0, Math.min(1, progress));
+    const base = p * INTRO_VOICE_TEXT_SCALE;
+    if (p <= INTRO_FINAL_CATCHUP_START) return base;
+
+    const t = smoothStep((p - INTRO_FINAL_CATCHUP_START) / (1 - INTRO_FINAL_CATCHUP_START));
+    return Math.max(base, base + (1 - base) * t);
+  }
+
   function ensureIntroMusic(game) {
     if (!game.intro) return;
     if (game.intro.music) return;
@@ -35,10 +51,26 @@
     game.intro.musicMissing = false;
   }
 
+  function installIntroVoiceEndHold(game) {
+    if (!game.intro || !game.intro.voice || game.intro.endHoldListenerInstalled) return;
+
+    game.intro.endHoldListenerInstalled = true;
+    game.intro.voice.addEventListener('ended', () => {
+      if (!game.intro || game.intro.voiceSkipped) return;
+      game.intro.voiceStarted = false;
+      game.intro.time = game.intro.totalTimelineDuration || game.intro.time;
+      game.intro.finalHoldActive = true;
+      game.intro.finalHoldRemaining = INTRO_END_TEXT_HOLD_SECONDS;
+      game.intro.readyToContinue = false;
+      game.intro.readerScroll = 0;
+    });
+  }
+
   const originalInit = GameApp.prototype.init;
   GameApp.prototype.init = async function () {
     await originalInit.call(this);
     ensureIntroMusic(this);
+    installIntroVoiceEndHold(this);
   };
 
   GameApp.prototype.syncIntroAudioVolumes = function () {
@@ -122,6 +154,7 @@
     if (!this.intro) return;
 
     ensureIntroMusic(this);
+    installIntroVoiceEndHold(this);
     AudioManager.stopMusic();
 
     this.intro.time = 0;
@@ -130,6 +163,8 @@
     this.intro.skipRequested = false;
     this.intro.skipElapsed = 0;
     this.intro.voiceSkipped = false;
+    this.intro.finalHoldActive = false;
+    this.intro.finalHoldRemaining = 0;
     this.intro.readyToContinue = false;
     this.intro.readerScroll = 0;
     this.intro.lastTypedCursor = 0;
@@ -169,6 +204,8 @@
     this.intro.fastForward = true;
     this.intro.skipRequested = true;
     this.intro.skipElapsed = 0;
+    this.intro.finalHoldActive = false;
+    this.intro.finalHoldRemaining = 0;
     this.intro.lastTypedCursor = Number.MAX_SAFE_INTEGER;
   };
 
@@ -257,6 +294,17 @@
 
     if (click && this.handleSpeakerClick(click)) return;
 
+    if (this.intro.finalHoldActive) {
+      this.intro.time = this.intro.totalTimelineDuration || this.intro.time;
+      this.intro.finalHoldRemaining -= dt / 1000;
+      if (this.intro.finalHoldRemaining <= 0) {
+        this.intro.finalHoldActive = false;
+        this.intro.readyToContinue = true;
+        this.intro.readerScroll = 0;
+      }
+      return;
+    }
+
     if (this.intro.readyToContinue) {
       if (click && pointInRect(click, getStartButtonRect())) {
         this.finishIntro();
@@ -276,7 +324,8 @@
 
     const voiceProgress = this.getIntroVoiceProgress();
     if (voiceProgress != null && this.intro.totalTimelineDuration > 0) {
-      this.intro.time = voiceProgress * this.intro.totalTimelineDuration * INTRO_VOICE_TEXT_SCALE;
+      const textProgress = mapVoiceProgressToTextProgress(voiceProgress);
+      this.intro.time = textProgress * this.intro.totalTimelineDuration;
       return;
     }
 
@@ -293,6 +342,33 @@
     }
 
     this.intro.time += dt / 1000;
+  };
+
+  const originalDrawIntroReader = GameApp.prototype.drawIntroReader;
+  GameApp.prototype.drawIntroReader = function (ctx, lines, maxWidth) {
+    if (originalDrawIntroReader) originalDrawIntroReader.call(this, ctx, lines, maxWidth);
+
+    const btn = getStartButtonRect();
+    const pulse = 0.45 + 0.55 * Math.abs(Math.sin(performance.now() / 260));
+
+    ctx.save();
+    ctx.globalAlpha = 0.22 + pulse * 0.32;
+    ctx.fillStyle = '#ff2b2b';
+    ctx.fillRect(btn.x, btn.y, btn.w, btn.h);
+
+    ctx.globalAlpha = 0.65 + pulse * 0.35;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 5 + pulse * 3;
+    ctx.strokeRect(btn.x - 3, btn.y - 3, btn.w + 6, btn.h + 6);
+
+    ctx.font = 'bold 28px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 6;
+    ctx.strokeText('НАЧАТЬ', btn.x + btn.w / 2, btn.y + 34);
+    ctx.fillText('НАЧАТЬ', btn.x + btn.w / 2, btn.y + 34);
+    ctx.restore();
   };
 
   const originalHandleSpeakerClick = GameApp.prototype.handleSpeakerClick;
