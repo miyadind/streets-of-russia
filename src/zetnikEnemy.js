@@ -4,6 +4,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
     this.state = 'walk';
     this.intent = 'approach';
     this.jumpTimer = 0;
+    this.prepareTimer = 0;
     this.jumpStartX = x;
     this.jumpStartY = y;
     this.jumpTargetX = x;
@@ -15,12 +16,13 @@ class ZetnikEnemy extends DogRegimeEnemy {
   applyTuning(resetHp = false) {
     super.applyTuning(resetHp);
     const config = GAME_CONFIG.enemies.zetnik || {};
-    this.jumpTriggerDistanceX = config.jumpTriggerDistanceX || 128;
-    this.jumpMinDistanceX = config.jumpMinDistanceX || 82;
-    this.jumpRangeX = config.jumpRangeX || 178;
+    this.jumpTriggerDistanceX = config.jumpTriggerDistanceX || 260;
+    this.jumpMinDistanceX = config.jumpMinDistanceX || 160;
+    this.jumpRangeX = config.jumpRangeX || 360;
     this.jumpRangeY = config.jumpRangeY || 42;
-    this.jumpDurationMs = config.jumpDurationMs || 430;
-    this.jumpArcHeight = config.jumpArcHeight || 78;
+    this.jumpDurationMs = config.jumpDurationMs || 540;
+    this.jumpArcHeight = config.jumpArcHeight || 82;
+    this.prepareDurationMs = config.prepareDurationMs || 1250;
     this.crashDurationMs = config.crashDurationMs || 520;
     this.selfRemoveDelayMs = config.selfRemoveDelayMs || 720;
     this.knockdownMs = config.knockdownMs || 680;
@@ -38,6 +40,11 @@ class ZetnikEnemy extends DogRegimeEnemy {
     }
 
     if (this.flash > 0) this.flash -= dt;
+
+    if (this.state === 'prepareJump') {
+      this.updatePrepareJump(dt, scene);
+      return;
+    }
 
     if (this.state === 'jump') {
       this.updateJump(dt, scene);
@@ -64,7 +71,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
     this.facing = dx >= 0 ? 1 : -1;
 
     if (this.shouldStartJump(player, absX, absY)) {
-      this.startJump(player);
+      this.startPrepareJump(player);
       return;
     }
 
@@ -93,6 +100,27 @@ class ZetnikEnemy extends DogRegimeEnemy {
     this.applyMovement(moveX, moveY, dt);
   }
 
+  startPrepareJump(player) {
+    this.state = 'prepareJump';
+    this.intent = 'attack';
+    this.prepareTimer = 0;
+    this.jumpHasHit = false;
+    this.facing = player.x >= this.x ? 1 : -1;
+    this.attackTimer = 0;
+    this.attackHasHit = false;
+    AudioManager.playSfx('punch', 0.38, { playbackRate: 0.72, startAt: 0.01 });
+  }
+
+  updatePrepareJump(dt, scene) {
+    this.prepareTimer += dt;
+    const player = scene.player;
+    this.facing = player.x >= this.x ? 1 : -1;
+
+    if (this.prepareTimer >= this.prepareDurationMs) {
+      this.startJump(player);
+    }
+  }
+
   startJump(player) {
     this.state = 'jump';
     this.intent = 'attack';
@@ -101,11 +129,11 @@ class ZetnikEnemy extends DogRegimeEnemy {
     this.jumpStartX = this.x;
     this.jumpStartY = this.y;
     this.facing = player.x >= this.x ? 1 : -1;
-    this.jumpTargetX = player.x - this.facing * 18;
+    this.jumpTargetX = player.x + this.facing * 34;
     this.jumpTargetY = player.y;
     this.attackTimer = 0;
     this.attackHasHit = false;
-    AudioManager.playSfx('punch', 0.5, { playbackRate: 0.92, startAt: 0.01 });
+    AudioManager.playSfx('punch', 0.55, { playbackRate: 1.05, startAt: 0.01 });
   }
 
   updateJump(dt, scene) {
@@ -119,7 +147,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
     this.x = this.jumpStartX + (this.jumpTargetX - this.jumpStartX) * eased;
     this.y = this.jumpStartY + (this.jumpTargetY - this.jumpStartY) * eased - arc;
 
-    if (!this.jumpHasHit && progress >= 0.38) {
+    if (!this.jumpHasHit && progress >= 0.32) {
       this.tryHitPlayer(scene);
     }
 
@@ -133,7 +161,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
     if (player.state === 'knockdown' || player.state === 'pinned') return;
 
     const sameY = Math.abs(player.y - this.jumpTargetY) <= this.jumpRangeY;
-    const inX = Math.abs(player.x - this.x) <= this.jumpRangeX * 0.42;
+    const inX = Math.abs(player.x - this.x) <= this.jumpRangeX * 0.30;
     if (!sameY || !inX) return;
 
     player.hp -= this.damage;
@@ -181,7 +209,8 @@ class ZetnikEnemy extends DogRegimeEnemy {
   getImage() {
     const enemyImages = this.getEnemyImages();
     if (!this.alive || this.state === 'crash') return enemyImages.dead || enemyImages.attack[0] || enemyImages.idle;
-    if (this.state === 'jump') return enemyImages.attack[0] || enemyImages.idle;
+    if (this.state === 'prepareJump') return enemyImages.attack[0] || enemyImages.idle;
+    if (this.state === 'jump') return enemyImages.fly || enemyImages.attack[0] || enemyImages.idle;
     if (this.hitStun > 0) return enemyImages.idle;
     return enemyImages.walk[this.walkFrame] || enemyImages.idle;
   }
@@ -207,7 +236,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
 
     if (debug && !this.remove) {
       const hb = this.getHurtbox();
-      ctx.strokeStyle = 'rgba(255, 180, 0, 0.9)';
+      ctx.strokeStyle = this.state === 'prepareJump' ? 'rgba(255,255,0,0.95)' : 'rgba(255, 180, 0, 0.9)';
       ctx.lineWidth = 2;
       ctx.strokeRect(hb.x, hb.y, hb.w, hb.h);
     }
