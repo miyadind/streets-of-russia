@@ -102,13 +102,16 @@ class Player {
   }
 
   playAttackSwingSound() {
-    AudioManager.playSfx('punch', 0.48);
+    AudioManager.playSfx('punch', 0.42, { playbackRate: 1.12, startAt: 0.01 });
   }
 
   playComboHitSound() {
     const key = this.comboStep === 3 ? 'punch3' : this.comboStep === 2 ? 'punch2' : 'punch1';
     const hasCustomSound = AudioManager.sfx && AudioManager.sfx[key];
-    AudioManager.playSfx(hasCustomSound ? key : 'hit', this.comboStep === 3 ? 0.92 : 0.82);
+    AudioManager.playSfx(hasCustomSound ? key : 'hit', this.comboStep === 3 ? 0.98 : 0.88, {
+      playbackRate: this.comboStep === 3 ? 1.12 : 1.16,
+      startAt: 0.018
+    });
   }
 
   updateAttack(dt, scene) {
@@ -120,13 +123,12 @@ class Player {
       for (const enemy of scene.enemies) {
         if (!enemy.alive) continue;
         if (Combat.sameLane(this.y, enemy.y) && Combat.overlap(hitbox, enemy.getHurtbox())) {
+          this.attackHasHit = true;
+          this.playComboHitSound();
           enemy.takeHit(data.damage, this.facing, data.knockback);
           if (enemy.enemyType === 'bastard') {
-            AudioManager.playSfx('enemyDown', 0.75);
-          } else {
-            this.playComboHitSound();
+            AudioManager.playSfx('enemyDown', 0.75, { playbackRate: 1.08, startAt: 0.01 });
           }
-          this.attackHasHit = true;
           scene.hitStop = GAME_CONFIG.playerHitStopMs;
           break;
         }
@@ -141,9 +143,9 @@ class Player {
   }
 
   getAttackData() {
-    if (this.comboStep === 1) return { duration: 170, activeStart: 35, activeEnd: 120, damage: this.damage, knockback: 24, range: 46 };
-    if (this.comboStep === 2) return { duration: 190, activeStart: 40, activeEnd: 135, damage: this.damage + 5, knockback: 32, range: 52 };
-    return { duration: 240, activeStart: 45, activeEnd: 160, damage: this.damage + 14, knockback: 68, range: 62 };
+    if (this.comboStep === 1) return { duration: 170, activeStart: 25, activeEnd: 120, damage: this.damage, knockback: 24, range: 46 };
+    if (this.comboStep === 2) return { duration: 190, activeStart: 30, activeEnd: 135, damage: this.damage + 5, knockback: 32, range: 52 };
+    return { duration: 240, activeStart: 34, activeEnd: 160, damage: this.damage + 14, knockback: 68, range: 62 };
   }
 
   getHitbox() {
