@@ -1,8 +1,6 @@
 (function () {
   if (typeof GameApp === 'undefined') return;
 
-  const REPEAT_INTRO_SKIP_DELAY_SECONDS = 3;
-
   if (typeof Assets !== 'undefined') {
     Assets.enemyAppear = Object.assign({
       dogRegime: null,
@@ -56,44 +54,6 @@
     return loaded;
   };
 
-  const originalStartIntro = GameApp.prototype.startIntro;
-  GameApp.prototype.startIntro = function () {
-    originalStartIntro.call(this);
-
-    if (!this.intro.firstRun) {
-      this.intro.fastForward = false;
-      this.intro.readyToContinue = false;
-      this.intro.repeatPreview = true;
-      this.intro.repeatPreviewTime = 0;
-      this.intro.readerScroll = 0;
-    }
-  };
-
-  const originalUpdateIntro = GameApp.prototype.updateIntro;
-  GameApp.prototype.updateIntro = function (dt) {
-    if (this.intro && this.intro.repeatPreview && !this.intro.readyToContinue) {
-      const click = Input.consumePointer();
-      const anyKey = Input.consumeAnyKey();
-      if (click) {
-        if (this.handleSpeakerClick(click)) return;
-        Input.restorePointer(click);
-      }
-
-      this.intro.repeatPreviewTime += dt / 1000;
-      this.intro.time += dt / 1000;
-
-      if (anyKey && this.intro.repeatPreviewTime >= REPEAT_INTRO_SKIP_DELAY_SECONDS) {
-        this.intro.repeatPreview = false;
-        this.intro.readyToContinue = true;
-        this.intro.time = Number.MAX_SAFE_INTEGER / 1000;
-        this.intro.readerScroll = 0;
-      }
-      return;
-    }
-
-    originalUpdateIntro.call(this, dt);
-  };
-
   const originalHandleSpeakerClick = GameApp.prototype.handleSpeakerClick;
   GameApp.prototype.handleSpeakerClick = function (point) {
     const rect = this.getSpeakerHitRect ? this.getSpeakerHitRect() : this.getSpeakerRect();
@@ -103,16 +63,16 @@
     AudioManager.unlock();
     const musicOn = AudioManager.toggleMusic();
 
-    if (!musicOn && this.state === 'intro' && this.intro && this.intro.music) {
-      try {
-        this.intro.music.pause();
-        this.intro.music.currentTime = 0;
-      } catch (error) {}
-    }
-
-    if (musicOn) {
-      if (this.state === 'intro' && this.playIntroMusic) this.playIntroMusic();
-      else if (this.isMenuState && this.isMenuState(this.state)) this.ensureMenuMusic();
+    if (this.state === 'intro' && this.intro) {
+      if (this.syncIntroVoiceVolume) this.syncIntroVoiceVolume();
+      if (!musicOn && this.intro.voice) {
+        this.intro.voice.volume = 0;
+      }
+      if (musicOn && this.intro.voice && this.intro.voice.paused && !this.intro.readyToContinue) {
+        this.intro.voice.play().catch(() => {});
+      }
+    } else if (musicOn && this.isMenuState && this.isMenuState(this.state)) {
+      this.ensureMenuMusic();
     }
 
     AudioManager.playSfx('menuSelect', 0.7);
