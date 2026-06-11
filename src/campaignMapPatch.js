@@ -58,9 +58,12 @@
 Это Streets of Russia.`;
 
   const INTRO_BACKGROUND = 'assets/backgrounds/Intro.png';
-  const INTRO_TYPE_SPEED = 46; // characters per second
-  const INTRO_SCROLL_SPEED = 28; // pixels per second
-  const INTRO_AUTO_CONTINUE_DELAY = 4200;
+  const INTRO_TYPE_SPEED = 24; // characters per second for visible line typing
+  const INTRO_FAST_MULTIPLIER = 6;
+  const INTRO_LINE_HOLD = 0.18;
+  const INTRO_BLANK_LINE_TIME = 0.34;
+  const INTRO_SCROLL_OUT_SPEED = 82; // pixels per second after all text is typed
+  const INTRO_TYPE_Y = 455;
   const INTRO_SEEN_KEY = 'streetsOfRussiaIntroSeen';
 
   function loadPatchImage(src) {
@@ -104,6 +107,49 @@
     return lines;
   }
 
+  function lineDuration(line) {
+    if (!line || !line.trim()) return INTRO_BLANK_LINE_TIME;
+    return Math.max(0.55, line.length / INTRO_TYPE_SPEED + INTRO_LINE_HOLD);
+  }
+
+  function getTimelineState(lines, timeSeconds) {
+    let t = Math.max(0, timeSeconds);
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const duration = lineDuration(line);
+
+      if (t <= duration) {
+        const typingPart = Math.max(0.01, duration - INTRO_LINE_HOLD);
+        const progress = Math.min(1, t / typingPart);
+        const chars = line && line.trim() ? Math.floor(line.length * progress) : 0;
+        return {
+          phase: 'typing',
+          lineIndex: i,
+          charInLine: Math.min(line.length, chars),
+          scrollOut: 0,
+          complete: false
+        };
+      }
+
+      t -= duration;
+    }
+
+    return {
+      phase: 'scrollOut',
+      lineIndex: Math.max(0, lines.length - 1),
+      charInLine: lines.length ? lines[lines.length - 1].length : 0,
+      scrollOut: t * INTRO_SCROLL_OUT_SPEED,
+      complete: false
+    };
+  }
+
+  function hasIntroFullyScrolledAway(lines, lineHeight, scrollOut) {
+    if (!lines.length) return true;
+    const lastLineY = INTRO_TYPE_Y - scrollOut;
+    return lastLineY < -lineHeight * 2;
+  }
+
   const originalLoadImages = GameApp.prototype.loadImages;
   GameApp.prototype.loadImages = async function () {
     const loaded = await originalLoadImages.call(this);
@@ -117,10 +163,11 @@
     this.campaignMap = CampaignMapScreen;
     this.intro = {
       text: INTRO_TEXT,
-      startedAt: 0,
-      finishedAt: 0,
+      time: 0,
       firstRun: false,
-      visibleChars: 0
+      fastForward: false,
+      readyToContinue: false,
+      layoutLines: []
     };
     await originalInit.call(this);
   };
@@ -145,10 +192,10 @@
   };
 
   GameApp.prototype.startIntro = function () {
-    this.intro.startedAt = performance.now();
-    this.intro.finishedAt = 0;
+    this.intro.time = 0;
     this.intro.firstRun = !this.hasSeenIntro();
-    this.intro.visibleChars = 0;
+    this.intro.fastForward = false;
+    this.intro.readyToContinue = false;
     this.setState('intro');
   };
 
@@ -159,29 +206,21 @@
   };
 
   GameApp.prototype.updateIntro = function (dt) {
-    const elapsedMs = performance.now() - this.intro.startedAt;
-    this.intro.visibleChars = Math.min(this.intro.text.length, Math.floor(elapsedMs / 1000 * INTRO_TYPE_SPEED));
-    const complete = this.intro.visibleChars >= this.intro.text.length;
-
     const click = Input.consumePointer();
     const anyKey = Input.consumeAnyKey();
+    const requestedAction = !!(click || anyKey);
 
-    if (!this.intro.firstRun && (click || anyKey)) {
-      this.finishIntro();
+    if (this.intro.readyToContinue) {
+      if (requestedAction) this.finishIntro();
       return;
     }
 
-    if (this.intro.firstRun && (click || anyKey) && complete) {
-      this.finishIntro();
-      return;
+    if (!this.intro.firstRun && requestedAction) {
+      this.intro.fastForward = true;
     }
 
-    if (complete) {
-      if (!this.intro.finishedAt) this.intro.finishedAt = performance.now();
-      if (performance.now() - this.intro.finishedAt > INTRO_AUTO_CONTINUE_DELAY) {
-        this.finishIntro();
-      }
-    }
+    const multiplier = this.intro.fastForward ? INTRO_FAST_MULTIPLIER : 1;
+    this.intro.time += (dt / 1000) * multiplier;
   };
 
   GameApp.prototype.drawIntro = function (ctx) {
@@ -197,68 +236,85 @@
     ctx.fillStyle = 'rgba(0, 0, 0, 0.50)';
     ctx.fillRect(0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
 
-    const elapsedMs = performance.now() - this.intro.startedAt;
-    const visibleChars = this.intro.visibleChars;
-    const visibleText = this.intro.text.slice(0, visibleChars);
-
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(150, 80, GAME_CONFIG.width - 300, GAME_CONFIG.height - 160);
-    ctx.clip();
-
     ctx.font = 'bold 25px Arial';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
+
+    const textX = 150;
     const lineHeight = 34;
     const maxWidth = GAME_CONFIG.width - 300;
-    const lines = wrapText(ctx, visibleText, maxWidth);
-    const fullLines = wrapText(ctx, this.intro.text, maxWidth);
-    const totalTextHeight = fullLines.length * lineHeight;
-    const scrollDistance = Math.max(0, totalTextHeight - (GAME_CONFIG.height - 210));
-    const typedRatio = this.intro.text.length > 0 ? visibleChars / this.intro.text.length : 1;
-    const startY = GAME_CONFIG.height - 92 - Math.min(scrollDistance + 110, elapsedMs / 1000 * INTRO_SCROLL_SPEED + typedRatio * scrollDistance * 0.35);
+    const clipTop = 76;
+    const clipBottom = GAME_CONFIG.height - 84;
+    const lines = wrapText(ctx, this.intro.text, maxWidth);
+    this.intro.layoutLines = lines;
 
-    ctx.shadowColor = '#000';
-    ctx.shadowBlur = 8;
-    ctx.lineWidth = 5;
-    ctx.strokeStyle = '#000';
-    ctx.fillStyle = '#f4f4f4';
-
-    for (let i = 0; i < lines.length; i++) {
-      const y = startY + i * lineHeight;
-      if (y < 50 || y > GAME_CONFIG.height - 65) continue;
-      ctx.strokeText(lines[i], 150, y);
-      ctx.fillText(lines[i], 150, y);
+    const state = getTimelineState(lines, this.intro.time);
+    if (state.phase === 'scrollOut' && hasIntroFullyScrolledAway(lines, lineHeight, state.scrollOut)) {
+      this.intro.readyToContinue = true;
     }
 
-    const caretLine = lines.length > 0 ? lines[lines.length - 1] : '';
-    const caretX = 150 + ctx.measureText(caretLine).width + 8;
-    const caretY = startY + (lines.length - 1) * lineHeight + 3;
-    if (visibleChars < this.intro.text.length && Math.floor(elapsedMs / 320) % 2 === 0 && caretY > 50 && caretY < GAME_CONFIG.height - 65) {
-      ctx.fillStyle = '#ff2b2b';
-      ctx.fillRect(caretX, caretY, 12, 25);
-    }
+    if (!this.intro.readyToContinue) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(textX, clipTop, maxWidth, clipBottom - clipTop);
+      ctx.clip();
 
-    ctx.restore();
+      ctx.shadowColor = '#000';
+      ctx.shadowBlur = 8;
+      ctx.lineWidth = 5;
+      ctx.strokeStyle = '#000';
+      ctx.fillStyle = '#f4f4f4';
+
+      for (let i = 0; i <= state.lineIndex && i < lines.length; i++) {
+        let line = lines[i];
+        if (state.phase === 'typing' && i === state.lineIndex) {
+          line = line.slice(0, state.charInLine);
+        }
+
+        const y = INTRO_TYPE_Y - (state.lineIndex - i) * lineHeight - state.scrollOut;
+        if (y < clipTop - lineHeight || y > clipBottom) continue;
+
+        ctx.strokeText(line, textX, y);
+        ctx.fillText(line, textX, y);
+      }
+
+      if (state.phase === 'typing') {
+        const currentLine = lines[state.lineIndex] || '';
+        const typedLine = currentLine.slice(0, state.charInLine);
+        const caretX = textX + ctx.measureText(typedLine).width + 8;
+        const caretY = INTRO_TYPE_Y + 3;
+        if (Math.floor(this.intro.time * 4) % 2 === 0) {
+          ctx.fillStyle = '#ff2b2b';
+          ctx.fillRect(caretX, caretY, 12, 25);
+        }
+      }
+
+      ctx.restore();
+    }
 
     const fade = ctx.createLinearGradient(0, 0, 0, GAME_CONFIG.height);
     fade.addColorStop(0, 'rgba(0,0,0,0.84)');
     fade.addColorStop(0.18, 'rgba(0,0,0,0)');
-    fade.addColorStop(0.78, 'rgba(0,0,0,0)');
+    fade.addColorStop(0.74, 'rgba(0,0,0,0)');
     fade.addColorStop(1, 'rgba(0,0,0,0.90)');
     ctx.fillStyle = fade;
     ctx.fillRect(0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
 
     ctx.font = 'bold 18px Arial';
     ctx.textAlign = 'right';
-    ctx.fillStyle = 'rgba(255,255,255,0.62)';
-    const complete = visibleChars >= this.intro.text.length;
+    ctx.fillStyle = 'rgba(255,255,255,0.70)';
+
     let hint = '';
-    if (this.intro.firstRun) {
-      hint = complete ? 'Нажмите любую клавишу, чтобы продолжить' : 'Первый запуск: интро нужно досмотреть до конца';
+    if (this.intro.readyToContinue) {
+      hint = 'Нажмите любую клавишу, чтобы начать игру';
+    } else if (this.intro.firstRun) {
+      hint = 'Первый запуск: интро нужно досмотреть до конца';
+    } else if (this.intro.fastForward) {
+      hint = 'Ускоренная перемотка интро...';
     } else {
-      hint = 'Нажмите любую клавишу, чтобы пропустить';
+      hint = 'Нажмите любую клавишу, чтобы ускорить интро';
     }
+
     ctx.fillText(hint, GAME_CONFIG.width - 34, GAME_CONFIG.height - 30);
     ctx.textAlign = 'left';
   };
@@ -274,6 +330,14 @@
       return;
     }
 
+    if (this.state !== 'splash' && this.state !== 'loading') {
+      const click = Input.consumePointer();
+      if (click) {
+        if (this.handleSpeakerClick(click)) return;
+        Input.restorePointer(click);
+      }
+    }
+
     if (this.state !== 'campaignMap') {
       originalUpdate.call(this, dt);
       return;
@@ -282,7 +346,6 @@
     DevPanel.update(this);
 
     const click = Input.consumePointer();
-    if (click && this.handleSpeakerClick(click)) return;
     if (click) Input.restorePointer(click);
 
     if (DevPanel.open) return;
@@ -336,10 +399,21 @@
     originalMenuActivate.call(this, game);
   };
 
-  const originalHandleSpeakerClick = GameApp.prototype.handleSpeakerClick;
+  GameApp.prototype.getSpeakerHitRect = function () {
+    return { x: GAME_CONFIG.width - 112, y: 0, w: 112, h: 96 };
+  };
+
   GameApp.prototype.handleSpeakerClick = function (point) {
     if (this.state === 'splash' || this.state === 'loading' || this.state === 'intro') return false;
-    return originalHandleSpeakerClick.call(this, point);
+
+    const r = this.getSpeakerHitRect();
+    if (point.x < r.x || point.x > r.x + r.w || point.y < r.y || point.y > r.y + r.h) return false;
+
+    AudioManager.unlock();
+    const musicOn = AudioManager.toggleMusic();
+    if (musicOn && this.isMenuState(this.state)) this.ensureMenuMusic();
+    AudioManager.playSfx('menuSelect', 0.7);
+    return true;
   };
 
   GameApp.prototype.drawSpeaker = function (ctx) {
