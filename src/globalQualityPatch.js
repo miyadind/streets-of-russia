@@ -1,6 +1,32 @@
 (function () {
   if (typeof GameApp === 'undefined') return;
 
+  function loadOptionalImage(src) {
+    return new Promise((resolve) => {
+      if (!src) {
+        resolve(null);
+        return;
+      }
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => {
+        console.warn('Missing image:', src);
+        resolve(null);
+      };
+      img.src = src;
+    });
+  }
+
+  const originalLoadImages = GameApp.prototype.loadImages;
+  GameApp.prototype.loadImages = async function () {
+    const loaded = await originalLoadImages.call(this);
+    const fly = await loadOptionalImage(Assets.zetnik && Assets.zetnik.fly);
+    if (loaded.enemies && loaded.enemies.zetnik) {
+      loaded.enemies.zetnik.fly = fly || loaded.enemies.zetnik.attack[0] || loaded.enemies.zetnik.idle;
+    }
+    return loaded;
+  };
+
   const originalStartIntro = GameApp.prototype.startIntro;
   GameApp.prototype.startIntro = function () {
     originalStartIntro.call(this);
