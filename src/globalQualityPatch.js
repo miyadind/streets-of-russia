@@ -1,7 +1,7 @@
 (function () {
   if (typeof GameApp === 'undefined') return;
 
-  const REPEAT_INTRO_PREVIEW_SECONDS = 3;
+  const REPEAT_INTRO_SKIP_DELAY_SECONDS = 3;
 
   function loadOptionalImage(src) {
     return new Promise((resolve) => {
@@ -61,7 +61,7 @@
       this.intro.repeatPreviewTime += dt / 1000;
       this.intro.time += dt / 1000;
 
-      if (this.intro.repeatPreviewTime >= REPEAT_INTRO_PREVIEW_SECONDS || anyKey) {
+      if (anyKey && this.intro.repeatPreviewTime >= REPEAT_INTRO_SKIP_DELAY_SECONDS) {
         this.intro.repeatPreview = false;
         this.intro.readyToContinue = true;
         this.intro.time = Number.MAX_SAFE_INTEGER / 1000;
