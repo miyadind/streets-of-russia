@@ -34,7 +34,7 @@ const GAME_CONFIG = {
   enemyActiveMs: 140,
   enemyRecoveryMs: 520,
   enemyHitStunMs: 380,
-  enemyDeathFadeMs: 1200,
+  enemyDeathFadeMs: 18000,
 
   heroes: {
     alexey: { name: 'Алексей', role: 'balanced', hp: 120, speed: 2.6, damage: 16, scale: 0.185, strength: 5, speedStat: 5, health: 5, color: '#4f9cff' },
@@ -109,7 +109,8 @@ const GAME_CONFIG = {
       slotSpacingX: 46,
       slotSpacingY: 32,
       flankDistanceX: 105,
-      pressureDistanceX: 155
+      pressureDistanceX: 155,
+      selfRemoveDelayMs: 18000
     },
     sucker: {
       name: 'Sucker',
