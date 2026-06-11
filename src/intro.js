@@ -32,7 +32,9 @@ const Intro = {
 
       if (!response.ok) throw new Error('Failed to load introText.txt: ' + response.status);
 
-      const text = await response.text();
+      const buffer = await response.arrayBuffer();
+      const text = new TextDecoder('utf-8').decode(buffer);
+
       if (text.trim().startsWith('<!DOCTYPE html') || text.trim().startsWith('<html')) {
         throw new Error('introText.txt request returned HTML instead of text. Check deploy path.');
       }
@@ -41,7 +43,7 @@ const Intro = {
       this.lines = null;
       this.loaded = true;
 
-      console.log('[INTRO] Text loaded. Length:', this.text.length);
+      console.log('[INTRO] Text loaded as UTF-8. Length:', this.text.length);
       console.log('[INTRO] Text preview:', this.text.slice(0, 160));
     } catch (error) {
       console.error('[INTRO] Text load failed:', error);
