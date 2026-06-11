@@ -51,6 +51,12 @@ window.Assets = {
     attack:['assets/enemies/dog-regime/punch0.png','assets/enemies/dog-regime/punch1.png'],
     dead:'assets/enemies/dog-regime/dead.png'
   },
+  zetnik:{
+    idle:'assets/enemies/zetnik/run01.png',
+    walk:['assets/enemies/zetnik/run01.png','assets/enemies/zetnik/run02.png','assets/enemies/zetnik/run03.png'],
+    attack:['assets/enemies/zetnik/push.png','assets/enemies/zetnik/push.png'],
+    dead:'assets/enemies/zetnik/push.png'
+  },
   sucker:{
     idle:'assets/enemies/sucker/idle.png',
     walk:['assets/enemies/sucker/walk0.png','assets/enemies/sucker/walk1.png'],
