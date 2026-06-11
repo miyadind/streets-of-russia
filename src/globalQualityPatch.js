@@ -3,6 +3,27 @@
 
   const REPEAT_INTRO_SKIP_DELAY_SECONDS = 3;
 
+  if (typeof Assets !== 'undefined') {
+    Assets.enemyAppear = Object.assign({
+      dogRegime: null,
+      zetnik: 'assets/enemies/zetnik/Appear.mp3',
+      sucker: null,
+      bastard: null
+    }, Assets.enemyAppear || {});
+  }
+
+  if (typeof AudioManager !== 'undefined' && !AudioManager.enemyAppearPatchApplied) {
+    const originalAudioInit = AudioManager.init;
+    AudioManager.init = function () {
+      originalAudioInit.call(this);
+      for (const [enemyType, src] of Object.entries((Assets && Assets.enemyAppear) || {})) {
+        if (!src) continue;
+        this.sfx[enemyType + 'Appear'] = this.createAudio(src, false);
+      }
+    };
+    AudioManager.enemyAppearPatchApplied = true;
+  }
+
   function loadOptionalImage(src) {
     return new Promise((resolve) => {
       if (!src) {
