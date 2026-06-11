@@ -2,13 +2,41 @@ const Intro = {
   scrollY: 0,
   finished: false,
   lines: null,
-  text: typeof INTRO_TEXT !== 'undefined' ? INTRO_TEXT : '',
+  text: '',
+  loading: false,
+  loaded: false,
+  loadError: false,
 
   reset() {
     this.scrollY = 0;
     this.finished = false;
     this.lines = null;
-    this.text = typeof INTRO_TEXT !== 'undefined' ? INTRO_TEXT : '';
+    this.text = '';
+    this.loading = false;
+    this.loaded = false;
+    this.loadError = false;
+    this.loadText();
+  },
+
+  async loadText() {
+    if (this.loading || this.loaded) return;
+    this.loading = true;
+    this.loadError = false;
+
+    try {
+      const response = await fetch('src/introText.txt?cache=' + Date.now());
+      if (!response.ok) throw new Error('Failed to load introText.txt: ' + response.status);
+      this.text = await response.text();
+      this.lines = null;
+      this.loaded = true;
+    } catch (error) {
+      console.error(error);
+      this.text = 'Ошибка загрузки introText.txt';
+      this.lines = null;
+      this.loadError = true;
+    } finally {
+      this.loading = false;
+    }
   },
 
   finish(game) {
@@ -19,6 +47,8 @@ const Intro = {
   },
 
   update(game, dt) {
+    if (!this.loaded && !this.loading && !this.loadError) this.loadText();
+
     if (Input.consume('escape')) {
       AudioManager.playSfx('menuSelect', 0.75);
       game.setState('mainMenu');
@@ -26,13 +56,13 @@ const Intro = {
     }
 
     const skip = Input.consume('enter') || Input.consume('space') || Input.consumePointer();
-    if (skip) {
+    if (skip && this.loaded) {
       this.finish(game);
       return;
     }
 
     const speed = Input.pressed('arrowdown') || Input.pressed('s') ? 90 : 24;
-    this.scrollY += speed * (dt / 1000);
+    if (this.loaded) this.scrollY += speed * (dt / 1000);
   },
 
   getWrappedLines(ctx) {
@@ -69,6 +99,17 @@ const Intro = {
     return lines;
   },
 
+  drawLoadingMessage(ctx, message) {
+    ctx.font = 'bold 28px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 4;
+    ctx.strokeText(message, GAME_CONFIG.width / 2, GAME_CONFIG.height / 2);
+    ctx.fillText(message, GAME_CONFIG.width / 2, GAME_CONFIG.height / 2);
+    ctx.textAlign = 'left';
+  },
+
   draw(ctx, images) {
     if (images.main) ctx.drawImage(images.main, 0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
 
@@ -82,6 +123,11 @@ const Intro = {
     gradient.addColorStop(1, 'rgba(0,0,0,0.95)');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
+
+    if (!this.loaded) {
+      this.drawLoadingMessage(ctx, this.loadError ? 'НЕ УДАЛОСЬ ЗАГРУЗИТЬ src/introText.txt' : 'ЗАГРУЗКА ИНТРО...');
+      return;
+    }
 
     ctx.save();
     ctx.beginPath();
