@@ -90,13 +90,22 @@ class Player {
 
   startAttack() {
     if (this.state === 'attack' || this.state === 'knockdown' || this.state === 'pinned') return;
-    AudioManager.playSfx('punch', 0.72);
+
     this.comboStep += 1;
     if (this.comboStep > 3) this.comboStep = 1;
+
+    this.playComboPunchSound();
     this.comboTimer = GAME_CONFIG.comboResetMs;
     this.state = 'attack';
     this.attackTimer = 0;
     this.attackHasHit = false;
+  }
+
+  playComboPunchSound() {
+    const key = this.comboStep === 3 ? 'punch3' : this.comboStep === 2 ? 'punch2' : 'punch1';
+    const fallbackKey = 'punch';
+    const hasCustomSound = AudioManager.sfx && AudioManager.sfx[key];
+    AudioManager.playSfx(hasCustomSound ? key : fallbackKey, this.comboStep === 3 ? 0.82 : 0.72);
   }
 
   updateAttack(dt, scene) {
