@@ -24,7 +24,9 @@ window.Assets = {
       playerDown:'assets/audio/sfx/player-down.wav',
       waveStart:'assets/audio/sfx/wave-start.wav',
       waveClear:'assets/audio/sfx/wave-clear.wav',
-      bossAppear:'assets/audio/sfx/boss-appear.wav'
+      bossAppear:'assets/audio/sfx/boss-appear.wav',
+      zetnikPreparing:'assets/enemies/zetnik/preparing.mp3',
+      zetnikCrash:'assets/enemies/zetnik/crash.mp3'
     }
   },
   boris:{
@@ -54,6 +56,7 @@ window.Assets = {
   zetnik:{
     idle:'assets/enemies/zetnik/run01.png',
     walk:['assets/enemies/zetnik/run01.png','assets/enemies/zetnik/run02.png','assets/enemies/zetnik/run03.png'],
+    preparing:'assets/enemies/zetnik/preparing.png',
     attack:['assets/enemies/zetnik/push.png','assets/enemies/zetnik/push.png'],
     fly:'assets/enemies/zetnik/fly.png',
     dead:'assets/enemies/zetnik/push.png'
