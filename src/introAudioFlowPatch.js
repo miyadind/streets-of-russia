@@ -6,8 +6,8 @@
   const INTRO_VOICE_VOLUME = 0.72;
   const INTRO_SKIP_REVEAL_SECONDS = 0.9;
   const INTRO_VOICE_TEXT_SCALE = 0.90;
-  const INTRO_FINAL_CATCHUP_START = 0.90;
-  const INTRO_END_TEXT_HOLD_SECONDS = 2.15;
+  const INTRO_FINAL_SLOW_FINISH_SECONDS = 2.0;
+  const INTRO_END_TEXT_HOLD_SECONDS = 1.7;
   const TYPE_CLICK_MIN_INTERVAL_MS = 165;
   const TYPE_CLICK_EVERY_CHARS = 5;
 
@@ -29,18 +29,9 @@
     return point && point.x >= rect.x && point.x <= rect.x + rect.w && point.y >= rect.y && point.y <= rect.y + rect.h;
   }
 
-  function smoothStep(t) {
-    const x = Math.max(0, Math.min(1, t));
-    return x * x * (3 - 2 * x);
-  }
-
   function mapVoiceProgressToTextProgress(progress) {
     const p = Math.max(0, Math.min(1, progress));
-    const base = p * INTRO_VOICE_TEXT_SCALE;
-    if (p <= INTRO_FINAL_CATCHUP_START) return base;
-
-    const t = smoothStep((p - INTRO_FINAL_CATCHUP_START) / (1 - INTRO_FINAL_CATCHUP_START));
-    return Math.max(base, base + (1 - base) * t);
+    return p * INTRO_VOICE_TEXT_SCALE;
   }
 
   function ensureIntroMusic(game) {
@@ -58,9 +49,12 @@
     game.intro.voice.addEventListener('ended', () => {
       if (!game.intro || game.intro.voiceSkipped) return;
       game.intro.voiceStarted = false;
-      game.intro.time = game.intro.totalTimelineDuration || game.intro.time;
-      game.intro.finalHoldActive = true;
-      game.intro.finalHoldRemaining = INTRO_END_TEXT_HOLD_SECONDS;
+      game.intro.finalSlowFinishActive = true;
+      game.intro.finalSlowElapsed = 0;
+      game.intro.finalSlowStartTime = game.intro.time;
+      game.intro.finalSlowTargetTime = game.intro.totalTimelineDuration || game.intro.time;
+      game.intro.finalHoldActive = false;
+      game.intro.finalHoldRemaining = 0;
       game.intro.readyToContinue = false;
       game.intro.readerScroll = 0;
     });
@@ -163,6 +157,10 @@
     this.intro.skipRequested = false;
     this.intro.skipElapsed = 0;
     this.intro.voiceSkipped = false;
+    this.intro.finalSlowFinishActive = false;
+    this.intro.finalSlowElapsed = 0;
+    this.intro.finalSlowStartTime = 0;
+    this.intro.finalSlowTargetTime = 0;
     this.intro.finalHoldActive = false;
     this.intro.finalHoldRemaining = 0;
     this.intro.readyToContinue = false;
@@ -204,6 +202,8 @@
     this.intro.fastForward = true;
     this.intro.skipRequested = true;
     this.intro.skipElapsed = 0;
+    this.intro.finalSlowFinishActive = false;
+    this.intro.finalSlowElapsed = 0;
     this.intro.finalHoldActive = false;
     this.intro.finalHoldRemaining = 0;
     this.intro.lastTypedCursor = Number.MAX_SAFE_INTEGER;
@@ -293,6 +293,23 @@
     this.syncIntroAudioVolumes();
 
     if (click && this.handleSpeakerClick(click)) return;
+
+    if (this.intro.finalSlowFinishActive) {
+      this.intro.finalSlowElapsed += dt / 1000;
+      const t = Math.max(0, Math.min(1, this.intro.finalSlowElapsed / INTRO_FINAL_SLOW_FINISH_SECONDS));
+      const eased = 1 - Math.pow(1 - t, 2);
+      const start = this.intro.finalSlowStartTime || this.intro.time;
+      const target = this.intro.finalSlowTargetTime || this.intro.totalTimelineDuration || this.intro.time;
+      this.intro.time = start + (target - start) * eased;
+
+      if (t >= 1) {
+        this.intro.time = target;
+        this.intro.finalSlowFinishActive = false;
+        this.intro.finalHoldActive = true;
+        this.intro.finalHoldRemaining = INTRO_END_TEXT_HOLD_SECONDS;
+      }
+      return;
+    }
 
     if (this.intro.finalHoldActive) {
       this.intro.time = this.intro.totalTimelineDuration || this.intro.time;
