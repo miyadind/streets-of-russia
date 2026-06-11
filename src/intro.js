@@ -11,9 +11,12 @@ const Intro = {
   voiceDuration: 150,
   totalScrollDistance: 0,
   fallbackElapsed: 0,
+  typedCharacters: 0,
 
   reset() {
     this.stopVoice();
+    if (typeof AudioManager !== 'undefined') AudioManager.stopMusic();
+
     this.scrollY = 0;
     this.finished = false;
     this.lines = null;
@@ -24,6 +27,7 @@ const Intro = {
     this.voiceStarted = false;
     this.totalScrollDistance = 0;
     this.fallbackElapsed = 0;
+    this.typedCharacters = 0;
     this.loadText();
     this.startVoice();
   },
@@ -66,8 +70,12 @@ const Intro = {
         if (Number.isFinite(audio.duration) && audio.duration > 0) this.voiceDuration = audio.duration;
         console.log('[INTRO] Voice loaded. Duration:', this.voiceDuration);
       });
+      audio.addEventListener('play', () => {
+        this.voiceStarted = true;
+      });
       audio.addEventListener('ended', () => {
         this.voiceStarted = false;
+        this.typedCharacters = this.getTotalCharacterCount();
       });
       audio.addEventListener('error', () => {
         console.warn('[INTRO] Missing intro voice:', this.getVoiceSrc());
@@ -114,12 +122,29 @@ const Intro = {
     return Math.max(0, Math.min(1, this.voice.currentTime / duration));
   },
 
+  getTotalCharacterCount() {
+    const lines = this.lines || [];
+    if (!lines.length) return this.text.length;
+    return lines.reduce((sum, line) => sum + line.length + 1, 0);
+  },
+
+  updateTypedCharacters(progress) {
+    const totalCharacters = this.getTotalCharacterCount();
+    this.typedCharacters = Math.max(0, Math.min(totalCharacters, Math.floor(progress * totalCharacters)));
+  },
+
+  resumeMenuMusic(game) {
+    if (game && typeof game.ensureMenuMusic === 'function') game.ensureMenuMusic();
+  },
+
   finish(game) {
     if (this.finished) return;
     this.finished = true;
+    this.typedCharacters = this.getTotalCharacterCount();
     this.stopVoice();
     AudioManager.playSfx('menuSelect', 0.85);
     game.setState('characterSelect');
+    this.resumeMenuMusic(game);
   },
 
   update(game, dt) {
@@ -130,6 +155,7 @@ const Intro = {
       this.stopVoice();
       AudioManager.playSfx('menuSelect', 0.75);
       game.setState('mainMenu');
+      this.resumeMenuMusic(game);
       return;
     }
 
@@ -139,15 +165,16 @@ const Intro = {
       return;
     }
 
+    const progress = this.getVoiceProgress();
+    if (progress != null) {
+      this.updateTypedCharacters(progress);
+      return;
+    }
+
     if (!this.voiceStarted) {
       this.fallbackElapsed += dt / 1000;
       const fallbackProgress = Math.max(0, Math.min(1, this.fallbackElapsed / this.voiceDuration));
-      if (this.totalScrollDistance > 0) this.scrollY = fallbackProgress * this.totalScrollDistance;
-    }
-
-    const progress = this.getVoiceProgress();
-    if (progress != null && this.totalScrollDistance > 0) {
-      this.scrollY = progress * this.totalScrollDistance;
+      this.updateTypedCharacters(fallbackProgress);
     }
   },
 
@@ -196,6 +223,26 @@ const Intro = {
     return Math.max(0, contentHeight + startY - endY);
   },
 
+  calculateVisibleHeight(lines, lineHeight, visibleCharacters) {
+    let remaining = visibleCharacters;
+    let height = 0;
+
+    for (const line of lines) {
+      if (remaining <= 0) break;
+      height += this.getLineHeight(lineHeight, line);
+      remaining -= line.length + 1;
+    }
+
+    return height;
+  },
+
+  updateScrollForTypedText(lines, lineHeight) {
+    const startY = 130;
+    const endY = 585;
+    const visibleHeight = this.calculateVisibleHeight(lines, lineHeight, this.typedCharacters);
+    this.scrollY = Math.max(0, visibleHeight + startY - endY);
+  },
+
   drawLoadingMessage(ctx, message) {
     ctx.font = 'bold 28px Arial';
     ctx.textAlign = 'center';
@@ -240,35 +287,43 @@ const Intro = {
     const lines = this.getWrappedLines(ctx);
     const lineHeight = 34;
     this.totalScrollDistance = this.calculateTotalScrollDistance(lines, lineHeight);
+    this.updateScrollForTypedText(lines, lineHeight);
 
     let y = 130 - this.scrollY;
+    let remainingCharacters = this.typedCharacters;
 
     lines.forEach((line) => {
-      if (y > 55 && y < 640) {
-        if (line === 'Россия. 2026 год.' || line === 'Это Streets of Russia.') {
+      const lineBudget = line.length + 1;
+      const visibleCount = Math.max(0, Math.min(line.length, remainingCharacters));
+      const visibleLine = line.slice(0, visibleCount);
+
+      if (visibleLine && y > 55 && y < 640) {
+        if (line === 'Россия. 2026 год.' || line === 'Это Streets of Russia!') {
           ctx.font = 'bold 34px Arial';
           ctx.fillStyle = '#ffffff';
         } else {
           ctx.font = '26px Arial';
           ctx.fillStyle = '#f1f1f1';
         }
-        ctx.strokeText(line, GAME_CONFIG.width / 2, y);
-        ctx.fillText(line, GAME_CONFIG.width / 2, y);
+        ctx.strokeText(visibleLine, GAME_CONFIG.width / 2, y);
+        ctx.fillText(visibleLine, GAME_CONFIG.width / 2, y);
       }
+
+      remainingCharacters -= lineBudget;
       y += this.getLineHeight(lineHeight, line);
     });
 
     ctx.restore();
 
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
-    ctx.fillRect(330, 638, 620, 46);
+    ctx.fillRect(300, 638, 680, 46);
     ctx.strokeStyle = 'rgba(255,255,255,0.55)';
     ctx.lineWidth = 2;
-    ctx.strokeRect(330, 638, 620, 46);
+    ctx.strokeRect(300, 638, 680, 46);
     ctx.font = 'bold 20px Arial';
     ctx.textAlign = 'center';
     ctx.fillStyle = '#ffffff';
-    ctx.fillText('ENTER / SPACE / КЛИК — ПРОПУСТИТЬ   •   🔊 — ЗВУК   •   ESC — НАЗАД', GAME_CONFIG.width / 2, 668);
+    ctx.fillText('ENTER / SPACE / КЛИК — ПРОПУСТИТЬ   •   КНОПКА 🔊 СПРАВА — ЗВУК   •   ESC — НАЗАД', GAME_CONFIG.width / 2, 668);
     ctx.textAlign = 'left';
   }
 };
