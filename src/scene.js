@@ -10,6 +10,7 @@ class LevelScene {
     this.encounterCleared = false;
     this.debug = false;
     this.currentWaveIndex = -1;
+    this.nonBlockingWaveTimer = 0;
     this.spawnInitialWave();
   }
 
@@ -26,7 +27,28 @@ class LevelScene {
     this.enemies = [];
     this.encounterActive = false;
     this.encounterCleared = false;
+    this.nonBlockingWaveTimer = 0;
     this.spawnNextWave('onEnter');
+  }
+
+  hasLaterWave(expectedTrigger = 'afterWaveCleared') {
+    const level = this.getLevelConfig();
+    const waves = level.waves || [];
+    for (let i = this.currentWaveIndex + 1; i < waves.length; i++) {
+      if (waves[i].trigger === expectedTrigger) return true;
+    }
+    return false;
+  }
+
+  scheduleNonBlockingWaveAdvance() {
+    this.encounterActive = false;
+    if (this.hasLaterWave('afterWaveCleared')) {
+      this.encounterCleared = false;
+      this.nonBlockingWaveTimer = 5000;
+    } else {
+      this.encounterCleared = true;
+      this.nonBlockingWaveTimer = 0;
+    }
   }
 
   spawnNextWave(expectedTrigger = 'afterWaveCleared') {
@@ -41,21 +63,31 @@ class LevelScene {
       this.handleWaveAudio(wave);
       this.encounterActive = this.hasWaveBlockers();
       this.encounterCleared = !this.encounterActive;
+      this.nonBlockingWaveTimer = 0;
+
+      if (!this.encounterActive) {
+        this.scheduleNonBlockingWaveAdvance();
+      }
       return true;
     }
 
     this.encounterActive = false;
     this.encounterCleared = true;
+    this.nonBlockingWaveTimer = 0;
     return false;
   }
 
   spawnWave(wave) {
-    this.enemies = [];
-    let enemyId = 0;
+    this.enemies = this.enemies.filter(enemy => enemy && enemy.alive && enemy.enemyType === 'bastard');
+    let enemyId = this.enemies.length;
 
     for (const group of wave.enemies || []) {
       const count = Math.max(0, Number(group.count) || 0);
       for (let i = 0; i < count; i++) {
+        if (group.type === 'bastard' && this.enemies.some(enemy => enemy.enemyType === 'bastard' && enemy.alive)) {
+          continue;
+        }
+
         const spawn = this.getSpawnPoint(group.side, i, count);
         const enemy = this.createEnemy(group.type, spawn.x, spawn.y, enemyId);
         if (enemy) {
@@ -162,6 +194,17 @@ class LevelScene {
 
     for (const enemy of this.enemies) enemy.update(dt, this);
     this.enemies = this.enemies.filter(enemy => !enemy.remove);
+
+    if (this.nonBlockingWaveTimer > 0) {
+      this.nonBlockingWaveTimer -= dt;
+      if (this.nonBlockingWaveTimer <= 0) {
+        const spawnedNext = this.spawnNextWave('afterWaveCleared');
+        if (!spawnedNext) {
+          this.encounterActive = false;
+          this.encounterCleared = true;
+        }
+      }
+    }
 
     if (this.encounterActive && !this.enemies.some(enemy => this.isWaveBlocker(enemy))) {
       AudioManager.playSfx('waveClear', 0.7);
