@@ -169,6 +169,7 @@ class SuckerEnemy extends DogRegimeEnemy {
   }
 
   interruptSlide(player) {
+    if (player && player.playComboHitSound) player.playComboHitSound();
     this.hp -= player.damage + 8;
     this.flash = 160;
     this.hitStun = this.interruptedRecoveryMs;
