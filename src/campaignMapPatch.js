@@ -13,7 +13,8 @@
 Но этому не дали случиться.
 
 Шаг за шагом страну захватила преступная группировка тварей.
-Они протянули свои грязные руки во власть, в суды, в телевизор, в полицию.
+Они протянули свои грязные руки во власть, в суды, в средства массовой информации, в полицию, в армию — и в головы людей.
+Как раковая опухоль, они пустили метастазы по телу страны.
 
 Чиновники стали послушными марионетками.
 Полиция перестала защищать людей и превратилась в дубинку режима.
@@ -57,9 +58,10 @@
 Это Streets of Russia.`;
 
   const INTRO_BACKGROUND = 'assets/backgrounds/Intro.png';
-  const INTRO_TYPE_SPEED = 32; // characters per second
-  const INTRO_SCROLL_SPEED = 18; // pixels per second
+  const INTRO_TYPE_SPEED = 46; // characters per second
+  const INTRO_SCROLL_SPEED = 28; // pixels per second
   const INTRO_AUTO_CONTINUE_DELAY = 4200;
+  const INTRO_SEEN_KEY = 'streetsOfRussiaIntroSeen';
 
   function loadPatchImage(src) {
     return new Promise((resolve) => {
@@ -116,7 +118,9 @@
     this.intro = {
       text: INTRO_TEXT,
       startedAt: 0,
-      finishedAt: 0
+      finishedAt: 0,
+      firstRun: false,
+      visibleChars: 0
     };
     await originalInit.call(this);
   };
@@ -126,33 +130,53 @@
     return state === 'campaignMap' || state === 'intro' || originalIsMenuState.call(this, state);
   };
 
+  GameApp.prototype.hasSeenIntro = function () {
+    try {
+      return localStorage.getItem(INTRO_SEEN_KEY) === 'yes';
+    } catch (error) {
+      return false;
+    }
+  };
+
+  GameApp.prototype.markIntroSeen = function () {
+    try {
+      localStorage.setItem(INTRO_SEEN_KEY, 'yes');
+    } catch (error) {}
+  };
+
   GameApp.prototype.startIntro = function () {
     this.intro.startedAt = performance.now();
     this.intro.finishedAt = 0;
+    this.intro.firstRun = !this.hasSeenIntro();
+    this.intro.visibleChars = 0;
     this.setState('intro');
   };
 
   GameApp.prototype.finishIntro = function () {
+    this.markIntroSeen();
     this.setState('campaignMap');
     this.ensureMenuMusic();
   };
 
   GameApp.prototype.updateIntro = function (dt) {
-    const click = Input.consumePointer();
-    if (click) {
-      this.finishIntro();
-      return;
-    }
-
-    if (Input.consumeAnyKey()) {
-      this.finishIntro();
-      return;
-    }
-
     const elapsedMs = performance.now() - this.intro.startedAt;
-    const visibleChars = Math.min(this.intro.text.length, Math.floor(elapsedMs / 1000 * INTRO_TYPE_SPEED));
+    this.intro.visibleChars = Math.min(this.intro.text.length, Math.floor(elapsedMs / 1000 * INTRO_TYPE_SPEED));
+    const complete = this.intro.visibleChars >= this.intro.text.length;
 
-    if (visibleChars >= this.intro.text.length) {
+    const click = Input.consumePointer();
+    const anyKey = Input.consumeAnyKey();
+
+    if (!this.intro.firstRun && (click || anyKey)) {
+      this.finishIntro();
+      return;
+    }
+
+    if (this.intro.firstRun && (click || anyKey) && complete) {
+      this.finishIntro();
+      return;
+    }
+
+    if (complete) {
       if (!this.intro.finishedAt) this.intro.finishedAt = performance.now();
       if (performance.now() - this.intro.finishedAt > INTRO_AUTO_CONTINUE_DELAY) {
         this.finishIntro();
@@ -170,11 +194,11 @@
       ctx.fillRect(0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
     }
 
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.48)';
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.50)';
     ctx.fillRect(0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
 
     const elapsedMs = performance.now() - this.intro.startedAt;
-    const visibleChars = Math.min(this.intro.text.length, Math.floor(elapsedMs / 1000 * INTRO_TYPE_SPEED));
+    const visibleChars = this.intro.visibleChars;
     const visibleText = this.intro.text.slice(0, visibleChars);
 
     ctx.save();
@@ -188,7 +212,11 @@
     const lineHeight = 34;
     const maxWidth = GAME_CONFIG.width - 300;
     const lines = wrapText(ctx, visibleText, maxWidth);
-    const startY = GAME_CONFIG.height - 92 - (elapsedMs / 1000 * INTRO_SCROLL_SPEED);
+    const fullLines = wrapText(ctx, this.intro.text, maxWidth);
+    const totalTextHeight = fullLines.length * lineHeight;
+    const scrollDistance = Math.max(0, totalTextHeight - (GAME_CONFIG.height - 210));
+    const typedRatio = this.intro.text.length > 0 ? visibleChars / this.intro.text.length : 1;
+    const startY = GAME_CONFIG.height - 92 - Math.min(scrollDistance + 110, elapsedMs / 1000 * INTRO_SCROLL_SPEED + typedRatio * scrollDistance * 0.35);
 
     ctx.shadowColor = '#000';
     ctx.shadowBlur = 8;
@@ -206,7 +234,7 @@
     const caretLine = lines.length > 0 ? lines[lines.length - 1] : '';
     const caretX = 150 + ctx.measureText(caretLine).width + 8;
     const caretY = startY + (lines.length - 1) * lineHeight + 3;
-    if (visibleChars < this.intro.text.length && Math.floor(elapsedMs / 450) % 2 === 0 && caretY > 50 && caretY < GAME_CONFIG.height - 65) {
+    if (visibleChars < this.intro.text.length && Math.floor(elapsedMs / 320) % 2 === 0 && caretY > 50 && caretY < GAME_CONFIG.height - 65) {
       ctx.fillStyle = '#ff2b2b';
       ctx.fillRect(caretX, caretY, 12, 25);
     }
@@ -214,17 +242,24 @@
     ctx.restore();
 
     const fade = ctx.createLinearGradient(0, 0, 0, GAME_CONFIG.height);
-    fade.addColorStop(0, 'rgba(0,0,0,0.82)');
+    fade.addColorStop(0, 'rgba(0,0,0,0.84)');
     fade.addColorStop(0.18, 'rgba(0,0,0,0)');
     fade.addColorStop(0.78, 'rgba(0,0,0,0)');
-    fade.addColorStop(1, 'rgba(0,0,0,0.88)');
+    fade.addColorStop(1, 'rgba(0,0,0,0.90)');
     ctx.fillStyle = fade;
     ctx.fillRect(0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
 
     ctx.font = 'bold 18px Arial';
     ctx.textAlign = 'right';
     ctx.fillStyle = 'rgba(255,255,255,0.62)';
-    ctx.fillText('Нажмите любую клавишу, чтобы пропустить', GAME_CONFIG.width - 34, GAME_CONFIG.height - 30);
+    const complete = visibleChars >= this.intro.text.length;
+    let hint = '';
+    if (this.intro.firstRun) {
+      hint = complete ? 'Нажмите любую клавишу, чтобы продолжить' : 'Первый запуск: интро нужно досмотреть до конца';
+    } else {
+      hint = 'Нажмите любую клавишу, чтобы пропустить';
+    }
+    ctx.fillText(hint, GAME_CONFIG.width - 34, GAME_CONFIG.height - 30);
     ctx.textAlign = 'left';
   };
 
