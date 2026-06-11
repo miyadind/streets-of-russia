@@ -218,6 +218,11 @@ class DogRegimeEnemy {
     };
   }
 
+  getWalkFrameCount() {
+    const enemyImages = this.getEnemyImages();
+    return Math.max(1, (enemyImages.walk || []).filter(Boolean).length);
+  }
+
   applyMovement(moveX, moveY, dt) {
     if (moveX === 0 && moveY === 0) return;
     const len = Math.hypot(moveX, moveY);
@@ -230,7 +235,7 @@ class DogRegimeEnemy {
     this.walkTimer += dt;
     if (this.walkTimer >= GAME_CONFIG.enemyWalkFrameMs) {
       this.walkTimer -= GAME_CONFIG.enemyWalkFrameMs;
-      this.walkFrame = 1 - this.walkFrame;
+      this.walkFrame = (this.walkFrame + 1) % this.getWalkFrameCount();
     }
   }
 
@@ -339,7 +344,10 @@ class DogRegimeEnemy {
     const enemyImages = this.getEnemyImages();
     if (!this.alive) return enemyImages.dead;
     if (this.state === 'knockdown') return enemyImages.dead || enemyImages.idle;
-    if (this.state === 'attack') return this.attackTimer < GAME_CONFIG.enemyWindupMs ? enemyImages.attack[0] : enemyImages.attack[1];
+    if (this.state === 'attack') {
+      const attack = enemyImages.attack || [];
+      return this.attackTimer < GAME_CONFIG.enemyWindupMs ? attack[0] || enemyImages.idle : attack[1] || attack[0] || enemyImages.idle;
+    }
     if (this.hitStun > 0) return enemyImages.idle;
     return enemyImages.walk[this.walkFrame] || enemyImages.idle;
   }
