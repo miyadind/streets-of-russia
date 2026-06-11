@@ -90,6 +90,7 @@ class LevelScene {
   }
 
   createEnemy(type, x, y, id) {
+    if (type === 'zetnik') return new ZetnikEnemy(x, y, this.images, id);
     if (type === 'sucker') return new SuckerEnemy(x, y, this.images, id);
     if (type === 'bastard') return new BastardEnemy(x, y, this.images, id);
     if (GAME_CONFIG.enemies[type]) return new DogRegimeEnemy(x, y, this.images, id, type);
