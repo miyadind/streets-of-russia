@@ -9,6 +9,8 @@ class ZetnikEnemy extends DogRegimeEnemy {
     this.jumpStartY = y;
     this.jumpTargetX = x;
     this.jumpTargetY = y;
+    this.lockedTargetX = x;
+    this.lockedTargetY = y;
     this.jumpHasHit = false;
     this.crashTimer = 0;
   }
@@ -27,6 +29,8 @@ class ZetnikEnemy extends DogRegimeEnemy {
     this.selfRemoveDelayMs = config.selfRemoveDelayMs || 720;
     this.knockdownMs = config.knockdownMs || 680;
     this.crashKnockbackX = config.crashKnockbackX || 76;
+    this.hitWindowX = config.hitWindowX || 54;
+    this.hitWindowY = config.hitWindowY || 30;
   }
 
   update(dt, scene) {
@@ -106,6 +110,8 @@ class ZetnikEnemy extends DogRegimeEnemy {
     this.prepareTimer = 0;
     this.jumpHasHit = false;
     this.facing = player.x >= this.x ? 1 : -1;
+    this.lockedTargetX = player.x;
+    this.lockedTargetY = player.y;
     this.attackTimer = 0;
     this.attackHasHit = false;
     AudioManager.playSfx('zetnikPreparing', 0.9, { playbackRate: 1, startAt: 0.01 });
@@ -113,24 +119,20 @@ class ZetnikEnemy extends DogRegimeEnemy {
 
   updatePrepareJump(dt, scene) {
     this.prepareTimer += dt;
-    const player = scene.player;
-    this.facing = player.x >= this.x ? 1 : -1;
-
     if (this.prepareTimer >= this.prepareDurationMs) {
-      this.startJump(player);
+      this.startJump();
     }
   }
 
-  startJump(player) {
+  startJump() {
     this.state = 'jump';
     this.intent = 'attack';
     this.jumpTimer = 0;
     this.jumpHasHit = false;
     this.jumpStartX = this.x;
     this.jumpStartY = this.y;
-    this.facing = player.x >= this.x ? 1 : -1;
-    this.jumpTargetX = player.x + this.facing * 34;
-    this.jumpTargetY = player.y;
+    this.jumpTargetX = this.lockedTargetX + this.facing * 52;
+    this.jumpTargetY = this.lockedTargetY;
     this.attackTimer = 0;
     this.attackHasHit = false;
     AudioManager.playSfx('punch', 0.55, { playbackRate: 1.05, startAt: 0.01 });
@@ -160,9 +162,11 @@ class ZetnikEnemy extends DogRegimeEnemy {
     const player = scene.player;
     if (player.state === 'knockdown' || player.state === 'pinned') return;
 
-    const sameY = Math.abs(player.y - this.jumpTargetY) <= this.jumpRangeY;
-    const inX = Math.abs(player.x - this.x) <= this.jumpRangeX * 0.30;
-    if (!sameY || !inX) return;
+    const stayedNearLockedY = Math.abs(player.y - this.lockedTargetY) <= this.hitWindowY;
+    const stayedNearLockedX = Math.abs(player.x - this.lockedTargetX) <= this.hitWindowX;
+    const projectileOverlapsPlayer = Math.abs(player.x - this.x) <= this.hitWindowX;
+
+    if (!stayedNearLockedY || !stayedNearLockedX || !projectileOverlapsPlayer) return;
 
     player.hp -= this.damage;
     player.x += this.facing * this.crashKnockbackX;
@@ -191,7 +195,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
   }
 
   takeHit(damage, direction, knockback) {
-    if (this.state === 'jump') return;
+    if (this.state === 'jump' || this.state === 'prepareJump') return;
     super.takeHit(damage, direction, knockback);
   }
 
@@ -208,7 +212,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
 
   getImage() {
     const enemyImages = this.getEnemyImages();
-    if (!this.alive || this.state === 'crash') return enemyImages.dead || enemyImages.attack[0] || enemyImages.idle;
+    if (!this.alive || this.state === 'crash') return enemyImages.crashed || enemyImages.dead || enemyImages.attack[0] || enemyImages.idle;
     if (this.state === 'prepareJump') return enemyImages.preparing || enemyImages.attack[0] || enemyImages.idle;
     if (this.state === 'jump') return enemyImages.fly || enemyImages.attack[0] || enemyImages.idle;
     if (this.hitStun > 0) return enemyImages.idle;
