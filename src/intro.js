@@ -24,13 +24,27 @@ const Intro = {
     this.loadError = false;
 
     try {
-      const response = await fetch('src/introText.txt?cache=' + Date.now());
+      const url = '/src/introText.txt?cache=' + Date.now();
+      console.log('[INTRO] Loading text from:', url);
+
+      const response = await fetch(url, { cache: 'no-store' });
+      console.log('[INTRO] Response:', response.status, response.url);
+
       if (!response.ok) throw new Error('Failed to load introText.txt: ' + response.status);
-      this.text = await response.text();
+
+      const text = await response.text();
+      if (text.trim().startsWith('<!DOCTYPE html') || text.trim().startsWith('<html')) {
+        throw new Error('introText.txt request returned HTML instead of text. Check deploy path.');
+      }
+
+      this.text = text;
       this.lines = null;
       this.loaded = true;
+
+      console.log('[INTRO] Text loaded. Length:', this.text.length);
+      console.log('[INTRO] Text preview:', this.text.slice(0, 160));
     } catch (error) {
-      console.error(error);
+      console.error('[INTRO] Text load failed:', error);
       this.text = 'Ошибка загрузки introText.txt';
       this.lines = null;
       this.loadError = true;
@@ -125,7 +139,7 @@ const Intro = {
     ctx.fillRect(0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
 
     if (!this.loaded) {
-      this.drawLoadingMessage(ctx, this.loadError ? 'НЕ УДАЛОСЬ ЗАГРУЗИТЬ src/introText.txt' : 'ЗАГРУЗКА ИНТРО...');
+      this.drawLoadingMessage(ctx, this.loadError ? 'НЕ УДАЛОСЬ ЗАГРУЗИТЬ /src/introText.txt' : 'ЗАГРУЗКА ИНТРО...');
       return;
     }
 
