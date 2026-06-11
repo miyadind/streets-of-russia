@@ -55,6 +55,7 @@ window.Assets = {
     idle:'assets/enemies/zetnik/run01.png',
     walk:['assets/enemies/zetnik/run01.png','assets/enemies/zetnik/run02.png','assets/enemies/zetnik/run03.png'],
     attack:['assets/enemies/zetnik/push.png','assets/enemies/zetnik/push.png'],
+    fly:'assets/enemies/zetnik/fly.png',
     dead:'assets/enemies/zetnik/push.png'
   },
   sucker:{
