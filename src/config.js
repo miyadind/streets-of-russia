@@ -181,7 +181,21 @@ const GAME_CONFIG = {
             { type: 'sucker', count: 1, side: 'right' }
           ]
         }
-      ]
+      ],
+      walkZone: {
+        left: 0,
+        right: 1280,
+        top: 550,
+        bottom: 725
+      },
+      playerStart: {
+        x: 1165,
+        y: 635
+      },
+      enemySpawnMargin: {
+        x: 40,
+        y: 28
+      }
     }
   }
 };
