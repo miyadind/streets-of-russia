@@ -145,7 +145,21 @@ const GAME_CONFIG = {
             { type: 'dogRegime', count: 2, side: 'right' }
           ]
         }
-      ]
+      ],
+      walkZone: {
+        left: 0,
+        right: 1280,
+        top: 550,
+        bottom: 710
+      },
+      playerStart: {
+        x: 195,
+        y: 615
+      },
+      enemySpawnMargin: {
+        x: 40,
+        y: 28
+      }
     },
     street02: {
       name: 'Street 02',
@@ -163,7 +177,21 @@ const GAME_CONFIG = {
             { type: 'dogRegime', count: 2, side: 'left' }
           ]
         }
-      ]
+      ],
+      walkZone: {
+        left: 0,
+        right: 1280,
+        top: 585,
+        bottom: 710
+      },
+      playerStart: {
+        x: 1120,
+        y: 620
+      },
+      enemySpawnMargin: {
+        x: 40,
+        y: 28
+      }
     },
     street03: {
       name: 'Street 03',
