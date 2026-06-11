@@ -62,9 +62,10 @@
   const INTRO_FAST_MULTIPLIER = 6;
   const INTRO_LINE_HOLD = 0.18;
   const INTRO_BLANK_LINE_TIME = 0.34;
-  const INTRO_SCROLL_OUT_SPEED = 82; // pixels per second after all text is typed
   const INTRO_TYPE_Y = 455;
   const INTRO_SEEN_KEY = 'streetsOfRussiaIntroSeen';
+  const INTRO_TYPE_CLICK_MIN_INTERVAL = 42;
+  const INTRO_TYPE_CLICK_EVERY_CHARS = 2;
 
   function loadPatchImage(src) {
     return new Promise((resolve) => {
@@ -127,7 +128,6 @@
           phase: 'typing',
           lineIndex: i,
           charInLine: Math.min(line.length, chars),
-          scrollOut: 0,
           complete: false
         };
       }
@@ -136,18 +136,19 @@
     }
 
     return {
-      phase: 'scrollOut',
+      phase: 'done',
       lineIndex: Math.max(0, lines.length - 1),
       charInLine: lines.length ? lines[lines.length - 1].length : 0,
-      scrollOut: t * INTRO_SCROLL_OUT_SPEED,
-      complete: false
+      complete: true
     };
   }
 
-  function hasIntroFullyScrolledAway(lines, lineHeight, scrollOut) {
-    if (!lines.length) return true;
-    const lastLineY = INTRO_TYPE_Y - scrollOut;
-    return lastLineY < -lineHeight * 2;
+  function getTypedCursor(lines, state) {
+    let cursor = 0;
+    for (let i = 0; i < state.lineIndex; i++) {
+      cursor += (lines[i] || '').length + 1;
+    }
+    return cursor + state.charInLine;
   }
 
   const originalLoadImages = GameApp.prototype.loadImages;
@@ -167,7 +168,10 @@
       firstRun: false,
       fastForward: false,
       readyToContinue: false,
-      layoutLines: []
+      layoutLines: [],
+      lastTypedCursor: 0,
+      lastTypeSoundAt: 0,
+      audioContext: null
     };
     await originalInit.call(this);
   };
@@ -196,6 +200,8 @@
     this.intro.firstRun = !this.hasSeenIntro();
     this.intro.fastForward = false;
     this.intro.readyToContinue = false;
+    this.intro.lastTypedCursor = 0;
+    this.intro.lastTypeSoundAt = 0;
     this.setState('intro');
   };
 
@@ -203,6 +209,58 @@
     this.markIntroSeen();
     this.setState('campaignMap');
     this.ensureMenuMusic();
+  };
+
+  GameApp.prototype.playIntroTypeClick = function (typedCursor) {
+    if (!typedCursor || typedCursor <= this.intro.lastTypedCursor) return;
+    if (this.intro.fastForward) {
+      this.intro.lastTypedCursor = typedCursor;
+      return;
+    }
+    if (typedCursor % INTRO_TYPE_CLICK_EVERY_CHARS !== 0) {
+      this.intro.lastTypedCursor = typedCursor;
+      return;
+    }
+    if (AudioManager && AudioManager.isSfxOn && !AudioManager.isSfxOn()) {
+      this.intro.lastTypedCursor = typedCursor;
+      return;
+    }
+
+    const now = performance.now();
+    if (now - this.intro.lastTypeSoundAt < INTRO_TYPE_CLICK_MIN_INTERVAL) {
+      this.intro.lastTypedCursor = typedCursor;
+      return;
+    }
+
+    try {
+      const AudioCtor = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtor) return;
+      if (!this.intro.audioContext) this.intro.audioContext = new AudioCtor();
+      const audioCtx = this.intro.audioContext;
+      if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+
+      const t = audioCtx.currentTime;
+      const oscillator = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      const filter = audioCtx.createBiquadFilter();
+
+      oscillator.type = 'square';
+      oscillator.frequency.value = 900 + Math.random() * 520;
+      filter.type = 'highpass';
+      filter.frequency.value = 550;
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.026, t + 0.004);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.028);
+
+      oscillator.connect(filter);
+      filter.connect(gain);
+      gain.connect(audioCtx.destination);
+      oscillator.start(t);
+      oscillator.stop(t + 0.03);
+    } catch (error) {}
+
+    this.intro.lastTypeSoundAt = now;
+    this.intro.lastTypedCursor = typedCursor;
   };
 
   GameApp.prototype.updateIntro = function (dt) {
@@ -249,11 +307,16 @@
     this.intro.layoutLines = lines;
 
     const state = getTimelineState(lines, this.intro.time);
-    if (state.phase === 'scrollOut' && hasIntroFullyScrolledAway(lines, lineHeight, state.scrollOut)) {
+    if (state.phase === 'done') {
       this.intro.readyToContinue = true;
     }
 
     if (!this.intro.readyToContinue) {
+      const typedCursor = getTypedCursor(lines, state);
+      if (state.phase === 'typing' && state.charInLine > 0) {
+        this.playIntroTypeClick(typedCursor);
+      }
+
       ctx.save();
       ctx.beginPath();
       ctx.rect(textX, clipTop, maxWidth, clipBottom - clipTop);
@@ -271,7 +334,7 @@
           line = line.slice(0, state.charInLine);
         }
 
-        const y = INTRO_TYPE_Y - (state.lineIndex - i) * lineHeight - state.scrollOut;
+        const y = INTRO_TYPE_Y - (state.lineIndex - i) * lineHeight;
         if (y < clipTop - lineHeight || y > clipBottom) continue;
 
         ctx.strokeText(line, textX, y);
@@ -306,13 +369,13 @@
 
     let hint = '';
     if (this.intro.readyToContinue) {
-      hint = 'Нажмите любую клавишу, чтобы начать игру';
+      hint = 'Нажмите любую кнопку для продолжения';
     } else if (this.intro.firstRun) {
       hint = 'Первый запуск: интро нужно досмотреть до конца';
     } else if (this.intro.fastForward) {
       hint = 'Ускоренная перемотка интро...';
     } else {
-      hint = 'Нажмите любую клавишу, чтобы ускорить интро';
+      hint = 'Нажмите любую кнопку, чтобы ускорить интро';
     }
 
     ctx.fillText(hint, GAME_CONFIG.width - 34, GAME_CONFIG.height - 30);
