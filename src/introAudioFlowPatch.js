@@ -5,8 +5,9 @@
   const INTRO_MUSIC_VOLUME = 0.42;
   const INTRO_VOICE_VOLUME = 0.72;
   const INTRO_SKIP_REVEAL_SECONDS = 0.9;
-  const TYPE_CLICK_MIN_INTERVAL_MS = 125;
-  const TYPE_CLICK_EVERY_CHARS = 4;
+  const INTRO_VOICE_TEXT_SCALE = 0.82;
+  const TYPE_CLICK_MIN_INTERVAL_MS = 165;
+  const TYPE_CLICK_EVERY_CHARS = 5;
 
   function createAudio(src, loop, volume) {
     const audio = new Audio();
@@ -193,13 +194,13 @@
       filter.frequency.value = 480;
       gain.gain.setValueAtTime(0.0001, t);
       gain.gain.exponentialRampToValueAtTime(0.032, t + 0.006);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.07);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.075);
 
       oscillator.connect(filter);
       filter.connect(gain);
       gain.connect(audioCtx.destination);
       oscillator.start(t);
-      oscillator.stop(t + 0.075);
+      oscillator.stop(t + 0.08);
     } catch (error) {
       if (originalGeneratedTypeClick) originalGeneratedTypeClick.call(this);
     }
@@ -275,7 +276,7 @@
 
     const voiceProgress = this.getIntroVoiceProgress();
     if (voiceProgress != null && this.intro.totalTimelineDuration > 0) {
-      this.intro.time = voiceProgress * this.intro.totalTimelineDuration;
+      this.intro.time = voiceProgress * this.intro.totalTimelineDuration * INTRO_VOICE_TEXT_SCALE;
       return;
     }
 
