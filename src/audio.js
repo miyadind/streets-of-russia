@@ -87,14 +87,19 @@ const AudioManager = {
     return GAME_CONFIG.settings.sfxEnabled;
   },
 
-  playSfx(key, volume = 1) {
+  playSfx(key, volume = 1, options = {}) {
     if (!this.isSfxOn()) return;
     const src = this.sfx[key];
     if (!src) return;
 
     try {
       const audio = src.cloneNode(true);
+      const playbackRate = options.playbackRate || options.rate || 1;
+      const startAt = options.startAt || 0;
+
       audio.volume = this.getSfxVolume(volume);
+      audio.playbackRate = Math.max(0.5, Math.min(2, playbackRate));
+      if (startAt > 0) audio.currentTime = startAt;
       audio.play().catch(() => {});
     } catch (error) {
       console.warn('Cannot play sfx:', key, error);
