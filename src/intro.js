@@ -117,6 +117,7 @@ const Intro = {
 
   getVoiceProgress() {
     if (!this.voice || !Number.isFinite(this.voice.currentTime)) return null;
+    if (!this.voiceStarted && this.voice.currentTime <= 0.01) return null;
     const duration = Number.isFinite(this.voice.duration) && this.voice.duration > 0 ? this.voice.duration : this.voiceDuration;
     if (!duration) return null;
     return Math.max(0, Math.min(1, this.voice.currentTime / duration));
