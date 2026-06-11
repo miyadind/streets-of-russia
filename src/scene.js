@@ -11,6 +11,8 @@ class LevelScene {
     this.debug = false;
     this.currentWaveIndex = -1;
     this.nonBlockingWaveTimer = 0;
+    this.pendingWave = null;
+    this.pendingWaveTimer = 0;
     this.spawnInitialWave();
   }
 
@@ -28,6 +30,8 @@ class LevelScene {
     this.encounterActive = false;
     this.encounterCleared = false;
     this.nonBlockingWaveTimer = 0;
+    this.pendingWave = null;
+    this.pendingWaveTimer = 0;
     this.spawnNextWave('onEnter');
   }
 
@@ -51,6 +55,19 @@ class LevelScene {
     }
   }
 
+  getWaveAppearKey(wave) {
+    for (const group of wave.enemies || []) {
+      const key = group.type + 'Appear';
+      if (AudioManager.sfx && AudioManager.sfx[key]) return key;
+    }
+    return null;
+  }
+
+  getWaveAppearDelayMs(wave) {
+    if (wave.appearDelayMs != null) return Math.max(0, Number(wave.appearDelayMs) || 0);
+    return this.getWaveAppearKey(wave) ? 850 : 0;
+  }
+
   spawnNextWave(expectedTrigger = 'afterWaveCleared') {
     const level = this.getLevelConfig();
     const waves = level.waves || [];
@@ -59,22 +76,48 @@ class LevelScene {
       const wave = waves[i];
       if (wave.trigger !== expectedTrigger) continue;
       this.currentWaveIndex = i;
-      this.spawnWave(wave);
-      this.handleWaveAudio(wave);
-      this.encounterActive = this.hasWaveBlockers();
-      this.encounterCleared = !this.encounterActive;
-      this.nonBlockingWaveTimer = 0;
-
-      if (!this.encounterActive) {
-        this.scheduleNonBlockingWaveAdvance();
-      }
+      this.beginWave(wave);
       return true;
     }
 
     this.encounterActive = false;
     this.encounterCleared = true;
     this.nonBlockingWaveTimer = 0;
+    this.pendingWave = null;
+    this.pendingWaveTimer = 0;
     return false;
+  }
+
+  beginWave(wave) {
+    this.handleWaveAudio(wave);
+    const appearKey = this.getWaveAppearKey(wave);
+    const delayMs = this.getWaveAppearDelayMs(wave);
+
+    if (appearKey && delayMs > 0) {
+      AudioManager.playSfx(appearKey, 0.95, { startAt: 0.01 });
+      this.pendingWave = wave;
+      this.pendingWaveTimer = delayMs;
+      this.encounterActive = false;
+      this.encounterCleared = false;
+      this.nonBlockingWaveTimer = 0;
+      return;
+    }
+
+    if (appearKey) AudioManager.playSfx(appearKey, 0.95, { startAt: 0.01 });
+    this.materializeWave(wave);
+  }
+
+  materializeWave(wave) {
+    this.spawnWave(wave);
+    this.encounterActive = this.hasWaveBlockers();
+    this.encounterCleared = !this.encounterActive;
+    this.nonBlockingWaveTimer = 0;
+    this.pendingWave = null;
+    this.pendingWaveTimer = 0;
+
+    if (!this.encounterActive) {
+      this.scheduleNonBlockingWaveAdvance();
+    }
   }
 
   spawnWave(wave) {
@@ -191,6 +234,14 @@ class LevelScene {
     }
 
     this.player.update(dt, this);
+
+    if (this.pendingWave) {
+      this.pendingWaveTimer -= dt;
+      if (this.pendingWaveTimer <= 0) {
+        const wave = this.pendingWave;
+        this.materializeWave(wave);
+      }
+    }
 
     for (const enemy of this.enemies) enemy.update(dt, this);
     this.enemies = this.enemies.filter(enemy => !enemy.remove);
