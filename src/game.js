@@ -61,6 +61,14 @@ class GameApp {
       dogAttack1: Assets.dog.attack[1],
       dogDead: Assets.dog.dead,
 
+      zetnikIdle: Assets.zetnik.idle,
+      zetnikWalk0: Assets.zetnik.walk[0],
+      zetnikWalk1: Assets.zetnik.walk[1],
+      zetnikWalk2: Assets.zetnik.walk[2],
+      zetnikAttack0: Assets.zetnik.attack[0],
+      zetnikAttack1: Assets.zetnik.attack[1],
+      zetnikDead: Assets.zetnik.dead,
+
       suckerIdle: Assets.sucker.idle,
       suckerWalk0: Assets.sucker.walk[0],
       suckerWalk1: Assets.sucker.walk[1],
@@ -122,6 +130,16 @@ class GameApp {
         walk: [loaded.dogWalk0, loaded.dogWalk1],
         attack: [loaded.dogAttack0, loaded.dogAttack1],
         dead: loaded.dogDead
+      },
+      zetnik: {
+        idle: loaded.zetnikIdle || loaded.zetnikWalk0 || loaded.dogIdle,
+        walk: [
+          loaded.zetnikWalk0 || loaded.zetnikIdle || loaded.dogWalk0,
+          loaded.zetnikWalk1 || loaded.zetnikIdle || loaded.dogWalk1,
+          loaded.zetnikWalk2 || loaded.zetnikIdle || loaded.dogWalk0
+        ],
+        attack: [loaded.zetnikAttack0 || loaded.zetnikIdle || loaded.dogAttack0, loaded.zetnikAttack1 || loaded.zetnikAttack0 || loaded.dogAttack1],
+        dead: loaded.zetnikDead || loaded.zetnikAttack0 || loaded.zetnikIdle || loaded.dogDead
       },
       sucker: {
         idle: loaded.suckerIdle || loaded.dogIdle,
