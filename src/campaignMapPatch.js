@@ -58,11 +58,13 @@
 Это Streets of Russia.`;
 
   const INTRO_BACKGROUND = 'assets/backgrounds/Intro.png';
+  const INTRO_TYPEWRITER_SOUND = 'assets/audio/sfx/typewriter-key.mp3';
   const INTRO_TYPE_SPEED = 24; // characters per second for visible line typing
   const INTRO_FAST_MULTIPLIER = 6;
   const INTRO_LINE_HOLD = 0.18;
   const INTRO_BLANK_LINE_TIME = 0.34;
   const INTRO_TYPE_Y = 455;
+  const INTRO_END_FADE_SECONDS = 5;
   const INTRO_SEEN_KEY = 'streetsOfRussiaIntroSeen';
   const INTRO_TYPE_CLICK_MIN_INTERVAL = 42;
   const INTRO_TYPE_CLICK_EVERY_CHARS = 2;
@@ -77,6 +79,17 @@
       };
       img.src = src;
     });
+  }
+
+  function loadPatchAudio(src) {
+    const audio = new Audio();
+    audio.src = src;
+    audio.preload = 'auto';
+    audio.volume = 0.35;
+    audio.addEventListener('error', () => {
+      console.warn('Missing intro typewriter sound:', src);
+    });
+    return audio;
   }
 
   function wrapText(ctx, text, maxWidth) {
@@ -113,6 +126,10 @@
     return Math.max(0.55, line.length / INTRO_TYPE_SPEED + INTRO_LINE_HOLD);
   }
 
+  function getTypingDuration(lines) {
+    return lines.reduce((sum, line) => sum + lineDuration(line), 0);
+  }
+
   function getTimelineState(lines, timeSeconds) {
     let t = Math.max(0, timeSeconds);
 
@@ -128,6 +145,7 @@
           phase: 'typing',
           lineIndex: i,
           charInLine: Math.min(line.length, chars),
+          fadeElapsed: 0,
           complete: false
         };
       }
@@ -136,10 +154,11 @@
     }
 
     return {
-      phase: 'done',
+      phase: 'fadeOut',
       lineIndex: Math.max(0, lines.length - 1),
       charInLine: lines.length ? lines[lines.length - 1].length : 0,
-      complete: true
+      fadeElapsed: t,
+      complete: t >= INTRO_END_FADE_SECONDS
     };
   }
 
@@ -171,7 +190,9 @@
       layoutLines: [],
       lastTypedCursor: 0,
       lastTypeSoundAt: 0,
-      audioContext: null
+      audioContext: null,
+      typewriterSound: loadPatchAudio(INTRO_TYPEWRITER_SOUND),
+      typewriterSoundMissing: false
     };
     await originalInit.call(this);
   };
@@ -202,6 +223,7 @@
     this.intro.readyToContinue = false;
     this.intro.lastTypedCursor = 0;
     this.intro.lastTypeSoundAt = 0;
+    if (this.intro.typewriterSound) this.intro.typewriterSound.load();
     this.setState('intro');
   };
 
@@ -211,27 +233,7 @@
     this.ensureMenuMusic();
   };
 
-  GameApp.prototype.playIntroTypeClick = function (typedCursor) {
-    if (!typedCursor || typedCursor <= this.intro.lastTypedCursor) return;
-    if (this.intro.fastForward) {
-      this.intro.lastTypedCursor = typedCursor;
-      return;
-    }
-    if (typedCursor % INTRO_TYPE_CLICK_EVERY_CHARS !== 0) {
-      this.intro.lastTypedCursor = typedCursor;
-      return;
-    }
-    if (AudioManager && AudioManager.isSfxOn && !AudioManager.isSfxOn()) {
-      this.intro.lastTypedCursor = typedCursor;
-      return;
-    }
-
-    const now = performance.now();
-    if (now - this.intro.lastTypeSoundAt < INTRO_TYPE_CLICK_MIN_INTERVAL) {
-      this.intro.lastTypedCursor = typedCursor;
-      return;
-    }
-
+  GameApp.prototype.playGeneratedIntroTypeClick = function () {
     try {
       const AudioCtor = window.AudioContext || window.webkitAudioContext;
       if (!AudioCtor) return;
@@ -258,6 +260,46 @@
       oscillator.start(t);
       oscillator.stop(t + 0.03);
     } catch (error) {}
+  };
+
+  GameApp.prototype.playIntroTypeClick = function (typedCursor) {
+    if (!typedCursor || typedCursor <= this.intro.lastTypedCursor) return;
+    if (this.intro.fastForward) {
+      this.intro.lastTypedCursor = typedCursor;
+      return;
+    }
+    if (typedCursor % INTRO_TYPE_CLICK_EVERY_CHARS !== 0) {
+      this.intro.lastTypedCursor = typedCursor;
+      return;
+    }
+    if (AudioManager && AudioManager.isSfxOn && !AudioManager.isSfxOn()) {
+      this.intro.lastTypedCursor = typedCursor;
+      return;
+    }
+
+    const now = performance.now();
+    if (now - this.intro.lastTypeSoundAt < INTRO_TYPE_CLICK_MIN_INTERVAL) {
+      this.intro.lastTypedCursor = typedCursor;
+      return;
+    }
+
+    const realSound = this.intro.typewriterSound;
+    if (realSound && !this.intro.typewriterSoundMissing) {
+      try {
+        const click = realSound.cloneNode(true);
+        click.volume = 0.28;
+        click.currentTime = 0;
+        click.play().catch(() => {
+          this.intro.typewriterSoundMissing = true;
+          this.playGeneratedIntroTypeClick();
+        });
+      } catch (error) {
+        this.intro.typewriterSoundMissing = true;
+        this.playGeneratedIntroTypeClick();
+      }
+    } else {
+      this.playGeneratedIntroTypeClick();
+    }
 
     this.intro.lastTypeSoundAt = now;
     this.intro.lastTypedCursor = typedCursor;
@@ -307,7 +349,7 @@
     this.intro.layoutLines = lines;
 
     const state = getTimelineState(lines, this.intro.time);
-    if (state.phase === 'done') {
+    if (state.complete) {
       this.intro.readyToContinue = true;
     }
 
@@ -317,7 +359,12 @@
         this.playIntroTypeClick(typedCursor);
       }
 
+      const fadeAlpha = state.phase === 'fadeOut'
+        ? Math.max(0, 1 - state.fadeElapsed / INTRO_END_FADE_SECONDS)
+        : 1;
+
       ctx.save();
+      ctx.globalAlpha = fadeAlpha;
       ctx.beginPath();
       ctx.rect(textX, clipTop, maxWidth, clipBottom - clipTop);
       ctx.clip();
@@ -371,9 +418,9 @@
     if (this.intro.readyToContinue) {
       hint = 'Нажмите любую кнопку для продолжения';
     } else if (this.intro.firstRun) {
-      hint = 'Первый запуск: интро нужно досмотреть до конца';
+      hint = state.phase === 'fadeOut' ? 'Интро завершается...' : 'Первый запуск: интро нужно досмотреть до конца';
     } else if (this.intro.fastForward) {
-      hint = 'Ускоренная перемотка интро...';
+      hint = state.phase === 'fadeOut' ? 'Интро завершается...' : 'Ускоренная перемотка интро...';
     } else {
       hint = 'Нажмите любую кнопку, чтобы ускорить интро';
     }
