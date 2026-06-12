@@ -168,12 +168,19 @@ class ZetnikEnemy extends DogRegimeEnemy {
 
     if (!stayedNearLockedY || !stayedNearLockedX || !projectileOverlapsPlayer) return;
 
-    player.hp -= this.damage;
-    player.x += this.facing * this.crashKnockbackX;
-    player.knockDown(this.knockdownMs);
+    const hit = player.receiveDamage(this.damage, {
+      source: 'ranged',
+      knockbackX: this.facing * this.crashKnockbackX,
+      knockdownMs: this.knockdownMs
+    });
+
     this.jumpHasHit = true;
-    scene.hitStop = 70;
-    AudioManager.playSfx('playerDown', 0.85, { playbackRate: 1.08, startAt: 0.01 });
+    if (hit) {
+      scene.hitStop = 70;
+      if (player.canBeKnockedDown && player.canBeKnockedDown()) {
+        AudioManager.playSfx('playerDown', 0.85, { playbackRate: 1.08, startAt: 0.01 });
+      }
+    }
   }
 
   finishCrash(scene) {
