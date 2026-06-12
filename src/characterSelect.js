@@ -34,7 +34,7 @@ const CharacterSelect = {
     if (click) {
       for (let i = 0; i < this.heroes.length; i++) {
         const info = this.getInfoButtonBox(i);
-        if (this.isPointInBox(click, info)) {
+        if (this.isPointInCircle(click, info)) {
           this.setSelection(i);
           this.openInfo();
           return;
@@ -91,7 +91,7 @@ const CharacterSelect = {
 
   getInfoButtonBox(i) {
     const box = this.getCardBox(i);
-    return { x: box.x + 48, y: box.y + box.h - 62, w: box.w - 96, h: 38 };
+    return { x: box.x + 34, y: box.y + 34, r: 20 };
   },
 
   getInfoCloseBox() {
@@ -100,6 +100,12 @@ const CharacterSelect = {
 
   isPointInBox(point, box) {
     return point.x >= box.x && point.x <= box.x + box.w && point.y >= box.y && point.y <= box.y + box.h;
+  },
+
+  isPointInCircle(point, circle) {
+    const dx = point.x - circle.x;
+    const dy = point.y - circle.y;
+    return dx * dx + dy * dy <= circle.r * circle.r;
   },
 
   draw(ctx, images) {
@@ -155,6 +161,8 @@ const CharacterSelect = {
       ctx.fillText('ПОЗЖЕ', box.x + box.w / 2, box.y + 152);
     }
 
+    this.drawInfoIcon(ctx, index, selected, hero.color);
+
     ctx.textAlign = 'center';
     ctx.font = 'bold 32px Arial';
     ctx.fillStyle = hero.color;
@@ -167,7 +175,28 @@ const CharacterSelect = {
     this.drawStat(ctx, box.x + 35, box.y + 305, 'СИЛА', hero.strength, hero.color);
     this.drawStat(ctx, box.x + 35, box.y + 343, 'СКОРОСТЬ', hero.speedStat, hero.color);
     this.drawStat(ctx, box.x + 35, box.y + 381, 'ЗДОРОВЬЕ', hero.health, hero.color);
-    this.drawButton(ctx, box.x + 48, box.y + box.h - 62, box.w - 96, 38, 'ИНФОРМАЦИЯ', selected);
+  },
+
+  drawInfoIcon(ctx, index, selected, color) {
+    const icon = this.getInfoButtonBox(index);
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(icon.x, icon.y, icon.r, 0, Math.PI * 2);
+    ctx.fillStyle = selected ? color : 'rgba(0,0,0,0.68)';
+    ctx.fill();
+    ctx.lineWidth = selected ? 3 : 2;
+    ctx.strokeStyle = selected ? '#fff' : 'rgba(255,255,255,0.72)';
+    ctx.stroke();
+
+    ctx.font = 'bold 21px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#fff';
+    ctx.strokeStyle = 'rgba(0,0,0,0.75)';
+    ctx.lineWidth = 3;
+    ctx.strokeText('И', icon.x, icon.y + 1);
+    ctx.fillText('И', icon.x, icon.y + 1);
+    ctx.restore();
   },
 
   drawStat(ctx, x, y, label, value, color) {
