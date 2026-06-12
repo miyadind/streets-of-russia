@@ -17,89 +17,101 @@
         return p && p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h;
       }
 
-      function mobileMainMenuBox(index) {
-        return { x: 300, y: 250 + index * 92, w: 680, h: 84 };
+      function mainBox(index) {
+        return { x: 240, y: 245 + index * 96, w: 800, h: 92 };
       }
 
-      function mobileSettingsBox(index) {
-        return { x: 190, y: 170 + index * 80, w: 900, h: 72 };
+      function settingsBox(index) {
+        return { x: 150, y: 160 + index * 82, w: 980, h: 78 };
       }
 
-      function mobileHeroBox(index) {
-        return { x: 60 + index * 400, y: 100, w: 365, h: 510 };
+      function heroBox(index) {
+        return { x: 45 + index * 405, y: 90, w: 390, h: 525 };
       }
 
-      function mobileConfirmBox() {
-        return { x: 270, y: 600, w: 430, h: 90 };
+      function confirmBox() {
+        return { x: 240, y: 585, w: 500, h: 115 };
       }
 
-      function mobileBackBox() {
-        return { x: 720, y: 600, w: 290, h: 90 };
+      function backBox() {
+        return { x: 750, y: 585, w: 360, h: 115 };
       }
 
-      var oldMenuUpdate = Menu.update;
-      Menu.update = function (game) {
-        var click = Input.consumePointer();
-        if (click) {
-          AudioManager.unlock();
-          for (var i = 0; i < this.items.length; i++) {
-            var box = Responsive.isTouchDevice ? mobileMainMenuBox(i) : this.getItemBox(i);
-            if (inBox(click, box)) {
-              this.selectedIndex = i;
-              this.activate(game);
-              return;
-            }
+      function activateMainMenu(game, index) {
+        Menu.selectedIndex = index;
+        AudioManager.unlock();
+        AudioManager.playSfx('menuSelect', 0.85);
+        if (index === 0) game.setState('characterSelect');
+        else if (index === 2) game.setState('settings');
+      }
+
+      function activateSettings(game, index) {
+        Menu.settingsIndex = index;
+        AudioManager.unlock();
+        Menu.changeSetting(index, game, 1);
+      }
+
+      function activateCharacter(game, click) {
+        if (typeof CharacterSelect === 'undefined') return false;
+        if (CharacterSelect.infoOpen) return false;
+        for (var i = 0; i < CharacterSelect.heroes.length; i++) {
+          if (inBox(click, heroBox(i))) {
+            CharacterSelect.setSelection(i);
+            CharacterSelect.footerFocus = null;
+            return true;
           }
         }
-        if (click) Input.restorePointer(click);
-        oldMenuUpdate.call(this, game);
+        if (inBox(click, confirmBox())) {
+          CharacterSelect.confirm(game);
+          return true;
+        }
+        if (inBox(click, backBox())) {
+          AudioManager.playSfx('menuSelect', 0.65);
+          game.setState('mainMenu');
+          return true;
+        }
+        return false;
+      }
+
+      var oldEnsureMenuMusic = GameApp.prototype.ensureMenuMusic;
+      GameApp.prototype.ensureMenuMusic = function () {
+        if (this.state === 'splash') return;
+        oldEnsureMenuMusic.call(this);
       };
 
-      var oldSettingsUpdate = Menu.updateSettings;
-      Menu.updateSettings = function (game) {
+      var oldUpdate = GameApp.prototype.update;
+      GameApp.prototype.update = function (dt) {
         var click = Input.consumePointer();
         if (click) {
-          AudioManager.unlock();
-          for (var i = 0; i < this.settingsItems.length; i++) {
-            var box = Responsive.isTouchDevice ? mobileSettingsBox(i) : this.getSettingsBox(i);
-            if (inBox(click, box)) {
-              this.settingsIndex = i;
-              this.changeSetting(i, game, 1);
-              return;
-            }
-          }
-        }
-        if (click) Input.restorePointer(click);
-        oldSettingsUpdate.call(this, game);
-      };
+          if (this.handleSpeakerClick(click)) return;
 
-      if (typeof CharacterSelect !== 'undefined') {
-        var oldCharacterUpdate = CharacterSelect.update;
-        CharacterSelect.update = function (game) {
-          var click = Input.consumePointer();
-          if (click && Responsive.isTouchDevice && !this.infoOpen) {
-            AudioManager.unlock();
-            for (var i = 0; i < this.heroes.length; i++) {
-              if (inBox(click, mobileHeroBox(i))) {
-                this.setSelection(i);
-                this.footerFocus = null;
+          if (Responsive.isTouchDevice && this.state === 'mainMenu') {
+            for (var i = 0; i < Menu.items.length; i++) {
+              if (inBox(click, mainBox(i))) {
+                activateMainMenu(this, i);
                 return;
               }
             }
-            if (inBox(click, mobileConfirmBox())) {
-              this.confirm(game);
-              return;
-            }
-            if (inBox(click, mobileBackBox())) {
-              AudioManager.playSfx('menuSelect', 0.65);
-              game.setState('mainMenu');
-              return;
+          }
+
+          if (Responsive.isTouchDevice && this.state === 'settings') {
+            for (var j = 0; j < Menu.settingsItems.length; j++) {
+              if (inBox(click, settingsBox(j))) {
+                activateSettings(this, j);
+                return;
+              }
             }
           }
-          if (click) Input.restorePointer(click);
-          oldCharacterUpdate.call(this, game);
-        };
-      }
+
+          if (Responsive.isTouchDevice && this.state === 'characterSelect') {
+            if (activateCharacter(this, click)) return;
+          }
+
+          Input.restorePointer(click);
+        }
+
+        oldUpdate.call(this, dt);
+      };
     }, 0);
   });
 })();
