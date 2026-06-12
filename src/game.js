@@ -14,10 +14,12 @@ class GameApp {
     Input.init(this.canvas);
     AudioManager.init();
     DevPanel.init();
+
+    requestAnimationFrame((time) => this.loop(time));
+
     this.images = await this.loadImages();
     this.setState('splash');
     this.ensureMenuMusic();
-    requestAnimationFrame((time) => this.loop(time));
   }
 
   async loadImages() {
@@ -199,8 +201,6 @@ class GameApp {
   }
 
   update(dt) {
-    if (Responsive.isPortrait) return;
-
     DevPanel.update(this);
 
     const click = Input.consumePointer();
@@ -288,11 +288,6 @@ class GameApp {
   draw() {
     const ctx = this.ctx;
     ctx.clearRect(0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
-
-    if (Responsive.isPortrait) {
-      this.drawRotateWarning(ctx);
-      return;
-    }
 
     if (this.state === 'loading') {
       this.drawLoading(ctx);
