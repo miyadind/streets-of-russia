@@ -47,7 +47,7 @@ const AudioManager = {
       audio.load();
     }
 
-    if (this.currentMusicKey) this.playMusic(this.currentMusicKey, false, true);
+    if (this.currentMusicKey && this.isMusicOn()) this.playMusic(this.currentMusicKey, false, true);
   },
 
   ensureAudioContext() {
@@ -162,16 +162,16 @@ const AudioManager = {
     this.currentMusicKey = key;
 
     if (!this.isMusicOn()) {
-      this.stopMusic();
+      this.pauseMusic();
       return;
     }
 
     const next = this.music[key];
-    if (!next) return;
+    if (!next || (next.dataset && next.dataset.failed === 'true')) return;
 
-    if (this.currentMusic === next && !forceRestart && this.musicActuallyPlaying) {
+    if (this.currentMusic === next && !forceRestart) {
       next.volume = this.getMusicVolume();
-      return;
+      if (!next.paused && this.musicActuallyPlaying) return;
     }
 
     if (this.currentMusic !== next || forceRestart) {
@@ -194,6 +194,12 @@ const AudioManager = {
       });
   },
 
+  pauseMusic() {
+    if (!this.currentMusic) return;
+    this.currentMusic.pause();
+    this.musicActuallyPlaying = false;
+  },
+
   stopMusic() {
     if (!this.currentMusic) return;
     this.currentMusic.pause();
@@ -203,8 +209,17 @@ const AudioManager = {
   },
 
   refreshSettings() {
-    if (this.currentMusic) this.currentMusic.volume = this.getMusicVolume();
-    if (!this.isMusicOn()) this.stopMusic();
-    else if (this.currentMusicKey) this.playMusic(this.currentMusicKey, false, true);
+    if (!this.isMusicOn()) {
+      this.pauseMusic();
+      return;
+    }
+
+    if (this.currentMusic) {
+      this.currentMusic.volume = this.getMusicVolume();
+      if (this.currentMusic.paused && this.currentMusicKey) this.playMusic(this.currentMusicKey, false, true);
+      return;
+    }
+
+    if (this.currentMusicKey) this.playMusic(this.currentMusicKey, false, true);
   }
 };
