@@ -8,7 +8,8 @@
   const INTRO_VOICE_TEXT_SCALE = 0.90;
   const INTRO_FINAL_PAUSE_TRIM_SECONDS = 0.5;
   const INTRO_FINAL_PAUSE_TRIM_START_PROGRESS = 0.88;
-  const INTRO_END_TEXT_HOLD_SECONDS = 2.2;
+  const INTRO_END_TEXT_HOLD_SECONDS = 5.0;
+  const INTRO_TEXT_FADE_SECONDS = 1.25;
   const TYPE_CLICK_MIN_INTERVAL_MS = 165;
   const TYPE_CLICK_EVERY_CHARS = 5;
 
@@ -23,7 +24,7 @@
   }
 
   function getStartButtonRect() {
-    return { x: GAME_CONFIG.width / 2 - 130, y: GAME_CONFIG.height - 86, w: 260, h: 52 };
+    return { x: GAME_CONFIG.width / 2 - 125, y: GAME_CONFIG.height - 70, w: 250, h: 48 };
   }
 
   function pointInRect(point, rect) {
@@ -41,6 +42,21 @@
     const trimT = smoothStep((p - INTRO_FINAL_PAUSE_TRIM_START_PROGRESS) / (1 - INTRO_FINAL_PAUSE_TRIM_START_PROGRESS));
     const trim = trimT * INTRO_FINAL_PAUSE_TRIM_SECONDS;
     return Math.min(totalTimelineDuration, baseTime + trim);
+  }
+
+  function getIntroEndFadeAlpha(game) {
+    if (!game.intro || !game.intro.finalFadeActive) return 1;
+    const t = Math.max(0, Math.min(1, game.intro.finalFadeElapsed / INTRO_TEXT_FADE_SECONDS));
+    return 1 - smoothStep(t);
+  }
+
+  function getIntroButtonAlpha(game) {
+    if (!game.intro) return 0;
+    if (game.intro.finalFadeActive) {
+      const t = Math.max(0, Math.min(1, game.intro.finalFadeElapsed / INTRO_TEXT_FADE_SECONDS));
+      return smoothStep(t);
+    }
+    return game.intro.readyToContinue ? 1 : 0;
   }
 
   function ensureIntroMusic(game) {
@@ -61,6 +77,8 @@
       game.intro.finalNaturalFinishActive = true;
       game.intro.finalHoldActive = false;
       game.intro.finalHoldRemaining = 0;
+      game.intro.finalFadeActive = false;
+      game.intro.finalFadeElapsed = 0;
       game.intro.readyToContinue = false;
       game.intro.readerScroll = 0;
     });
@@ -166,6 +184,8 @@
     this.intro.finalNaturalFinishActive = false;
     this.intro.finalHoldActive = false;
     this.intro.finalHoldRemaining = 0;
+    this.intro.finalFadeActive = false;
+    this.intro.finalFadeElapsed = 0;
     this.intro.readyToContinue = false;
     this.intro.readerScroll = 0;
     this.intro.lastTypedCursor = 0;
@@ -208,6 +228,8 @@
     this.intro.finalNaturalFinishActive = false;
     this.intro.finalHoldActive = false;
     this.intro.finalHoldRemaining = 0;
+    this.intro.finalFadeActive = false;
+    this.intro.finalFadeElapsed = 0;
     this.intro.lastTypedCursor = Number.MAX_SAFE_INTEGER;
   };
 
@@ -297,6 +319,7 @@
     if (click && this.handleSpeakerClick(click)) return;
 
     if (this.intro.finalNaturalFinishActive) {
+      this.intro.readyToContinue = false;
       this.intro.time = Math.min(this.intro.totalTimelineDuration || this.intro.time, this.intro.time + dt / 1000);
       if (this.intro.totalTimelineDuration > 0 && this.intro.time >= this.intro.totalTimelineDuration) {
         this.intro.finalNaturalFinishActive = false;
@@ -307,10 +330,23 @@
     }
 
     if (this.intro.finalHoldActive) {
+      this.intro.readyToContinue = false;
       this.intro.time = this.intro.totalTimelineDuration || this.intro.time;
       this.intro.finalHoldRemaining -= dt / 1000;
       if (this.intro.finalHoldRemaining <= 0) {
         this.intro.finalHoldActive = false;
+        this.intro.finalFadeActive = true;
+        this.intro.finalFadeElapsed = 0;
+      }
+      return;
+    }
+
+    if (this.intro.finalFadeActive) {
+      this.intro.readyToContinue = false;
+      this.intro.time = this.intro.totalTimelineDuration || this.intro.time;
+      this.intro.finalFadeElapsed += dt / 1000;
+      if (this.intro.finalFadeElapsed >= INTRO_TEXT_FADE_SECONDS) {
+        this.intro.finalFadeActive = false;
         this.intro.readyToContinue = true;
         this.intro.readerScroll = 0;
       }
@@ -355,35 +391,94 @@
     this.intro.time += dt / 1000;
   };
 
-  const originalDrawIntroReader = GameApp.prototype.drawIntroReader;
-  GameApp.prototype.drawIntroReader = function (ctx, lines, maxWidth) {
-    if (originalDrawIntroReader) originalDrawIntroReader.call(this, ctx, lines, maxWidth);
+  GameApp.prototype.drawIntroStartButton = function (ctx, alpha) {
+    if (alpha <= 0) return;
 
     const btn = getStartButtonRect();
-    const pulse = 0.45 + 0.55 * Math.abs(Math.sin(performance.now() / 260));
+    const pulse = 0.35 + 0.65 * Math.abs(Math.sin(performance.now() / 330));
     const centerX = btn.x + btn.w / 2;
     const centerY = btn.y + btn.h / 2;
 
     ctx.save();
-    ctx.globalAlpha = 0.68 + pulse * 0.20;
-    ctx.fillStyle = '#ff2b2b';
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = 'rgba(120, 0, 0, 0.88)';
     ctx.fillRect(btn.x, btn.y, btn.w, btn.h);
+    ctx.strokeStyle = `rgba(255,255,255,${0.55 + pulse * 0.45})`;
+    ctx.lineWidth = 3 + pulse * 2;
+    ctx.strokeRect(btn.x, btn.y, btn.w, btn.h);
 
-    ctx.globalAlpha = 0.65 + pulse * 0.35;
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 5 + pulse * 3;
-    ctx.strokeRect(btn.x - 3, btn.y - 3, btn.w + 6, btn.h + 6);
-
-    ctx.globalAlpha = 1;
-    ctx.font = 'bold 28px Arial';
+    ctx.font = 'bold 26px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#ffffff';
     ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 6;
+    ctx.lineWidth = 5;
     ctx.strokeText('НАЧАТЬ', centerX, centerY);
     ctx.fillText('НАЧАТЬ', centerX, centerY);
     ctx.restore();
+  };
+
+  GameApp.prototype.drawIntroReader = function (ctx, lines, maxWidth) {
+    const panelX = 150;
+    const panelY = 88;
+    const panelW = GAME_CONFIG.width - 300;
+    const panelH = GAME_CONFIG.height - 190;
+    const textAlpha = getIntroEndFadeAlpha(this);
+    const buttonAlpha = getIntroButtonAlpha(this);
+
+    ctx.save();
+    ctx.globalAlpha = textAlpha;
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.58)';
+    ctx.fillRect(panelX - 20, panelY - 20, panelW + 40, panelH + 40);
+    ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(panelX - 20, panelY - 20, panelW + 40, panelH + 40);
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(panelX, panelY, panelW, panelH);
+    ctx.clip();
+
+    ctx.font = 'bold 24px Arial';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.shadowColor = '#000';
+    ctx.shadowBlur = 8;
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = '#000';
+    ctx.fillStyle = '#f4f4f4';
+
+    for (let i = 0; i < lines.length; i++) {
+      const y = panelY + i * 34 - this.intro.readerScroll;
+      if (y < panelY - 34 || y > panelY + panelH) continue;
+      ctx.strokeText(lines[i], panelX, y);
+      ctx.fillText(lines[i], panelX, y);
+    }
+
+    ctx.restore();
+
+    const limits = this.getIntroReaderLimits ? this.getIntroReaderLimits() : { max: 0 };
+    if (limits.max > 0) {
+      const barX = panelX + panelW + 16;
+      const barY = panelY;
+      const barH = panelH;
+      const thumbH = Math.max(40, barH * (panelH / (panelH + limits.max)));
+      const thumbY = barY + (barH - thumbH) * (this.intro.readerScroll / limits.max);
+
+      ctx.fillStyle = 'rgba(255,255,255,0.18)';
+      ctx.fillRect(barX, barY, 6, barH);
+      ctx.fillStyle = 'rgba(255,255,255,0.75)';
+      ctx.fillRect(barX, thumbY, 6, thumbH);
+    }
+
+    ctx.font = 'bold 17px Arial';
+    ctx.textAlign = 'right';
+    ctx.fillStyle = 'rgba(255,255,255,0.72)';
+    ctx.fillText('Колесо мыши / ↑↓ — читать текст', GAME_CONFIG.width - 34, GAME_CONFIG.height - 18);
+    ctx.textAlign = 'left';
+    ctx.restore();
+
+    this.drawIntroStartButton(ctx, buttonAlpha);
   };
 
   const originalHandleSpeakerClick = GameApp.prototype.handleSpeakerClick;
