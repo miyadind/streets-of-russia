@@ -1,5 +1,6 @@
 const Input = {
   keys: {},
+  virtualKeys: {},
   just: {},
   pointer: { x: 0, y: 0, down: false, justDown: false },
 
@@ -57,6 +58,7 @@ const Input = {
     window.addEventListener('pointerup', (event) => {
       if (event && event.cancelable) event.preventDefault();
       this.pointer.down = false;
+      this.clearVirtualKeys();
     }, { passive: false });
   },
 
@@ -69,7 +71,19 @@ const Input = {
   },
 
   pressed(key) {
-    return !!this.keys[key];
+    return !!this.keys[key] || !!this.virtualKeys[key];
+  },
+
+  setVirtualKey(key, value) {
+    this.virtualKeys[key] = !!value;
+    if (value) {
+      this.just[key] = true;
+      this.just.any = true;
+    }
+  },
+
+  clearVirtualKeys() {
+    this.virtualKeys = {};
   },
 
   consume(key) {
