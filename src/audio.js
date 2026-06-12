@@ -47,7 +47,7 @@ const AudioManager = {
       audio.load();
     }
 
-    if (this.currentMusicKey && this.isMusicOn()) this.playMusic(this.currentMusicKey, false, true);
+    if (this.currentMusicKey) this.playMusic(this.currentMusicKey, false, true);
   },
 
   ensureAudioContext() {
@@ -66,8 +66,12 @@ const AudioManager = {
     return !GAME_CONFIG.settings || GAME_CONFIG.settings.soundEnabled !== false;
   },
 
+  isMusicEnabled() {
+    return !GAME_CONFIG.settings || GAME_CONFIG.settings.musicEnabled !== false;
+  },
+
   isMusicOn() {
-    return this.isSoundOn() && (!GAME_CONFIG.settings || GAME_CONFIG.settings.musicEnabled !== false);
+    return this.isSoundOn() && this.isMusicEnabled();
   },
 
   isSfxOn() {
@@ -75,11 +79,13 @@ const AudioManager = {
   },
 
   getSfxVolume(volume = 1) {
+    if (!this.isSoundOn()) return 0;
     const base = GAME_CONFIG.settings && GAME_CONFIG.settings.sfxVolume != null ? GAME_CONFIG.settings.sfxVolume : 0.85;
     return Math.max(0, Math.min(1, base * volume));
   },
 
   getMusicVolume() {
+    if (!this.isSoundOn() || !this.isMusicEnabled()) return 0;
     const base = GAME_CONFIG.settings && GAME_CONFIG.settings.musicVolume != null ? GAME_CONFIG.settings.musicVolume : 0.45;
     return Math.max(0, Math.min(1, base));
   },
@@ -91,6 +97,12 @@ const AudioManager = {
 
   setSfxVolume(value) {
     GAME_CONFIG.settings.sfxVolume = Math.max(0, Math.min(1, value));
+  },
+
+  toggleSound() {
+    GAME_CONFIG.settings.soundEnabled = GAME_CONFIG.settings.soundEnabled === false;
+    this.refreshSettings();
+    return GAME_CONFIG.settings.soundEnabled !== false;
   },
 
   toggleMusic() {
@@ -133,6 +145,7 @@ const AudioManager = {
   },
 
   playSyntheticSfx(key, volume = 1, options = {}) {
+    if (!this.isSfxOn()) return;
     if (key !== 'menuMove') return;
     const context = this.ensureAudioContext();
     if (!context) return;
@@ -160,11 +173,6 @@ const AudioManager = {
   playMusic(key, forceRestart = false, retryIfBlocked = false) {
     if (!key) return;
     this.currentMusicKey = key;
-
-    if (!this.isMusicOn()) {
-      this.pauseMusic();
-      return;
-    }
 
     const next = this.music[key];
     if (!next || (next.dataset && next.dataset.failed === 'true')) return;
@@ -194,12 +202,6 @@ const AudioManager = {
       });
   },
 
-  pauseMusic() {
-    if (!this.currentMusic) return;
-    this.currentMusic.pause();
-    this.musicActuallyPlaying = false;
-  },
-
   stopMusic() {
     if (!this.currentMusic) return;
     this.currentMusic.pause();
@@ -209,11 +211,6 @@ const AudioManager = {
   },
 
   refreshSettings() {
-    if (!this.isMusicOn()) {
-      this.pauseMusic();
-      return;
-    }
-
     if (this.currentMusic) {
       this.currentMusic.volume = this.getMusicVolume();
       if (this.currentMusic.paused && this.currentMusicKey) this.playMusic(this.currentMusicKey, false, true);
