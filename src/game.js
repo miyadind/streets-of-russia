@@ -226,7 +226,10 @@ class GameApp {
       CharacterSelect.update(this);
     } else if (this.state === 'level' && this.scene) {
       if (click) Input.restorePointer(click);
+      if (typeof MobileControls !== 'undefined') MobileControls.update(this);
       this.scene.update(dt);
+    } else if (typeof MobileControls !== 'undefined') {
+      MobileControls.update(this);
     }
   }
 
@@ -303,6 +306,7 @@ class GameApp {
       this.scene.draw(ctx);
     }
 
+    if (typeof MobileControls !== 'undefined') MobileControls.draw(ctx, this);
     this.drawSpeaker(ctx);
     DevPanel.draw(ctx);
   }
