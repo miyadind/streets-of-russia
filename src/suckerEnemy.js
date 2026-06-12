@@ -195,9 +195,27 @@ class SuckerEnemy extends DogRegimeEnemy {
 
   pinPlayer(scene) {
     const player = scene.player;
-    player.hp -= this.damage;
+    const hit = player.receiveDamage(this.damage, {
+      source: 'ranged',
+      knockbackX: this.facing * 28
+    });
+
+    if (!hit) {
+      this.state = 'recovery';
+      this.recoveryTimer = this.slideRecoveryMs;
+      this.hasPinnedPlayer = false;
+      return;
+    }
+
     player.knockDown(180);
-    player.pinBy(this, this.pinDurationMs);
+    if (!player.pinBy(this, this.pinDurationMs)) {
+      this.state = 'recovery';
+      this.recoveryTimer = this.slideRecoveryMs;
+      this.hasPinnedPlayer = false;
+      scene.hitStop = 35;
+      return;
+    }
+
     this.state = 'pinBite';
     this.pinTimer = 0;
     this.biteTimer = 0;
@@ -220,7 +238,7 @@ class SuckerEnemy extends DogRegimeEnemy {
     if (this.biteTimer >= this.biteTickMs) {
       this.biteTimer -= this.biteTickMs;
       this.biteFrame = 1 - this.biteFrame;
-      player.hp -= this.biteDamage;
+      player.receiveDamage(this.biteDamage, { source: 'melee' });
     }
 
     if (this.pinTimer >= this.pinDurationMs || player.hp <= 0) {
