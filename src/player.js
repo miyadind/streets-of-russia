@@ -8,6 +8,8 @@ class Player {
     this.speed = hero.speed;
     this.damage = hero.damage;
     this.scale = hero.scale || GAME_CONFIG.playerScale;
+    this.abilities = hero.abilities || {};
+    this.reviveUsed = false;
     this.images = images;
 
     this.x = 220;
@@ -86,6 +88,49 @@ class Player {
 
     this.x = Math.max(70, Math.min(GAME_CONFIG.width - 70, this.x));
     this.y = Math.max(GAME_CONFIG.laneTop, Math.min(GAME_CONFIG.laneBottom, this.y));
+  }
+
+  receiveDamage(amount, options = {}) {
+    if (this.hp <= 0) return false;
+
+    const source = options.source || 'melee';
+    if (source === 'ranged' && this.abilities.rangedImmune) {
+      AudioManager.playSfx('menuMove', 0.45, { playbackRate: 0.72 });
+      return false;
+    }
+
+    this.hp = Math.max(0, this.hp - Math.max(0, amount || 0));
+
+    if (options.knockbackX) {
+      this.x += options.knockbackX;
+      this.x = Math.max(70, Math.min(GAME_CONFIG.width - 70, this.x));
+    }
+
+    if (this.hp <= 0 && this.tryRevive()) return true;
+
+    if (this.hp > 0 && options.knockdownMs) {
+      this.knockDown(options.knockdownMs);
+    }
+
+    return true;
+  }
+
+  tryRevive() {
+    if (!this.abilities.reviveOnce || this.reviveUsed) return false;
+    this.reviveUsed = true;
+    this.hp = Math.max(1, Math.round(this.maxHp * 0.5));
+    this.state = 'idle';
+    this.knockdownTimer = 0;
+    this.pinnedBy = null;
+    this.attackTimer = 0;
+    this.attackHasHit = false;
+    this.comboStep = 0;
+    AudioManager.playSfx('waveClear', 0.75, { playbackRate: 1.12 });
+    return true;
+  }
+
+  canBeKnockedDown() {
+    return !this.abilities.noKnockdown;
   }
 
   startAttack() {
@@ -180,7 +225,8 @@ class Player {
   }
 
   knockDown(durationMs = 900) {
-    if (this.state === 'pinned') return;
+    if (!this.canBeKnockedDown()) return false;
+    if (this.state === 'pinned') return false;
     AudioManager.playSfx('playerDown', 0.85);
     this.state = 'knockdown';
     this.knockdownTimer = durationMs;
@@ -188,9 +234,11 @@ class Player {
     this.attackTimer = 0;
     this.attackHasHit = false;
     this.comboStep = 0;
+    return true;
   }
 
   pinBy(enemy, durationMs) {
+    if (!this.canBeKnockedDown()) return false;
     AudioManager.playSfx('playerDown', 0.85);
     this.state = 'pinned';
     this.knockdownTimer = durationMs;
@@ -198,6 +246,7 @@ class Player {
     this.attackTimer = 0;
     this.attackHasHit = false;
     this.comboStep = 0;
+    return true;
   }
 
   releaseFromPin() {
