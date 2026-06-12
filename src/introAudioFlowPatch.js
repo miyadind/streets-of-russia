@@ -8,10 +8,17 @@
   const INTRO_VOICE_TEXT_SCALE = 0.90;
   const INTRO_FINAL_PAUSE_TRIM_SECONDS = 0.5;
   const INTRO_FINAL_PAUSE_TRIM_START_PROGRESS = 0.88;
-  const INTRO_END_TEXT_HOLD_SECONDS = 5.0;
-  const INTRO_TEXT_FADE_SECONDS = 1.25;
+  const INTRO_END_TEXT_HOLD_SECONDS = 3.0;
+  const INTRO_TEXT_FADE_SECONDS = 1.45;
+  const INTRO_BUTTON_FADE_SECONDS = 0.85;
   const TYPE_CLICK_MIN_INTERVAL_MS = 165;
   const TYPE_CLICK_EVERY_CHARS = 5;
+
+  const INTRO_TYPE_X = 150;
+  const INTRO_TYPE_Y = 455;
+  const INTRO_LINE_HEIGHT = 34;
+  const INTRO_CLIP_TOP = 76;
+  const INTRO_CLIP_BOTTOM = GAME_CONFIG.height - 84;
 
   function createAudio(src, loop, volume) {
     const audio = new Audio();
@@ -51,12 +58,9 @@
   }
 
   function getIntroButtonAlpha(game) {
-    if (!game.intro) return 0;
-    if (game.intro.finalFadeActive) {
-      const t = Math.max(0, Math.min(1, game.intro.finalFadeElapsed / INTRO_TEXT_FADE_SECONDS));
-      return smoothStep(t);
-    }
-    return game.intro.readyToContinue ? 1 : 0;
+    if (!game.intro || !game.intro.readyToContinue) return 0;
+    const t = Math.max(0, Math.min(1, (game.intro.buttonFadeElapsed || 0) / INTRO_BUTTON_FADE_SECONDS));
+    return smoothStep(t);
   }
 
   function ensureIntroMusic(game) {
@@ -80,6 +84,7 @@
       game.intro.finalFadeActive = false;
       game.intro.finalFadeElapsed = 0;
       game.intro.readyToContinue = false;
+      game.intro.buttonFadeElapsed = 0;
       game.intro.readerScroll = 0;
     });
   }
@@ -187,6 +192,7 @@
     this.intro.finalFadeActive = false;
     this.intro.finalFadeElapsed = 0;
     this.intro.readyToContinue = false;
+    this.intro.buttonFadeElapsed = 0;
     this.intro.readerScroll = 0;
     this.intro.lastTypedCursor = 0;
     this.intro.lastTypeSoundAt = 0;
@@ -230,6 +236,7 @@
     this.intro.finalHoldRemaining = 0;
     this.intro.finalFadeActive = false;
     this.intro.finalFadeElapsed = 0;
+    this.intro.buttonFadeElapsed = 0;
     this.intro.lastTypedCursor = Number.MAX_SAFE_INTEGER;
   };
 
@@ -348,21 +355,18 @@
       if (this.intro.finalFadeElapsed >= INTRO_TEXT_FADE_SECONDS) {
         this.intro.finalFadeActive = false;
         this.intro.readyToContinue = true;
+        this.intro.buttonFadeElapsed = 0;
         this.intro.readerScroll = 0;
       }
       return;
     }
 
     if (this.intro.readyToContinue) {
+      this.intro.buttonFadeElapsed = Math.min(INTRO_BUTTON_FADE_SECONDS, (this.intro.buttonFadeElapsed || 0) + dt / 1000);
       if (click && pointInRect(click, getStartButtonRect())) {
         this.finishIntro();
         return;
       }
-
-      if (Input.consume('arrowup') || Input.consume('w')) this.scrollIntroReader(-1);
-      if (Input.consume('arrowdown') || Input.consume('s')) this.scrollIntroReader(1);
-      if (Input.consume('pageup')) this.scrollIntroReader(-4);
-      if (Input.consume('pagedown')) this.scrollIntroReader(4);
 
       if (Input.consume('enter') || Input.consume('space')) this.finishIntro();
       return;
@@ -383,6 +387,7 @@
       this.intro.time = Math.min(this.intro.totalTimelineDuration, this.intro.time + step * (dt / 1000));
       if (this.intro.time >= this.intro.totalTimelineDuration) {
         this.intro.readyToContinue = true;
+        this.intro.buttonFadeElapsed = 0;
         this.intro.readerScroll = 0;
       }
       return;
@@ -418,28 +423,19 @@
     ctx.restore();
   };
 
-  GameApp.prototype.drawIntroReader = function (ctx, lines, maxWidth) {
-    const panelX = 150;
-    const panelY = 88;
-    const panelW = GAME_CONFIG.width - 300;
-    const panelH = GAME_CONFIG.height - 190;
-    const textAlpha = getIntroEndFadeAlpha(this);
-    const buttonAlpha = getIntroButtonAlpha(this);
+  GameApp.prototype.drawFinalIntroText = function (ctx, lines, alpha) {
+    if (alpha <= 0) return;
+
+    const lastIndex = Math.max(0, lines.length - 1);
+    const maxWidth = GAME_CONFIG.width - 300;
 
     ctx.save();
-    ctx.globalAlpha = textAlpha;
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.58)';
-    ctx.fillRect(panelX - 20, panelY - 20, panelW + 40, panelH + 40);
-    ctx.strokeStyle = 'rgba(255,255,255,0.55)';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(panelX - 20, panelY - 20, panelW + 40, panelH + 40);
-
-    ctx.save();
+    ctx.globalAlpha = alpha;
     ctx.beginPath();
-    ctx.rect(panelX, panelY, panelW, panelH);
+    ctx.rect(INTRO_TYPE_X, INTRO_CLIP_TOP, maxWidth, INTRO_CLIP_BOTTOM - INTRO_CLIP_TOP);
     ctx.clip();
 
-    ctx.font = 'bold 24px Arial';
+    ctx.font = 'bold 25px Arial';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
     ctx.shadowColor = '#000';
@@ -449,36 +445,24 @@
     ctx.fillStyle = '#f4f4f4';
 
     for (let i = 0; i < lines.length; i++) {
-      const y = panelY + i * 34 - this.intro.readerScroll;
-      if (y < panelY - 34 || y > panelY + panelH) continue;
-      ctx.strokeText(lines[i], panelX, y);
-      ctx.fillText(lines[i], panelX, y);
+      const y = INTRO_TYPE_Y - (lastIndex - i) * INTRO_LINE_HEIGHT;
+      if (y < INTRO_CLIP_TOP - INTRO_LINE_HEIGHT || y > INTRO_CLIP_BOTTOM) continue;
+      ctx.strokeText(lines[i], INTRO_TYPE_X, y);
+      ctx.fillText(lines[i], INTRO_TYPE_X, y);
     }
 
     ctx.restore();
+  };
 
-    const limits = this.getIntroReaderLimits ? this.getIntroReaderLimits() : { max: 0 };
-    if (limits.max > 0) {
-      const barX = panelX + panelW + 16;
-      const barY = panelY;
-      const barH = panelH;
-      const thumbH = Math.max(40, barH * (panelH / (panelH + limits.max)));
-      const thumbY = barY + (barH - thumbH) * (this.intro.readerScroll / limits.max);
+  GameApp.prototype.drawIntroReader = function (ctx, lines, maxWidth) {
+    const isFinalOnly = this.intro.finalNaturalFinishActive || this.intro.finalHoldActive || this.intro.finalFadeActive;
 
-      ctx.fillStyle = 'rgba(255,255,255,0.18)';
-      ctx.fillRect(barX, barY, 6, barH);
-      ctx.fillStyle = 'rgba(255,255,255,0.75)';
-      ctx.fillRect(barX, thumbY, 6, thumbH);
+    if (isFinalOnly) {
+      this.drawFinalIntroText(ctx, lines, getIntroEndFadeAlpha(this));
+      return;
     }
 
-    ctx.font = 'bold 17px Arial';
-    ctx.textAlign = 'right';
-    ctx.fillStyle = 'rgba(255,255,255,0.72)';
-    ctx.fillText('Колесо мыши / ↑↓ — читать текст', GAME_CONFIG.width - 34, GAME_CONFIG.height - 18);
-    ctx.textAlign = 'left';
-    ctx.restore();
-
-    this.drawIntroStartButton(ctx, buttonAlpha);
+    this.drawIntroStartButton(ctx, getIntroButtonAlpha(this));
   };
 
   const originalHandleSpeakerClick = GameApp.prototype.handleSpeakerClick;
