@@ -18,11 +18,23 @@
       }
 
       function mobileMainMenuBox(index) {
-        return { x: 300, y: 260 + index * 86, w: 680, h: 74 };
+        return { x: 300, y: 250 + index * 92, w: 680, h: 84 };
       }
 
       function mobileSettingsBox(index) {
-        return { x: 220, y: 180 + index * 78, w: 840, h: 66 };
+        return { x: 190, y: 170 + index * 80, w: 900, h: 72 };
+      }
+
+      function mobileHeroBox(index) {
+        return { x: 60 + index * 400, y: 100, w: 365, h: 510 };
+      }
+
+      function mobileConfirmBox() {
+        return { x: 270, y: 600, w: 430, h: 90 };
+      }
+
+      function mobileBackBox() {
+        return { x: 720, y: 600, w: 290, h: 90 };
       }
 
       var oldMenuUpdate = Menu.update;
@@ -60,6 +72,34 @@
         if (click) Input.restorePointer(click);
         oldSettingsUpdate.call(this, game);
       };
+
+      if (typeof CharacterSelect !== 'undefined') {
+        var oldCharacterUpdate = CharacterSelect.update;
+        CharacterSelect.update = function (game) {
+          var click = Input.consumePointer();
+          if (click && Responsive.isTouchDevice && !this.infoOpen) {
+            AudioManager.unlock();
+            for (var i = 0; i < this.heroes.length; i++) {
+              if (inBox(click, mobileHeroBox(i))) {
+                this.setSelection(i);
+                this.footerFocus = null;
+                return;
+              }
+            }
+            if (inBox(click, mobileConfirmBox())) {
+              this.confirm(game);
+              return;
+            }
+            if (inBox(click, mobileBackBox())) {
+              AudioManager.playSfx('menuSelect', 0.65);
+              game.setState('mainMenu');
+              return;
+            }
+          }
+          if (click) Input.restorePointer(click);
+          oldCharacterUpdate.call(this, game);
+        };
+      }
     }, 0);
   });
 })();
