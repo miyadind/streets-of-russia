@@ -3,6 +3,7 @@ const AudioManager = {
   music: {},
   currentMusicKey: null,
   currentMusic: null,
+  audioContext: null,
   unlocked: false,
   musicActuallyPlaying: false,
 
@@ -11,6 +12,7 @@ const AudioManager = {
     this.music = {};
     this.currentMusicKey = null;
     this.currentMusic = null;
+    this.audioContext = null;
     this.unlocked = false;
     this.musicActuallyPlaying = false;
 
@@ -28,7 +30,9 @@ const AudioManager = {
     audio.src = src;
     audio.preload = 'auto';
     audio.loop = loop;
+    audio.dataset.failed = 'false';
     audio.addEventListener('error', () => {
+      audio.dataset.failed = 'true';
       console.warn('Missing audio:', src);
     });
     return audio;
@@ -37,12 +41,25 @@ const AudioManager = {
   unlock() {
     if (this.unlocked) return;
     this.unlocked = true;
+    this.ensureAudioContext();
 
     for (const audio of [...Object.values(this.sfx), ...Object.values(this.music)]) {
       audio.load();
     }
 
     if (this.currentMusicKey) this.playMusic(this.currentMusicKey, false, true);
+  },
+
+  ensureAudioContext() {
+    if (this.audioContext) return this.audioContext;
+    const Context = window.AudioContext || window.webkitAudioContext;
+    if (!Context) return null;
+    try {
+      this.audioContext = new Context();
+    } catch (error) {
+      this.audioContext = null;
+    }
+    return this.audioContext;
   },
 
   isSoundOn() {
@@ -90,7 +107,15 @@ const AudioManager = {
   playSfx(key, volume = 1, options = {}) {
     if (!this.isSfxOn()) return;
     const src = this.sfx[key];
-    if (!src) return;
+    if (!src) {
+      this.playSyntheticSfx(key, volume, options);
+      return;
+    }
+
+    if (src.dataset && src.dataset.failed === 'true') {
+      this.playSyntheticSfx(key, volume, options);
+      return;
+    }
 
     try {
       const audio = src.cloneNode(true);
@@ -100,10 +125,36 @@ const AudioManager = {
       audio.volume = this.getSfxVolume(volume);
       audio.playbackRate = Math.max(0.5, Math.min(2, playbackRate));
       if (startAt > 0) audio.currentTime = startAt;
-      audio.play().catch(() => {});
+      audio.play().catch(() => this.playSyntheticSfx(key, volume, options));
     } catch (error) {
       console.warn('Cannot play sfx:', key, error);
+      this.playSyntheticSfx(key, volume, options);
     }
+  },
+
+  playSyntheticSfx(key, volume = 1, options = {}) {
+    if (key !== 'menuMove') return;
+    const context = this.ensureAudioContext();
+    if (!context) return;
+    if (context.state === 'suspended') context.resume().catch(() => {});
+
+    const now = context.currentTime;
+    const rate = Math.max(0.5, Math.min(2, options.playbackRate || options.rate || 1));
+    const gain = context.createGain();
+    const osc = context.createOscillator();
+
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(540 * rate, now);
+    osc.frequency.exponentialRampToValueAtTime(880 * rate, now + 0.055);
+
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(this.getSfxVolume(volume) * 0.18, now + 0.008);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.09);
+
+    osc.connect(gain);
+    gain.connect(context.destination);
+    osc.start(now);
+    osc.stop(now + 0.095);
   },
 
   playMusic(key, forceRestart = false, retryIfBlocked = false) {
