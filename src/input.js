@@ -25,23 +25,39 @@ const Input = {
       if (event.code === 'Backquote') this.keys.dev = false;
     });
 
+    const stopTouchGesture = (event) => {
+      if (event.cancelable) event.preventDefault();
+    };
+
+    canvas.addEventListener('touchstart', stopTouchGesture, { passive: false });
+    canvas.addEventListener('touchmove', stopTouchGesture, { passive: false });
+    canvas.addEventListener('touchend', stopTouchGesture, { passive: false });
+    canvas.addEventListener('contextmenu', (event) => event.preventDefault());
+
     canvas.addEventListener('pointerdown', (event) => {
+      if (event.cancelable) event.preventDefault();
+      if (canvas.setPointerCapture && event.pointerId != null) {
+        try { canvas.setPointerCapture(event.pointerId); } catch (error) {}
+      }
       const pos = Responsive.screenToGame(event.clientX, event.clientY);
       this.pointer.x = pos.x;
       this.pointer.y = pos.y;
       this.pointer.down = true;
       this.pointer.justDown = true;
-    });
+      this.just.any = true;
+    }, { passive: false });
 
     canvas.addEventListener('pointermove', (event) => {
+      if (event.cancelable) event.preventDefault();
       const pos = Responsive.screenToGame(event.clientX, event.clientY);
       this.pointer.x = pos.x;
       this.pointer.y = pos.y;
-    });
+    }, { passive: false });
 
-    window.addEventListener('pointerup', () => {
+    window.addEventListener('pointerup', (event) => {
+      if (event && event.cancelable) event.preventDefault();
       this.pointer.down = false;
-    });
+    }, { passive: false });
   },
 
   normalizeKey(event) {
