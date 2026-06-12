@@ -292,17 +292,6 @@ class LevelScene {
 
     for (const entity of entities) entity.ref.draw(ctx, this.debug);
 
-    if (this.encounterActive) {
-      ctx.font = 'bold 36px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillStyle = 'rgba(255,0,0,0.9)';
-      ctx.strokeStyle = '#000';
-      ctx.lineWidth = 5;
-      ctx.strokeText('FIGHT!', GAME_CONFIG.width / 2, 128);
-      ctx.fillText('FIGHT!', GAME_CONFIG.width / 2, 128);
-      ctx.textAlign = 'left';
-    }
-
     if (this.encounterCleared) {
       ctx.font = 'bold 42px Arial';
       ctx.fillStyle = 'lime';
