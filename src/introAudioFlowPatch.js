@@ -7,7 +7,8 @@
   const INTRO_SKIP_REVEAL_SECONDS = 0.9;
   const INTRO_VOICE_TEXT_SCALE = 0.90;
   const INTRO_FINAL_SLOW_FINISH_SECONDS = 2.0;
-  const INTRO_END_TEXT_HOLD_SECONDS = 1.7;
+  const INTRO_FINAL_SLOW_LEAD_SECONDS = 1.0;
+  const INTRO_END_TEXT_HOLD_SECONDS = 2.2;
   const TYPE_CLICK_MIN_INTERVAL_MS = 165;
   const TYPE_CLICK_EVERY_CHARS = 5;
 
@@ -42,21 +43,27 @@
     game.intro.musicMissing = false;
   }
 
+  function beginFinalSlowFinish(game) {
+    if (!game.intro || game.intro.finalSlowFinishActive || game.intro.finalHoldActive || game.intro.readyToContinue) return;
+
+    game.intro.voiceStarted = false;
+    game.intro.finalSlowFinishActive = true;
+    game.intro.finalSlowElapsed = 0;
+    game.intro.finalSlowStartTime = game.intro.time;
+    game.intro.finalSlowTargetTime = game.intro.totalTimelineDuration || game.intro.time;
+    game.intro.finalHoldActive = false;
+    game.intro.finalHoldRemaining = 0;
+    game.intro.readyToContinue = false;
+    game.intro.readerScroll = 0;
+  }
+
   function installIntroVoiceEndHold(game) {
     if (!game.intro || !game.intro.voice || game.intro.endHoldListenerInstalled) return;
 
     game.intro.endHoldListenerInstalled = true;
     game.intro.voice.addEventListener('ended', () => {
       if (!game.intro || game.intro.voiceSkipped) return;
-      game.intro.voiceStarted = false;
-      game.intro.finalSlowFinishActive = true;
-      game.intro.finalSlowElapsed = 0;
-      game.intro.finalSlowStartTime = game.intro.time;
-      game.intro.finalSlowTargetTime = game.intro.totalTimelineDuration || game.intro.time;
-      game.intro.finalHoldActive = false;
-      game.intro.finalHoldRemaining = 0;
-      game.intro.readyToContinue = false;
-      game.intro.readerScroll = 0;
+      beginFinalSlowFinish(game);
     });
   }
 
@@ -339,6 +346,16 @@
 
     if (requestedAction) this.requestIntroSkip();
 
+    const voice = this.intro.voice;
+    const duration = voice && Number.isFinite(voice.duration) && voice.duration > 0 ? voice.duration : 0;
+    if (voice && !this.intro.voiceSkipped && duration > 0 && Number.isFinite(voice.currentTime)) {
+      const secondsLeft = duration - voice.currentTime;
+      if (secondsLeft <= INTRO_FINAL_SLOW_LEAD_SECONDS && this.intro.totalTimelineDuration > 0) {
+        beginFinalSlowFinish(this);
+        return;
+      }
+    }
+
     const voiceProgress = this.getIntroVoiceProgress();
     if (voiceProgress != null && this.intro.totalTimelineDuration > 0) {
       const textProgress = mapVoiceProgressToTextProgress(voiceProgress);
@@ -367,9 +384,11 @@
 
     const btn = getStartButtonRect();
     const pulse = 0.45 + 0.55 * Math.abs(Math.sin(performance.now() / 260));
+    const centerX = btn.x + btn.w / 2;
+    const centerY = btn.y + btn.h / 2;
 
     ctx.save();
-    ctx.globalAlpha = 0.22 + pulse * 0.32;
+    ctx.globalAlpha = 0.68 + pulse * 0.20;
     ctx.fillStyle = '#ff2b2b';
     ctx.fillRect(btn.x, btn.y, btn.w, btn.h);
 
@@ -378,13 +397,15 @@
     ctx.lineWidth = 5 + pulse * 3;
     ctx.strokeRect(btn.x - 3, btn.y - 3, btn.w + 6, btn.h + 6);
 
+    ctx.globalAlpha = 1;
     ctx.font = 'bold 28px Arial';
     ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
     ctx.fillStyle = '#ffffff';
     ctx.strokeStyle = '#000000';
     ctx.lineWidth = 6;
-    ctx.strokeText('НАЧАТЬ', btn.x + btn.w / 2, btn.y + 34);
-    ctx.fillText('НАЧАТЬ', btn.x + btn.w / 2, btn.y + 34);
+    ctx.strokeText('НАЧАТЬ', centerX, centerY);
+    ctx.fillText('НАЧАТЬ', centerX, centerY);
     ctx.restore();
   };
 
