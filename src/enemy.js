@@ -262,9 +262,11 @@ class DogRegimeEnemy {
       const sameY = Combat.sameLane(player.y, this.y, this.attackRangeY);
       const inX = Math.abs(player.x - this.x) < this.attackRangeX;
       if (sameY && inX) {
-        player.hp -= this.damage;
-        player.x += this.facing * 18;
-        scene.hitStop = 42;
+        const hit = player.receiveDamage(this.damage, {
+          source: 'melee',
+          knockbackX: this.facing * 18
+        });
+        if (hit) scene.hitStop = 42;
         this.attackHasHit = true;
       }
     }
