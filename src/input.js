@@ -3,6 +3,7 @@ const Input = {
   virtualKeys: {},
   just: {},
   pointer: { x: 0, y: 0, down: false, justDown: false },
+  lastTouchAt: 0,
 
   init(canvas) {
     window.addEventListener('keydown', (event) => {
@@ -26,33 +27,61 @@ const Input = {
       if (event.code === 'Backquote') this.keys.dev = false;
     });
 
-    const stopTouchGesture = (event) => {
-      if (event.cancelable) event.preventDefault();
+    const setPointerFromClient = (clientX, clientY, justDown = false) => {
+      const pos = Responsive.screenToGame(clientX, clientY);
+      this.pointer.x = pos.x;
+      this.pointer.y = pos.y;
+      if (justDown) {
+        this.pointer.down = true;
+        this.pointer.justDown = true;
+        this.just.any = true;
+      }
     };
 
-    canvas.addEventListener('touchstart', stopTouchGesture, { passive: false });
-    canvas.addEventListener('touchmove', stopTouchGesture, { passive: false });
-    canvas.addEventListener('touchend', stopTouchGesture, { passive: false });
+    const getPrimaryTouch = (event) => {
+      if (event.changedTouches && event.changedTouches.length > 0) return event.changedTouches[0];
+      if (event.touches && event.touches.length > 0) return event.touches[0];
+      return null;
+    };
+
+    canvas.addEventListener('touchstart', (event) => {
+      if (event.cancelable) event.preventDefault();
+      const touch = getPrimaryTouch(event);
+      if (!touch) return;
+      this.lastTouchAt = performance.now();
+      setPointerFromClient(touch.clientX, touch.clientY, true);
+    }, { passive: false });
+
+    canvas.addEventListener('touchmove', (event) => {
+      if (event.cancelable) event.preventDefault();
+      const touch = getPrimaryTouch(event);
+      if (!touch) return;
+      this.lastTouchAt = performance.now();
+      setPointerFromClient(touch.clientX, touch.clientY, false);
+    }, { passive: false });
+
+    canvas.addEventListener('touchend', (event) => {
+      if (event.cancelable) event.preventDefault();
+      this.lastTouchAt = performance.now();
+      this.pointer.down = false;
+      this.clearVirtualKeys();
+    }, { passive: false });
+
     canvas.addEventListener('contextmenu', (event) => event.preventDefault());
 
     canvas.addEventListener('pointerdown', (event) => {
+      if (performance.now() - this.lastTouchAt < 450) return;
       if (event.cancelable) event.preventDefault();
       if (canvas.setPointerCapture && event.pointerId != null) {
         try { canvas.setPointerCapture(event.pointerId); } catch (error) {}
       }
-      const pos = Responsive.screenToGame(event.clientX, event.clientY);
-      this.pointer.x = pos.x;
-      this.pointer.y = pos.y;
-      this.pointer.down = true;
-      this.pointer.justDown = true;
-      this.just.any = true;
+      setPointerFromClient(event.clientX, event.clientY, true);
     }, { passive: false });
 
     canvas.addEventListener('pointermove', (event) => {
+      if (performance.now() - this.lastTouchAt < 450) return;
       if (event.cancelable) event.preventDefault();
-      const pos = Responsive.screenToGame(event.clientX, event.clientY);
-      this.pointer.x = pos.x;
-      this.pointer.y = pos.y;
+      setPointerFromClient(event.clientX, event.clientY, false);
     }, { passive: false });
 
     window.addEventListener('pointerup', (event) => {
