@@ -16,7 +16,7 @@ const MobileControls = {
     if (!Input.pointer.down) return;
 
     const p = Input.pointer;
-    const dpad = this.getDpad();
+    const stick = this.getStick();
     const attack = this.getAttackButton();
 
     if (this.pointInCircle(p, attack)) {
@@ -24,22 +24,33 @@ const MobileControls = {
       return;
     }
 
-    if (this.pointInCircle(p, dpad)) {
-      const dx = p.x - dpad.x;
-      const dy = p.y - dpad.y;
-      const dead = dpad.r * 0.22;
+    if (this.pointInCircle(p, stick)) {
+      const dx = p.x - stick.x;
+      const dy = p.y - stick.y;
+      const distance = Math.hypot(dx, dy);
+      const dead = stick.r * 0.18;
+      if (distance <= dead) return;
 
-      if (Math.abs(dx) > dead) Input.setVirtualKey(dx < 0 ? 'arrowleft' : 'arrowright', true);
-      if (Math.abs(dy) > dead) Input.setVirtualKey(dy < 0 ? 'arrowup' : 'arrowdown', true);
+      const nx = dx / Math.max(1, distance);
+      const ny = dy / Math.max(1, distance);
+      const horizontal = Math.abs(nx);
+      const vertical = Math.abs(ny);
+
+      if (horizontal > 0.26) Input.setVirtualKey(nx < 0 ? 'arrowleft' : 'arrowright', true);
+      if (vertical > 0.32) Input.setVirtualKey(ny < 0 ? 'arrowup' : 'arrowdown', true);
     }
   },
 
+  getStick() {
+    return { x: 160, y: GAME_CONFIG.height - 132, r: 104, knobR: 38 };
+  },
+
   getDpad() {
-    return { x: 150, y: GAME_CONFIG.height - 132, r: 92 };
+    return this.getStick();
   },
 
   getAttackButton() {
-    return { x: GAME_CONFIG.width - 142, y: GAME_CONFIG.height - 132, r: 76 };
+    return { x: GAME_CONFIG.width - 142, y: GAME_CONFIG.height - 132, r: 74 };
   },
 
   pointInCircle(point, circle) {
@@ -51,66 +62,57 @@ const MobileControls = {
   draw(ctx, game) {
     if (!this.shouldShow(game)) return;
 
-    const dpad = this.getDpad();
+    const stick = this.getStick();
     const attack = this.getAttackButton();
+    const p = Input.pointer;
+    let knobX = stick.x;
+    let knobY = stick.y;
+
+    if (Input.pointer.down && this.pointInCircle(p, stick)) {
+      const dx = p.x - stick.x;
+      const dy = p.y - stick.y;
+      const distance = Math.hypot(dx, dy);
+      const max = stick.r - stick.knobR;
+      const ratio = distance > max ? max / Math.max(1, distance) : 1;
+      knobX = stick.x + dx * ratio;
+      knobY = stick.y + dy * ratio;
+    }
 
     ctx.save();
-    ctx.globalAlpha = 0.72;
 
-    ctx.fillStyle = 'rgba(0,0,0,0.46)';
-    ctx.strokeStyle = 'rgba(255,255,255,0.72)';
-    ctx.lineWidth = 4;
+    ctx.fillStyle = 'rgba(255,255,255,0.10)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.34)';
+    ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.arc(dpad.x, dpad.y, dpad.r, 0, Math.PI * 2);
+    ctx.arc(stick.x, stick.y, stick.r, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
 
-    ctx.fillStyle = 'rgba(255,255,255,0.65)';
-    this.drawArrow(ctx, dpad.x, dpad.y - 48, 'up');
-    this.drawArrow(ctx, dpad.x, dpad.y + 48, 'down');
-    this.drawArrow(ctx, dpad.x - 48, dpad.y, 'left');
-    this.drawArrow(ctx, dpad.x + 48, dpad.y, 'right');
+    ctx.fillStyle = 'rgba(255,255,255,0.20)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.42)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(knobX, knobY, stick.knobR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
 
-    ctx.fillStyle = 'rgba(150,0,0,0.62)';
-    ctx.strokeStyle = 'rgba(255,255,255,0.78)';
+    ctx.fillStyle = 'rgba(150,0,0,0.32)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.48)';
     ctx.lineWidth = 4;
     ctx.beginPath();
     ctx.arc(attack.x, attack.y, attack.r, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
 
-    ctx.font = 'bold 25px Arial';
+    ctx.font = 'bold 23px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#fff';
-    ctx.strokeStyle = '#000';
+    ctx.fillStyle = 'rgba(255,255,255,0.78)';
+    ctx.strokeStyle = 'rgba(0,0,0,0.7)';
     ctx.lineWidth = 4;
     ctx.strokeText('УДАР', attack.x, attack.y);
     ctx.fillText('УДАР', attack.x, attack.y);
 
     ctx.restore();
-  },
-
-  drawArrow(ctx, x, y, dir) {
-    ctx.beginPath();
-    if (dir === 'up') {
-      ctx.moveTo(x, y - 18);
-      ctx.lineTo(x - 16, y + 14);
-      ctx.lineTo(x + 16, y + 14);
-    } else if (dir === 'down') {
-      ctx.moveTo(x, y + 18);
-      ctx.lineTo(x - 16, y - 14);
-      ctx.lineTo(x + 16, y - 14);
-    } else if (dir === 'left') {
-      ctx.moveTo(x - 18, y);
-      ctx.lineTo(x + 14, y - 16);
-      ctx.lineTo(x + 14, y + 16);
-    } else {
-      ctx.moveTo(x + 18, y);
-      ctx.lineTo(x - 14, y - 16);
-      ctx.lineTo(x - 14, y + 16);
-    }
-    ctx.closePath();
-    ctx.fill();
   }
 };
