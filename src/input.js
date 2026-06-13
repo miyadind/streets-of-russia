@@ -104,8 +104,9 @@ const Input = {
   },
 
   setVirtualKey(key, value) {
+    const wasDown = !!this.virtualKeys[key];
     this.virtualKeys[key] = !!value;
-    if (value) {
+    if (value && !wasDown) {
       this.just[key] = true;
       this.just.any = true;
     }
