@@ -126,14 +126,34 @@
     ctx.restore();
   }
 
-  const originalDraw = LevelScene.prototype.draw;
   LevelScene.prototype.draw = function (ctx) {
-    originalDraw.call(this, ctx);
-    if (!this.encounterCleared) return;
+    const bg = this.images.streets[this.screenIndex] || this.images.streets[0];
+    if (bg) ctx.drawImage(bg, 0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
+    else {
+      ctx.fillStyle = '#222';
+      ctx.fillRect(0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
+    }
 
-    const phase = performance.now() / 260;
-    const x = GAME_CONFIG.width - 345;
-    const y = 340;
-    drawExitLedArrow(ctx, x, y, phase);
+    ctx.fillStyle = 'rgba(255,255,255,0.025)';
+    ctx.fillRect(0, GAME_CONFIG.laneTop, GAME_CONFIG.width, GAME_CONFIG.laneBottom - GAME_CONFIG.laneTop);
+
+    const entities = [{ type: 'player', y: this.player.y, ref: this.player }];
+    for (const enemy of this.enemies) entities.push({ type: 'enemy', y: enemy.y, ref: enemy });
+    entities.sort((a, b) => a.y - b.y);
+
+    for (const entity of entities) entity.ref.draw(ctx, this.debug);
+
+    if (this.encounterCleared) {
+      const phase = performance.now() / 260;
+      drawExitLedArrow(ctx, GAME_CONFIG.width - 345, 340, phase);
+    }
+
+    HUD.draw(ctx, this);
+
+    if (this.debug) {
+      ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(0, GAME_CONFIG.laneTop, GAME_CONFIG.width - 0, GAME_CONFIG.laneBottom - GAME_CONFIG.laneTop);
+    }
   };
 })();
