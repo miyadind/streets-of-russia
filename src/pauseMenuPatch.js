@@ -2,7 +2,7 @@
   if (typeof GameApp === 'undefined') return;
 
   function pauseRect() {
-    return { x: 18, y: 18, w: 82, h: 54 };
+    return { x: 14, y: 16, w: 88, h: 52 };
   }
 
   function resumeRect() {
@@ -17,14 +17,14 @@
     return p && p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
   }
 
-  function drawButton(ctx, r, label, active) {
+  function drawButton(ctx, r, label, active, fontSize) {
     ctx.save();
     ctx.fillStyle = active ? 'rgba(130,0,0,0.82)' : 'rgba(0,0,0,0.58)';
     ctx.strokeStyle = active ? '#ffffff' : 'rgba(255,255,255,0.70)';
     ctx.lineWidth = active ? 5 : 3;
     ctx.fillRect(r.x, r.y, r.w, r.h);
     ctx.strokeRect(r.x, r.y, r.w, r.h);
-    ctx.font = 'bold 30px Arial';
+    ctx.font = 'bold ' + (fontSize || 30) + 'px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#fff';
@@ -81,7 +81,7 @@
     if (this.state !== 'level') return;
 
     const ctx = this.ctx;
-    drawButton(ctx, pauseRect(), this.paused ? '▶' : 'Ⅱ', false);
+    drawButton(ctx, pauseRect(), 'MENU', false, 18);
 
     if (!this.paused) return;
     ctx.save();
@@ -95,7 +95,7 @@
     ctx.strokeText('ПАУЗА', GAME_CONFIG.width / 2, 190);
     ctx.fillText('ПАУЗА', GAME_CONFIG.width / 2, 190);
     ctx.restore();
-    drawButton(ctx, resumeRect(), 'ПРОДОЛЖИТЬ', true);
-    drawButton(ctx, menuRect(), 'В МЕНЮ', false);
+    drawButton(ctx, resumeRect(), 'ПРОДОЛЖИТЬ', true, 30);
+    drawButton(ctx, menuRect(), 'В МЕНЮ', false, 30);
   };
 })();
