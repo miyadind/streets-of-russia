@@ -1,29 +1,18 @@
 (function () {
-  function loadScript(src, done) {
-    if (document.querySelector('script[src^="' + src + '"]')) {
-      if (done) done();
-      return;
-    }
-    var script = document.createElement('script');
-    script.src = src + '?v=mobile-scaffold';
-    script.onload = function () { if (done) done(); };
-    document.body.appendChild(script);
-  }
+  if (typeof GameApp === 'undefined' || typeof MobileApp === 'undefined') return;
+  if (GameApp.prototype.mobileBootstrapPatched) return;
 
-  window.addEventListener('load', function () {
-    setTimeout(function () {
-      loadScript('src/mobileApp.js', function () {
-        if (typeof MobileApp === 'undefined' || typeof GameApp === 'undefined') return;
+  GameApp.prototype.mobileBootstrapPatched = true;
 
-        var originalInit = GameApp.prototype.init;
-        if (GameApp.prototype.mobileBootstrapPatched) return;
-        GameApp.prototype.mobileBootstrapPatched = true;
+  var originalEnsureMenuMusic = GameApp.prototype.ensureMenuMusic;
+  GameApp.prototype.ensureMenuMusic = function () {
+    if (MobileApp && MobileApp.isMobile && MobileApp.isMobile() && this.state === 'splash') return;
+    originalEnsureMenuMusic.call(this);
+  };
 
-        GameApp.prototype.init = async function () {
-          await originalInit.call(this);
-          if (MobileApp && MobileApp.attach) MobileApp.attach(this);
-        };
-      });
-    }, 0);
-  });
+  var originalInit = GameApp.prototype.init;
+  GameApp.prototype.init = async function () {
+    await originalInit.call(this);
+    if (MobileApp && MobileApp.attach) MobileApp.attach(this);
+  };
 })();
