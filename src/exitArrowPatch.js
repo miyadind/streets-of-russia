@@ -1,16 +1,14 @@
 (function () {
   if (typeof LevelScene === 'undefined') return;
 
+  const HERO_ORDER = ['alexey', 'anna', 'boris'];
+
   function arrowPolygon(x, y, w, h) {
     const head = w * 0.24;
     return [
-      [x, y],
-      [x + w - head, y],
-      [x + w - head, y - h * 0.18],
-      [x + w, y + h / 2],
-      [x + w - head, y + h + h * 0.18],
-      [x + w - head, y + h],
-      [x, y + h]
+      [x, y], [x + w - head, y], [x + w - head, y - h * 0.18],
+      [x + w, y + h / 2], [x + w - head, y + h + h * 0.18],
+      [x + w - head, y + h], [x, y + h]
     ];
   }
 
@@ -113,8 +111,17 @@
     ctx.restore();
   }
 
+  function clampValue(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+  }
+
+  function drawLines(ctx, lines, x, y, lineHeight) {
+    lines.forEach((line, index) => ctx.fillText(line, x, y + index * lineHeight));
+  }
+
   LevelScene.prototype.nextScreen = function () {
     if (this.screenIndex < this.images.streets.length - 1) {
+      if (this.game && this.game.addPeopleSupport) this.game.addPeopleSupport(12);
       this.screenIndex += 1;
       this.player.x = 82;
       this.player.y = 620;
@@ -159,12 +166,67 @@
   };
 
   if (typeof CharacterSelect !== 'undefined') {
-    const goBackToMap = function (game) {
-      AudioManager.playSfx('menuSelect', 0.65);
-      game.setState('campaignMap');
+    const originalDrawCard = CharacterSelect.drawCard;
+    const originalDrawInfoIcon = CharacterSelect.drawInfoIcon;
+
+    CharacterSelect.getGame = function () {
+      return this.gameRef || null;
+    };
+
+    CharacterSelect.isHeroDisabled = function (game, heroKey) {
+      return !!(game && game.defeatedHeroes && game.defeatedHeroes[heroKey]);
+    };
+
+    CharacterSelect.findFirstAvailableIndex = function (game) {
+      for (let i = 0; i < this.heroes.length; i++) {
+        if (!this.isHeroDisabled(game, this.heroes[i])) return i;
+      }
+      return 0;
+    };
+
+    CharacterSelect.moveSelection = function (direction, game) {
+      const activeGame = game || this.getGame();
+      for (let step = 0; step < this.heroes.length; step++) {
+        this.selectedIndex = (this.selectedIndex + direction + this.heroes.length) % this.heroes.length;
+        if (!this.isHeroDisabled(activeGame, this.heroes[this.selectedIndex])) break;
+      }
+      AudioManager.playSfx('menuMove', 0.85, { playbackRate: direction < 0 ? 0.95 : 1.05 });
+    };
+
+    CharacterSelect.setSelection = function (index, game) {
+      const activeGame = game || this.getGame();
+      if (this.isHeroDisabled(activeGame, this.heroes[index])) {
+        AudioManager.playSfx('menuBack', 0.55);
+        return false;
+      }
+      if (index === this.selectedIndex) return true;
+      this.selectedIndex = index;
+      AudioManager.playSfx('menuMove', 0.85);
+      return true;
+    };
+
+    CharacterSelect.confirm = function (game) {
+      const heroKey = this.heroes[this.selectedIndex];
+      if (this.isHeroDisabled(game, heroKey)) {
+        AudioManager.playSfx('menuBack', 0.65);
+        return;
+      }
+      game.selectedHero = heroKey;
+      AudioManager.playSfx('menuSelect', 0.85);
+      if (game.characterSelectMode === 'casualty' && game.resumeAfterHeroDefeat) {
+        game.resumeAfterHeroDefeat(heroKey);
+      } else {
+        if (game.resetTeamRun) game.resetTeamRun();
+        game.startLevel();
+      }
     };
 
     CharacterSelect.update = function (game) {
+      this.gameRef = game;
+      if (this.isHeroDisabled(game, this.heroes[this.selectedIndex])) {
+        this.selectedIndex = this.findFirstAvailableIndex(game);
+      }
+
       if (this.infoOpen) {
         if (Input.consume('escape') || Input.consume('i') || Input.consume('backspace') || Input.consume('enter') || Input.consume('space')) {
           this.closeInfo();
@@ -185,16 +247,18 @@
       }
       if (Input.consume('arrowleft') || Input.consume('a')) {
         if (this.footerFocus) this.moveFooterFocus(-1);
-        else this.moveSelection(-1);
+        else this.moveSelection(-1, game);
       }
       if (Input.consume('arrowright') || Input.consume('d')) {
         if (this.footerFocus) this.moveFooterFocus(1);
-        else this.moveSelection(1);
+        else this.moveSelection(1, game);
       }
 
       if (Input.consume('i')) this.openInfo();
       if (Input.consume('escape')) {
-        goBackToMap(game);
+        AudioManager.playSfx('menuSelect', 0.65);
+        game.characterSelectMode = null;
+        game.setState(game.characterSelectMode === 'casualty' ? 'level' : 'mainMenu');
         return;
       }
 
@@ -203,20 +267,22 @@
         for (let i = 0; i < this.heroes.length; i++) {
           const info = this.getInfoButtonBox(i);
           if (this.isPointInCircle(click, info)) {
-            this.setSelection(i);
+            this.selectedIndex = i;
             this.footerFocus = null;
             this.openInfo();
             return;
           }
           const box = this.getCardBox(i);
           if (this.isPointInBox(click, box)) {
-            this.setSelection(i);
+            this.setSelection(i, game);
             this.footerFocus = null;
           }
         }
 
         if (this.isPointInBox(click, this.getBackBox())) {
-          goBackToMap(game);
+          AudioManager.playSfx('menuSelect', 0.65);
+          game.characterSelectMode = null;
+          game.setState('mainMenu');
           return;
         }
         if (this.isPointInBox(click, this.getConfirmBox())) {
@@ -226,8 +292,13 @@
       }
 
       if (Input.consume('enter') || Input.consume('space')) {
-        if (this.footerFocus === 'back') goBackToMap(game);
-        else this.confirm(game);
+        if (this.footerFocus === 'back') {
+          AudioManager.playSfx('menuSelect', 0.65);
+          game.characterSelectMode = null;
+          game.setState('mainMenu');
+        } else {
+          this.confirm(game);
+        }
       }
     };
 
@@ -238,16 +309,18 @@
       ctx.fillStyle = 'rgba(0,0,0,0.58)';
       ctx.fillRect(0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
 
-      this.drawTitle(ctx, 'ВЫБЕРИТЕ ПЕРСОНАЖА', 104);
+      const casualty = this.gameRef && this.gameRef.characterSelectMode === 'casualty';
+      this.drawTitle(ctx, casualty ? 'ВЫБЕРИТЕ, КТО ПРОДОЛЖИТ БОРЬБУ' : 'ВЫБЕРИТЕ ПЕРСОНАЖА', 104);
 
       for (let i = 0; i < this.heroes.length; i++) {
-        this.drawCard(ctx, images, this.heroes[i], i, i === this.selectedIndex);
+        const disabled = this.isHeroDisabled(this.gameRef, this.heroes[i]);
+        this.drawCard(ctx, images, this.heroes[i], i, i === this.selectedIndex && !disabled);
       }
 
       const back = this.getBackBox();
       const confirm = this.getConfirmBox();
       this.drawButton(ctx, back.x, back.y, back.w, back.h, 'НАЗАД', this.footerFocus === 'back');
-      this.drawButton(ctx, confirm.x, confirm.y, confirm.w, confirm.h, 'ДАЛЕЕ', this.footerFocus === 'confirm' || !this.footerFocus);
+      this.drawButton(ctx, confirm.x, confirm.y, confirm.w, confirm.h, casualty ? 'ПРОДОЛЖИТЬ' : 'ДАЛЕЕ', this.footerFocus === 'confirm' || !this.footerFocus);
 
       ctx.font = '18px Arial';
       ctx.textAlign = 'center';
@@ -257,6 +330,108 @@
       ctx.textAlign = 'left';
 
       if (this.infoOpen) this.drawInfoModal(ctx, images);
+    };
+
+    CharacterSelect.drawCard = function (ctx, images, heroKey, index, selected) {
+      originalDrawCard.call(this, ctx, images, heroKey, index, selected);
+      if (!this.isHeroDisabled(this.gameRef, heroKey)) return;
+      const box = this.getCardBox(index);
+      ctx.save();
+      ctx.fillStyle = 'rgba(0,0,0,0.64)';
+      ctx.fillRect(box.x, box.y, box.w, box.h);
+      ctx.strokeStyle = 'rgba(150,150,150,0.75)';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(box.x, box.y, box.w, box.h);
+      ctx.fillStyle = 'rgba(220,220,220,0.88)';
+      ctx.font = 'bold 38px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('ВЫБЫЛ', box.x + box.w / 2, box.y + box.h / 2);
+      ctx.font = '18px Arial';
+      ctx.fillStyle = 'rgba(255,255,255,0.62)';
+      ctx.fillText('нельзя выбрать', box.x + box.w / 2, box.y + box.h / 2 + 44);
+      ctx.restore();
+    };
+
+    CharacterSelect.drawInfoIcon = function (ctx, index, selected, color) {
+      originalDrawInfoIcon.call(this, ctx, index, selected, color);
+    };
+  }
+
+  if (typeof HUD !== 'undefined') {
+    HUD.draw = function (ctx, scene) {
+      const game = scene.game;
+      if (game && game.ensureRunState) game.ensureRunState();
+
+      ctx.fillStyle = 'rgba(0,0,0,0.66)';
+      ctx.fillRect(0, 0, GAME_CONFIG.width, 92);
+
+      for (let i = 0; i < HERO_ORDER.length; i++) {
+        const key = HERO_ORDER[i];
+        const hero = GAME_CONFIG.heroes[key];
+        const x = 20 + i * 205;
+        const active = scene.player.heroKey === key;
+        const defeated = !!(game && game.defeatedHeroes && game.defeatedHeroes[key]);
+
+        ctx.fillStyle = active ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.04)';
+        ctx.fillRect(x, 12, 180, 60);
+
+        ctx.fillStyle = defeated ? '#555' : hero.color;
+        ctx.fillRect(x + 8, 18, 42, 42);
+        ctx.fillStyle = '#111';
+        ctx.font = 'bold 14px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(hero.name[0], x + 29, 44);
+        ctx.textAlign = 'left';
+
+        ctx.fillStyle = defeated ? 'rgba(255,255,255,0.42)' : '#fff';
+        ctx.font = 'bold 14px Arial';
+        ctx.fillText(hero.name, x + 58, 28);
+
+        const hp = defeated ? 0 : (active ? scene.player.hp : hero.hp);
+        const pct = Math.max(0, hp / hero.hp);
+        ctx.fillStyle = '#222';
+        ctx.fillRect(x + 58, 38, 108, 12);
+        ctx.fillStyle = defeated ? '#666' : (pct > 0.55 ? 'lime' : pct > 0.25 ? 'yellow' : 'red');
+        ctx.fillRect(x + 58, 38, 108 * pct, 12);
+        ctx.strokeStyle = defeated ? '#555' : '#777';
+        ctx.strokeRect(x + 58, 38, 108, 12);
+
+        if (defeated) {
+          ctx.font = 'bold 11px Arial';
+          ctx.fillStyle = 'rgba(255,255,255,0.55)';
+          ctx.fillText('ВЫБЫЛ', x + 58, 64);
+        }
+      }
+
+      const barX = 875;
+      const barW = 330;
+      ctx.textAlign = 'left';
+      ctx.font = 'bold 12px Arial';
+      ctx.fillStyle = 'rgba(255,255,255,0.72)';
+      ctx.fillText('ПРОГРЕСС', barX, 20);
+      ctx.fillStyle = '#222';
+      ctx.fillRect(barX, 26, barW, 14);
+      const progress = ((scene.screenIndex + (scene.encounterCleared ? 1 : 0.35)) / scene.images.streets.length);
+      ctx.fillStyle = 'cyan';
+      ctx.fillRect(barX, 26, barW * Math.min(1, progress), 14);
+      ctx.strokeStyle = '#ddd';
+      ctx.strokeRect(barX, 26, barW, 14);
+
+      const support = game && game.peopleSupport != null ? game.peopleSupport : 25;
+      ctx.fillStyle = 'rgba(255,255,255,0.72)';
+      ctx.fillText('ПОДДЕРЖКА НАРОДА', barX, 58);
+      ctx.fillStyle = '#222';
+      ctx.fillRect(barX, 64, barW, 14);
+      ctx.fillStyle = '#f2c46d';
+      ctx.fillRect(barX, 64, barW * clampValue(support / 100, 0, 1), 14);
+      ctx.strokeStyle = '#ddd';
+      ctx.strokeRect(barX, 64, barW, 14);
+      ctx.fillStyle = 'rgba(255,255,255,0.72)';
+      ctx.font = 'bold 12px Arial';
+      ctx.textAlign = 'right';
+      ctx.fillText(Math.round(support) + '%', barX + barW, 58);
+      ctx.textAlign = 'left';
     };
   }
 
@@ -270,49 +445,42 @@
     const heroDefeatQuotes = {
       alexey: {
         author: '— Алексей Навальный',
-        lines: [
-          '«Моё послание на случай, если меня убьют,',
-          'очень простое: не сдавайтесь.',
-          'Не надо, нельзя сдаваться».'
-        ]
+        lines: ['«Моё послание на случай, если меня убьют,', 'очень простое: не сдавайтесь.', 'Не надо, нельзя сдаваться».']
       },
       boris: {
         author: '— Борис Немцов',
-        lines: [
-          '«Если бы я боялся Путина по-настоящему,',
-          'я бы не занимался этим делом».'
-        ]
+        lines: ['«Если бы я боялся Путина по-настоящему,', 'я бы не занимался этим делом».']
       },
       anna: {
         author: '— Анна Политковская',
-        lines: [
-          '«Мы позволили им увидеть наш страх.',
-          'И этим только сделали их сильнее.',
-          'КГБ уважает только сильных.',
-          'Слабых оно пожирает».'
-        ]
+        lines: ['«Мы позволили им увидеть наш страх.', 'И этим только сделали их сильнее.', 'КГБ уважает только сильных.', 'Слабых оно пожирает».']
       }
     };
 
-    function clampValue(value, min, max) {
-      return Math.max(min, Math.min(max, value));
-    }
+    GameApp.prototype.ensureRunState = function () {
+      if (!this.defeatedHeroes) this.defeatedHeroes = { alexey: false, anna: false, boris: false };
+      if (this.peopleSupport == null) this.peopleSupport = 25;
+    };
 
-    function drawLines(ctx, lines, x, y, lineHeight) {
-      lines.forEach((line, index) => ctx.fillText(line, x, y + index * lineHeight));
-    }
+    GameApp.prototype.resetTeamRun = function () {
+      this.defeatedHeroes = { alexey: false, anna: false, boris: false };
+      this.peopleSupport = 25;
+      this.characterSelectMode = null;
+      this.gameOverRegionStartIndex = 0;
+    };
+
+    GameApp.prototype.addPeopleSupport = function (amount) {
+      this.ensureRunState();
+      this.peopleSupport = clampValue(this.peopleSupport + amount, 0, 100);
+    };
+
+    GameApp.prototype.getAliveHeroes = function () {
+      this.ensureRunState();
+      return HERO_ORDER.filter(key => !this.defeatedHeroes[key]);
+    };
 
     GameApp.prototype.getHeroDefeatQuote = function () {
       return heroDefeatQuotes[this.gameOverHero] || heroDefeatQuotes.alexey;
-    };
-
-    GameApp.prototype.openGameOver = function (scene) {
-      if (this.state === 'gameOver') return;
-      this.gameOverSelection = 0;
-      this.gameOverRegionStartIndex = this.getCurrentRegionStartIndex(scene);
-      this.gameOverHero = (scene && scene.player && scene.player.heroKey) || this.selectedHero || 'boris';
-      this.setState('gameOver');
-      AudioManager.playSfx('playerDown', 0.8);
     };
 
     GameApp.prototype.getCurrentRegionStartIndex = function (scene) {
@@ -334,6 +502,68 @@
       return startIndex;
     };
 
+    GameApp.prototype.sendHeroToTeamSelect = function (scene, fallenHero) {
+      this.ensureRunState();
+      this.defeatedHeroes[fallenHero] = true;
+      this.addPeopleSupport(-10);
+      this.gameOverRegionStartIndex = this.getCurrentRegionStartIndex(scene);
+      this.characterSelectMode = 'casualty';
+      const alive = this.getAliveHeroes();
+      if (alive.length <= 0) return false;
+      CharacterSelect.infoOpen = false;
+      CharacterSelect.footerFocus = null;
+      CharacterSelect.selectedIndex = CharacterSelect.heroes.indexOf(alive[0]);
+      this.setState('characterSelect');
+      AudioManager.playSfx('playerDown', 0.8);
+      return true;
+    };
+
+    GameApp.prototype.openGameOver = function (scene) {
+      if (this.state === 'gameOver') return;
+      this.gameOverSelection = 0;
+      this.gameOverRegionStartIndex = this.getCurrentRegionStartIndex(scene);
+      this.gameOverHero = HERO_ORDER[Math.floor(Math.random() * HERO_ORDER.length)];
+      this.characterSelectMode = null;
+      this.setState('gameOver');
+      AudioManager.playSfx('playerDown', 0.8);
+    };
+
+    GameApp.prototype.handleHeroDefeat = function (scene) {
+      if (!scene || !scene.player || this.state === 'gameOver') return;
+      const fallenHero = scene.player.heroKey || this.selectedHero || 'boris';
+      this.ensureRunState();
+      if (this.defeatedHeroes[fallenHero]) return;
+      const willHaveAlive = HERO_ORDER.some(key => key !== fallenHero && !this.defeatedHeroes[key]);
+      if (willHaveAlive) {
+        this.sendHeroToTeamSelect(scene, fallenHero);
+      } else {
+        this.defeatedHeroes[fallenHero] = true;
+        this.addPeopleSupport(-15);
+        this.openGameOver(scene);
+      }
+    };
+
+    GameApp.prototype.resumeAfterHeroDefeat = function (heroKey) {
+      this.ensureRunState();
+      if (this.defeatedHeroes[heroKey]) return;
+      this.selectedHero = heroKey;
+      if (!this.scene) this.scene = new LevelScene(this, this.images);
+      const levelOrder = Array.isArray(GAME_CONFIG.levelOrder) ? GAME_CONFIG.levelOrder : [];
+      const maxIndex = Math.max(0, levelOrder.length - 1);
+      const startIndex = clampValue(Number(this.gameOverRegionStartIndex) || 0, 0, maxIndex);
+      this.scene.screenIndex = startIndex;
+      this.scene.player = new Player(heroKey, this.images);
+      const level = this.scene.getLevelConfig ? this.scene.getLevelConfig() : null;
+      const start = (level && level.playerStart) || { x: 190, y: 620 };
+      this.scene.player.x = start.x;
+      this.scene.player.y = start.y;
+      if (this.scene.player.releaseFromPin) this.scene.player.releaseFromPin();
+      if (this.scene.spawnInitialWave) this.scene.spawnInitialWave();
+      this.characterSelectMode = null;
+      this.setState('level');
+      AudioManager.playMusic((level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme', true);
+    };
+
     GameApp.prototype.getGameOverButtonRects = function () {
       const width = 470;
       const height = 54;
@@ -344,21 +574,9 @@
     };
 
     GameApp.prototype.restartFromCurrentRegion = function () {
-      if (!this.scene) this.scene = new LevelScene(this, this.images);
-      const levelOrder = Array.isArray(GAME_CONFIG.levelOrder) ? GAME_CONFIG.levelOrder : [];
-      const maxIndex = Math.max(0, levelOrder.length - 1);
-      const startIndex = clampValue(Number(this.gameOverRegionStartIndex) || 0, 0, maxIndex);
-      this.scene.screenIndex = startIndex;
-      this.scene.player = new Player(this.gameOverHero || this.selectedHero || 'boris', this.images);
-      const level = this.scene.getLevelConfig ? this.scene.getLevelConfig() : null;
-      const start = (level && level.playerStart) || { x: 190, y: 620 };
-      this.scene.player.x = start.x;
-      this.scene.player.y = start.y;
-      if (this.scene.player.releaseFromPin) this.scene.player.releaseFromPin();
-      if (this.scene.spawnInitialWave) this.scene.spawnInitialWave();
-      this.setState('level');
-      AudioManager.playSfx('menuSelect', 0.8);
-      AudioManager.playMusic((level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme', true);
+      this.resetTeamRun();
+      this.selectedHero = 'boris';
+      this.resumeAfterHeroDefeat(this.selectedHero);
     };
 
     GameApp.prototype.activateGameOverButton = function (key) {
@@ -368,6 +586,7 @@
       if (key === 'support') return window.open('support.html', '_blank', 'noopener,noreferrer');
       if (key === 'menu') {
         this.scene = null;
+        this.characterSelectMode = null;
         this.setState('mainMenu');
         this.ensureMenuMusic();
       }
@@ -478,8 +697,12 @@
 
     const originalSceneUpdate = LevelScene.prototype.update;
     LevelScene.prototype.update = function (dt) {
+      const wasCleared = this.encounterCleared;
       originalSceneUpdate.call(this, dt);
-      if (this.player && this.player.hp <= 0) this.game.openGameOver(this);
+      if (!wasCleared && this.encounterCleared && this.game && this.game.addPeopleSupport) {
+        this.game.addPeopleSupport(8);
+      }
+      if (this.player && this.player.hp <= 0) this.game.handleHeroDefeat(this);
     };
   }
 })();
