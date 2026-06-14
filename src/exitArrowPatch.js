@@ -213,7 +213,7 @@
       }
       game.selectedHero = heroKey;
       AudioManager.playSfx('menuSelect', 0.85);
-      if (game.characterSelectMode === 'casualty' && game.resumeAfterHeroDefeat) {
+      if ((game.characterSelectMode === 'casualty' || game.characterSelectMode === 'switchHero') && game.resumeAfterHeroDefeat) {
         game.resumeAfterHeroDefeat(heroKey);
       } else if (game.characterSelectMode === 'retryRegion' && game.startRetryRegion) {
         game.startRetryRegion(heroKey);
@@ -261,7 +261,7 @@
         AudioManager.playSfx('menuSelect', 0.65);
         const mode = game.characterSelectMode;
         game.characterSelectMode = null;
-        game.setState(mode === 'casualty' && game.scene ? 'level' : 'mainMenu');
+        game.setState((mode === 'casualty' || mode === 'switchHero') && game.scene ? 'level' : 'mainMenu');
         return;
       }
 
@@ -286,7 +286,7 @@
           AudioManager.playSfx('menuSelect', 0.65);
           const mode = game.characterSelectMode;
           game.characterSelectMode = null;
-          game.setState(mode === 'casualty' && game.scene ? 'level' : 'mainMenu');
+          game.setState((mode === 'casualty' || mode === 'switchHero') && game.scene ? 'level' : 'mainMenu');
           return;
         }
         if (this.isPointInBox(click, this.getConfirmBox())) {
@@ -300,7 +300,7 @@
           AudioManager.playSfx('menuSelect', 0.65);
           const mode = game.characterSelectMode;
           game.characterSelectMode = null;
-          game.setState(mode === 'casualty' && game.scene ? 'level' : 'mainMenu');
+          game.setState((mode === 'casualty' || mode === 'switchHero') && game.scene ? 'level' : 'mainMenu');
         } else {
           this.confirm(game);
         }
@@ -317,7 +317,7 @@
       const mode = this.gameRef && this.gameRef.characterSelectMode;
       const title = mode === 'casualty'
         ? 'ВЫБЕРИТЕ, КТО ПРОДОЛЖИТ БОРЬБУ'
-        : (mode === 'retryRegion' ? 'ВЫБЕРИТЕ ГЕРОЯ ДЛЯ НОВОЙ ПОПЫТКИ' : 'ВЫБЕРИТЕ ПЕРСОНАЖА');
+        : (mode === 'retryRegion' ? 'ВЫБЕРИТЕ ГЕРОЯ ДЛЯ НОВОЙ ПОПЫТКИ' : (mode === 'switchHero' ? 'СМЕНИТЬ ПЕРСОНАЖА' : 'ВЫБЕРИТЕ ПЕРСОНАЖА'));
       this.drawTitle(ctx, title, 104);
 
       for (let i = 0; i < this.heroes.length; i++) {
@@ -328,7 +328,7 @@
       const back = this.getBackBox();
       const confirm = this.getConfirmBox();
       this.drawButton(ctx, back.x, back.y, back.w, back.h, 'НАЗАД', this.footerFocus === 'back');
-      this.drawButton(ctx, confirm.x, confirm.y, confirm.w, confirm.h, mode === 'casualty' ? 'ПРОДОЛЖИТЬ' : 'ДАЛЕЕ', this.footerFocus === 'confirm' || !this.footerFocus);
+      this.drawButton(ctx, confirm.x, confirm.y, confirm.w, confirm.h, mode === 'casualty' ? 'ПРОДОЛЖИТЬ' : (mode === 'switchHero' ? 'СМЕНИТЬ' : 'ДАЛЕЕ'), this.footerFocus === 'confirm' || !this.footerFocus);
 
       ctx.font = '18px Arial';
       ctx.textAlign = 'center';
@@ -377,7 +377,7 @@
       for (let i = 0; i < HERO_ORDER.length; i++) {
         const key = HERO_ORDER[i];
         const hero = GAME_CONFIG.heroes[key];
-        const x = 20 + i * 205;
+        const x = 122 + i * 205;
         const active = scene.player.heroKey === key;
         const defeated = !!(game && game.defeatedHeroes && game.defeatedHeroes[key]);
 
@@ -417,7 +417,7 @@
       ctx.textAlign = 'left';
       ctx.font = 'bold 12px Arial';
       ctx.fillStyle = 'rgba(255,255,255,0.72)';
-      ctx.fillText('ПРОГРЕСС', barX, 20);
+      ctx.fillText('ПРОГРЕСС ПРОХОЖДЕНИЯ', barX, 20);
       ctx.fillStyle = '#222';
       ctx.fillRect(barX, 26, barW, 14);
       const progress = ((scene.screenIndex + (scene.encounterCleared ? 1 : 0.35)) / scene.images.streets.length);
@@ -578,6 +578,7 @@
       this.scene.player = replacement;
       this.casualtyRespawn = null;
       this.characterSelectMode = null;
+      this.paused = false;
       this.setState('level');
       const level = this.scene.getLevelConfig ? this.scene.getLevelConfig() : null;
       AudioManager.playMusic((level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme', true);
@@ -598,6 +599,7 @@
       if (this.scene.player.releaseFromPin) this.scene.player.releaseFromPin();
       if (this.scene.spawnInitialWave) this.scene.spawnInitialWave();
       this.characterSelectMode = null;
+      this.paused = false;
       this.setState('level');
       AudioManager.playMusic((level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme', true);
     };
@@ -620,6 +622,7 @@
       CharacterSelect.infoOpen = false;
       CharacterSelect.footerFocus = null;
       CharacterSelect.selectedIndex = CharacterSelect.heroes.indexOf(this.selectedHero || 'boris');
+      if (CharacterSelect.selectedIndex < 0) CharacterSelect.selectedIndex = 0;
       this.setState('characterSelect');
       this.ensureMenuMusic();
     };
