@@ -15,13 +15,13 @@ const CampaignMapScreen = {
   ],
 
   labels: {
-    farEast: 'ДАЛЬНЕВОСТОЧНОЕ ОТДЕЛЕНИЕ',
-    siberia: 'СИБИРСКОЕ ОТДЕЛЕНИЕ',
-    ural: 'УРАЛЬСКОЕ ОТДЕЛЕНИЕ',
-    northwestPiter: 'СЕВЕРО-ЗАПАДНОЕ ОТДЕЛЕНИЕ',
-    volga: 'ПРИВОЛЖСКОЕ ОТДЕЛЕНИЕ',
-    southSochi: 'ЮЖНОЕ ОТДЕЛЕНИЕ',
-    centralMoscow: 'ЦЕНТРАЛЬНОЕ ОТДЕЛЕНИЕ / МОСКВА'
+    farEast: 'ДАЛЬНИЙ ВОСТОК',
+    siberia: 'СИБИРЬ',
+    ural: 'УРАЛ',
+    northwestPiter: 'СЕВЕРО-ЗАПАД',
+    volga: 'ПОВОЛЖЬЕ',
+    southSochi: 'ЮГ РОССИИ',
+    centralMoscow: 'МОСКОВСКИЙ РЕГИОН'
   },
 
   sources: {
@@ -158,51 +158,30 @@ const CampaignMapScreen = {
     const panelX = 40;
     const panelY = GAME_CONFIG.height - 160;
     const panelW = GAME_CONFIG.width - 80;
-    const panelH = 118;
-    const completedCount = this.activeIndex;
-    const total = this.order.length;
+    const panelH = 126;
 
-    ctx.fillStyle = 'rgba(0, 8, 22, 0.78)';
+    ctx.fillStyle = 'rgba(0, 10, 24, 0.78)';
     ctx.fillRect(panelX, panelY, panelW, panelH);
-
-    ctx.strokeStyle = 'rgba(60, 220, 255, 0.8)';
+    ctx.strokeStyle = '#55d5ff';
     ctx.lineWidth = 2;
     ctx.strokeRect(panelX, panelY, panelW, panelH);
 
-    ctx.font = 'bold 26px Arial';
+    ctx.font = 'bold 30px Arial';
+    ctx.fillStyle = '#ffffff';
     ctx.textAlign = 'left';
-    ctx.fillStyle = '#dff8ff';
-    ctx.strokeStyle = '#001019';
-    ctx.lineWidth = 4;
-    ctx.strokeText('КАРТА СОПРОТИВЛЕНИЯ', panelX + 28, panelY + 40);
-    ctx.fillText('КАРТА СОПРОТИВЛЕНИЯ', panelX + 28, panelY + 40);
+    ctx.fillText('КАРТА СОПРОТИВЛЕНИЯ', panelX + 28, panelY + 42);
 
     ctx.font = 'bold 22px Arial';
-    ctx.fillStyle = '#ffffff';
-    ctx.strokeText('АКТИВНО: ' + this.labels[activeId], panelX + 28, panelY + 76);
-    ctx.fillText('АКТИВНО: ' + this.labels[activeId], panelX + 28, panelY + 76);
+    ctx.fillStyle = '#c8f7ff';
+    ctx.fillText(this.labels[activeId] || activeId, panelX + 30, panelY + 76);
 
     ctx.font = '18px Arial';
-    ctx.fillStyle = '#b8eaff';
-    ctx.fillText('ENTER / SPACE / КЛИК — НАЧАТЬ УРОВЕНЬ    R — СБРОС ПРОГРЕССА', panelX + 28, panelY + 102);
+    ctx.fillStyle = '#d8e8f2';
+    ctx.fillText('Enter / Space / клик — начать миссию', panelX + 30, panelY + 108);
 
-    const barX = panelX + panelW - 310;
-    const barY = panelY + 44;
-    const barW = 250;
-    const barH = 18;
-
-    ctx.fillStyle = 'rgba(255,255,255,0.12)';
-    ctx.fillRect(barX, barY, barW, barH);
-    ctx.fillStyle = '#c8f7ff';
-    ctx.fillRect(barX, barY, barW * (completedCount / Math.max(1, total - 1)), barH);
-    ctx.strokeStyle = 'rgba(255,255,255,0.55)';
-    ctx.strokeRect(barX, barY, barW, barH);
-
-    ctx.font = 'bold 18px Arial';
-    ctx.fillStyle = '#ffffff';
-    ctx.textAlign = 'center';
-    ctx.fillText('ПРОГРЕСС ' + completedCount + ' / ' + (total - 1), barX + barW / 2, barY + 45);
-
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#89f0ff';
+    ctx.fillText('Прогресс: ' + this.activeIndex + ' / ' + (this.order.length - 1), panelX + panelW - 28, panelY + 108);
     ctx.textAlign = 'left';
   }
 };
