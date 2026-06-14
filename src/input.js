@@ -18,7 +18,8 @@ const Input = {
         event.preventDefault();
       }
 
-      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'Enter'].includes(event.key)) event.preventDefault();
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'Enter'].includes(event.key) ||
+          ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space'].includes(event.code)) event.preventDefault();
     });
 
     window.addEventListener('keyup', (event) => {
@@ -92,11 +93,15 @@ const Input = {
   },
 
   normalizeKey(event) {
+    if (event.code === 'KeyW') return 'w';
+    if (event.code === 'KeyA') return 'a';
+    if (event.code === 'KeyS') return 's';
+    if (event.code === 'KeyD') return 'd';
     if (event.code === 'Space') return 'space';
     if (event.code === 'Backquote') return 'dev';
     if (event.key === 'Escape') return 'escape';
     if (event.key === 'Enter') return 'enter';
-    return event.key.toLowerCase();
+    return String(event.key || '').toLowerCase();
   },
 
   pressed(key) {
