@@ -215,6 +215,8 @@
       AudioManager.playSfx('menuSelect', 0.85);
       if (game.characterSelectMode === 'casualty' && game.resumeAfterHeroDefeat) {
         game.resumeAfterHeroDefeat(heroKey);
+      } else if (game.characterSelectMode === 'retryRegion' && game.startRetryRegion) {
+        game.startRetryRegion(heroKey);
       } else {
         if (game.resetTeamRun) game.resetTeamRun();
         game.startLevel();
@@ -257,8 +259,9 @@
       if (Input.consume('i')) this.openInfo();
       if (Input.consume('escape')) {
         AudioManager.playSfx('menuSelect', 0.65);
+        const mode = game.characterSelectMode;
         game.characterSelectMode = null;
-        game.setState(game.characterSelectMode === 'casualty' ? 'level' : 'mainMenu');
+        game.setState(mode === 'casualty' && game.scene ? 'level' : 'mainMenu');
         return;
       }
 
@@ -281,8 +284,9 @@
 
         if (this.isPointInBox(click, this.getBackBox())) {
           AudioManager.playSfx('menuSelect', 0.65);
+          const mode = game.characterSelectMode;
           game.characterSelectMode = null;
-          game.setState('mainMenu');
+          game.setState(mode === 'casualty' && game.scene ? 'level' : 'mainMenu');
           return;
         }
         if (this.isPointInBox(click, this.getConfirmBox())) {
@@ -294,8 +298,9 @@
       if (Input.consume('enter') || Input.consume('space')) {
         if (this.footerFocus === 'back') {
           AudioManager.playSfx('menuSelect', 0.65);
+          const mode = game.characterSelectMode;
           game.characterSelectMode = null;
-          game.setState('mainMenu');
+          game.setState(mode === 'casualty' && game.scene ? 'level' : 'mainMenu');
         } else {
           this.confirm(game);
         }
@@ -309,8 +314,11 @@
       ctx.fillStyle = 'rgba(0,0,0,0.58)';
       ctx.fillRect(0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
 
-      const casualty = this.gameRef && this.gameRef.characterSelectMode === 'casualty';
-      this.drawTitle(ctx, casualty ? 'ВЫБЕРИТЕ, КТО ПРОДОЛЖИТ БОРЬБУ' : 'ВЫБЕРИТЕ ПЕРСОНАЖА', 104);
+      const mode = this.gameRef && this.gameRef.characterSelectMode;
+      const title = mode === 'casualty'
+        ? 'ВЫБЕРИТЕ, КТО ПРОДОЛЖИТ БОРЬБУ'
+        : (mode === 'retryRegion' ? 'ВЫБЕРИТЕ ГЕРОЯ ДЛЯ НОВОЙ ПОПЫТКИ' : 'ВЫБЕРИТЕ ПЕРСОНАЖА');
+      this.drawTitle(ctx, title, 104);
 
       for (let i = 0; i < this.heroes.length; i++) {
         const disabled = this.isHeroDisabled(this.gameRef, this.heroes[i]);
@@ -320,7 +328,7 @@
       const back = this.getBackBox();
       const confirm = this.getConfirmBox();
       this.drawButton(ctx, back.x, back.y, back.w, back.h, 'НАЗАД', this.footerFocus === 'back');
-      this.drawButton(ctx, confirm.x, confirm.y, confirm.w, confirm.h, casualty ? 'ПРОДОЛЖИТЬ' : 'ДАЛЕЕ', this.footerFocus === 'confirm' || !this.footerFocus);
+      this.drawButton(ctx, confirm.x, confirm.y, confirm.w, confirm.h, mode === 'casualty' ? 'ПРОДОЛЖИТЬ' : 'ДАЛЕЕ', this.footerFocus === 'confirm' || !this.footerFocus);
 
       ctx.font = '18px Arial';
       ctx.textAlign = 'center';
@@ -466,6 +474,7 @@
       this.defeatedHeroes = { alexey: false, anna: false, boris: false };
       this.peopleSupport = 25;
       this.characterSelectMode = null;
+      this.casualtyRespawn = null;
       this.gameOverRegionStartIndex = 0;
     };
 
@@ -507,6 +516,12 @@
       this.defeatedHeroes[fallenHero] = true;
       this.addPeopleSupport(-10);
       this.gameOverRegionStartIndex = this.getCurrentRegionStartIndex(scene);
+      this.casualtyRespawn = {
+        screenIndex: scene.screenIndex,
+        x: clampValue(scene.player.x, 90, GAME_CONFIG.width - 140),
+        y: clampValue(scene.player.y, GAME_CONFIG.laneTop + 20, GAME_CONFIG.laneBottom - 10),
+        facing: scene.player.facing || 1
+      };
       this.characterSelectMode = 'casualty';
       const alive = this.getAliveHeroes();
       if (alive.length <= 0) return false;
@@ -548,10 +563,33 @@
       if (this.defeatedHeroes[heroKey]) return;
       this.selectedHero = heroKey;
       if (!this.scene) this.scene = new LevelScene(this, this.images);
+      const respawn = this.casualtyRespawn || {
+        screenIndex: this.scene.screenIndex,
+        x: 190,
+        y: 620,
+        facing: 1
+      };
+      this.scene.screenIndex = respawn.screenIndex;
+      const replacement = new Player(heroKey, this.images);
+      replacement.x = respawn.x;
+      replacement.y = respawn.y;
+      replacement.facing = respawn.facing;
+      if (replacement.releaseFromPin) replacement.releaseFromPin();
+      this.scene.player = replacement;
+      this.casualtyRespawn = null;
+      this.characterSelectMode = null;
+      this.setState('level');
+      const level = this.scene.getLevelConfig ? this.scene.getLevelConfig() : null;
+      AudioManager.playMusic((level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme', true);
+    };
+
+    GameApp.prototype.startRetryRegion = function (heroKey) {
+      this.ensureRunState();
+      this.selectedHero = heroKey;
+      this.scene = new LevelScene(this, this.images);
       const levelOrder = Array.isArray(GAME_CONFIG.levelOrder) ? GAME_CONFIG.levelOrder : [];
       const maxIndex = Math.max(0, levelOrder.length - 1);
-      const startIndex = clampValue(Number(this.gameOverRegionStartIndex) || 0, 0, maxIndex);
-      this.scene.screenIndex = startIndex;
+      this.scene.screenIndex = clampValue(Number(this.gameOverRegionStartIndex) || 0, 0, maxIndex);
       this.scene.player = new Player(heroKey, this.images);
       const level = this.scene.getLevelConfig ? this.scene.getLevelConfig() : null;
       const start = (level && level.playerStart) || { x: 190, y: 620 };
@@ -574,9 +612,16 @@
     };
 
     GameApp.prototype.restartFromCurrentRegion = function () {
+      const savedRegionStart = this.gameOverRegionStartIndex || 0;
       this.resetTeamRun();
-      this.selectedHero = 'boris';
-      this.resumeAfterHeroDefeat(this.selectedHero);
+      this.gameOverRegionStartIndex = savedRegionStart;
+      this.characterSelectMode = 'retryRegion';
+      this.scene = null;
+      CharacterSelect.infoOpen = false;
+      CharacterSelect.footerFocus = null;
+      CharacterSelect.selectedIndex = CharacterSelect.heroes.indexOf(this.selectedHero || 'boris');
+      this.setState('characterSelect');
+      this.ensureMenuMusic();
     };
 
     GameApp.prototype.activateGameOverButton = function (key) {
