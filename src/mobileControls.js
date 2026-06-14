@@ -2,8 +2,7 @@ const MobileControls = {
   active: false,
   heldKeys: {},
   moveOrigin: null,
-  moveTouchId: null,
-  attackTouchId: null,
+  touchMode: null,
 
   topSafeY() {
     return 96;
@@ -50,19 +49,20 @@ const MobileControls = {
     return dx * dx + dy * dy <= r * r;
   },
 
-  getTouches() {
-    if (Input.touches && Input.touches.length) return Input.touches;
-    return Input.pointer && Input.pointer.down ? [{ id: 'pointer', x: Input.pointer.x, y: Input.pointer.y, justDown: Input.pointer.justDown }] : [];
-  },
-
-  findTouch(id, touches) {
-    return touches.find(touch => String(touch.id) === String(id)) || null;
-  },
-
   resetTouchState() {
     this.moveOrigin = null;
-    this.moveTouchId = null;
-    this.attackTouchId = null;
+    this.touchMode = null;
+  },
+
+  hasAttackTouch() {
+    const attack = this.attackButton();
+    const touches = Input.touches && Input.touches.length ? Input.touches : [];
+    for (let i = 0; i < touches.length; i++) {
+      const touch = touches[i];
+      if (touch.y < this.topSafeY()) continue;
+      if (this.pointInCircle(touch, attack, attack.hitR)) return true;
+    }
+    return false;
   },
 
   update(game) {
@@ -74,59 +74,34 @@ const MobileControls = {
     }
 
     const desired = {};
-    const touches = this.getTouches().filter(touch => touch.y >= this.topSafeY());
-    const attack = this.attackButton();
+    const p = Input.pointer;
 
-    if (!touches.length) {
+    if (this.hasAttackTouch()) desired.space = true;
+
+    if (!p.down || p.y < this.topSafeY()) {
       this.resetTouchState();
       this.applyDesiredKeys(desired);
       return;
     }
 
-    let moveTouch = this.findTouch(this.moveTouchId, touches);
-    let attackTouch = this.findTouch(this.attackTouchId, touches);
-
-    if (!moveTouch && this.moveTouchId != null) {
-      this.moveTouchId = null;
-      this.moveOrigin = null;
-    }
-
-    if (!attackTouch && this.attackTouchId != null) {
-      this.attackTouchId = null;
-    }
-
-    for (const touch of touches) {
-      if (!this.moveTouchId && touch.id !== this.attackTouchId && !this.pointInCircle(touch, attack, attack.hitR)) {
-        this.moveTouchId = touch.id;
-        this.moveOrigin = { x: touch.x, y: touch.y };
-        moveTouch = touch;
-        break;
+    if (!this.touchMode) {
+      if (this.pointInCircle(p, this.attackButton(), this.attackButton().hitR)) {
+        this.touchMode = 'attack';
+      } else if (this.pointInRect(p, this.movementStartZone())) {
+        this.touchMode = 'move';
+        this.moveOrigin = { x: p.x, y: p.y };
       }
     }
 
-    for (const touch of touches) {
-      if (!this.attackTouchId && touch.id !== this.moveTouchId && this.pointInCircle(touch, attack, attack.hitR)) {
-        this.attackTouchId = touch.id;
-        attackTouch = touch;
-        break;
-      }
+    if (this.touchMode === 'attack') {
+      desired.space = true;
+      this.applyDesiredKeys(desired);
+      return;
     }
 
-    if (!moveTouch && !this.moveTouchId) {
-      for (const touch of touches) {
-        if (touch.id === this.attackTouchId) continue;
-        this.moveTouchId = touch.id;
-        this.moveOrigin = { x: touch.x, y: touch.y };
-        moveTouch = touch;
-        break;
-      }
-    }
-
-    if (attackTouch) desired.space = true;
-
-    if (moveTouch && this.moveOrigin) {
-      const dx = moveTouch.x - this.moveOrigin.x;
-      const dy = moveTouch.y - this.moveOrigin.y;
+    if (this.touchMode === 'move' && this.moveOrigin) {
+      const dx = p.x - this.moveOrigin.x;
+      const dy = p.y - this.moveOrigin.y;
       const distance = Math.hypot(dx, dy);
       const dead = 16;
 
@@ -161,16 +136,15 @@ const MobileControls = {
   draw(ctx, game) {
     if (!this.shouldShow(game)) return;
 
-    const touches = this.getTouches();
-    const moveTouch = this.findTouch(this.moveTouchId, touches);
+    const p = Input.pointer;
     const stick = this.getStick();
     const attack = this.attackButton();
     let knobX = stick.x;
     let knobY = stick.y;
 
-    if (moveTouch && this.moveOrigin) {
-      const dx = moveTouch.x - stick.x;
-      const dy = moveTouch.y - stick.y;
+    if (Input.pointer.down && this.touchMode === 'move' && this.moveOrigin) {
+      const dx = p.x - stick.x;
+      const dy = p.y - stick.y;
       const distance = Math.hypot(dx, dy);
       const max = stick.r - stick.knobR;
       const ratio = distance > max ? max / Math.max(1, distance) : 1;
@@ -198,9 +172,10 @@ const MobileControls = {
       ctx.stroke();
     }
 
-    ctx.fillStyle = this.attackTouchId ? 'rgba(150,0,0,0.28)' : 'rgba(150,0,0,0.11)';
-    ctx.strokeStyle = this.attackTouchId ? 'rgba(255,255,255,0.48)' : 'rgba(255,255,255,0.20)';
-    ctx.lineWidth = this.attackTouchId ? 4 : 2;
+    const attackPressed = this.hasAttackTouch() || this.touchMode === 'attack';
+    ctx.fillStyle = attackPressed ? 'rgba(150,0,0,0.28)' : 'rgba(150,0,0,0.11)';
+    ctx.strokeStyle = attackPressed ? 'rgba(255,255,255,0.48)' : 'rgba(255,255,255,0.20)';
+    ctx.lineWidth = attackPressed ? 4 : 2;
     ctx.beginPath();
     ctx.arc(attack.x, attack.y, attack.r, 0, Math.PI * 2);
     ctx.fill();
