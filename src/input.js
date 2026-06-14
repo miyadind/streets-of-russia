@@ -3,6 +3,7 @@ const Input = {
   virtualKeys: {},
   just: {},
   pointer: { x: 0, y: 0, down: false, justDown: false },
+  touches: [],
   lastTouchAt: 0,
 
   init(canvas) {
@@ -45,11 +46,35 @@ const Input = {
       return null;
     };
 
+    const syncTouches = (touchList, changedTouchList = null, markChangedAsJustDown = false) => {
+      const changedIds = new Set();
+      if (changedTouchList) {
+        for (let i = 0; i < changedTouchList.length; i++) changedIds.add(changedTouchList[i].identifier);
+      }
+
+      this.touches = [];
+      for (let i = 0; i < touchList.length; i++) {
+        const touch = touchList[i];
+        const pos = Responsive.screenToGame(touch.clientX, touch.clientY);
+        const justDown = markChangedAsJustDown && changedIds.has(touch.identifier);
+        this.touches.push({ id: touch.identifier, x: pos.x, y: pos.y, justDown });
+      }
+
+      const first = this.touches[0];
+      this.pointer.down = this.touches.length > 0;
+      if (first) {
+        this.pointer.x = first.x;
+        this.pointer.y = first.y;
+        if (markChangedAsJustDown && first.justDown) this.pointer.justDown = true;
+      }
+    };
+
     canvas.addEventListener('touchstart', (event) => {
       if (event.cancelable) event.preventDefault();
       const touch = getPrimaryTouch(event);
       if (!touch) return;
       this.lastTouchAt = performance.now();
+      syncTouches(event.touches, event.changedTouches, true);
       setPointerFromClient(touch.clientX, touch.clientY, true);
     }, { passive: false });
 
@@ -58,15 +83,24 @@ const Input = {
       const touch = getPrimaryTouch(event);
       if (!touch) return;
       this.lastTouchAt = performance.now();
-      setPointerFromClient(touch.clientX, touch.clientY, false);
+      syncTouches(event.touches, event.changedTouches, false);
+      const first = event.touches && event.touches.length ? event.touches[0] : touch;
+      setPointerFromClient(first.clientX, first.clientY, false);
     }, { passive: false });
 
-    canvas.addEventListener('touchend', (event) => {
+    const handleTouchEnd = (event) => {
       if (event.cancelable) event.preventDefault();
       this.lastTouchAt = performance.now();
-      this.pointer.down = false;
-      this.clearVirtualKeys();
-    }, { passive: false });
+      syncTouches(event.touches || [], event.changedTouches, false);
+      if (!event.touches || event.touches.length === 0) {
+        this.pointer.down = false;
+        this.pointer.justDown = false;
+        this.clearVirtualKeys();
+      }
+    };
+
+    canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+    canvas.addEventListener('touchcancel', handleTouchEnd, { passive: false });
 
     canvas.addEventListener('contextmenu', (event) => event.preventDefault());
 
@@ -149,5 +183,6 @@ const Input = {
   endFrame() {
     this.just = {};
     this.pointer.justDown = false;
+    for (const touch of this.touches) touch.justDown = false;
   }
 };
