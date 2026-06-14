@@ -56,7 +56,7 @@ const MobileControls = {
   },
 
   findTouch(id, touches) {
-    return touches.find(touch => touch.id === id) || null;
+    return touches.find(touch => String(touch.id) === String(id)) || null;
   },
 
   resetTouchState() {
@@ -86,27 +86,39 @@ const MobileControls = {
     let moveTouch = this.findTouch(this.moveTouchId, touches);
     let attackTouch = this.findTouch(this.attackTouchId, touches);
 
-    if (!moveTouch) {
+    if (!moveTouch && this.moveTouchId != null) {
       this.moveTouchId = null;
       this.moveOrigin = null;
     }
 
-    if (!attackTouch) {
+    if (!attackTouch && this.attackTouchId != null) {
       this.attackTouchId = null;
+    }
+
+    for (const touch of touches) {
+      if (!this.moveTouchId && touch.id !== this.attackTouchId && !this.pointInCircle(touch, attack, attack.hitR)) {
+        this.moveTouchId = touch.id;
+        this.moveOrigin = { x: touch.x, y: touch.y };
+        moveTouch = touch;
+        break;
+      }
     }
 
     for (const touch of touches) {
       if (!this.attackTouchId && touch.id !== this.moveTouchId && this.pointInCircle(touch, attack, attack.hitR)) {
         this.attackTouchId = touch.id;
         attackTouch = touch;
+        break;
       }
     }
 
-    for (const touch of touches) {
-      if (!this.moveTouchId && touch.id !== this.attackTouchId && this.pointInRect(touch, this.movementStartZone())) {
+    if (!moveTouch && !this.moveTouchId) {
+      for (const touch of touches) {
+        if (touch.id === this.attackTouchId) continue;
         this.moveTouchId = touch.id;
         this.moveOrigin = { x: touch.x, y: touch.y };
         moveTouch = touch;
+        break;
       }
     }
 
@@ -192,12 +204,6 @@ const MobileControls = {
     ctx.beginPath();
     ctx.arc(attack.x, attack.y, attack.r, 0, Math.PI * 2);
     ctx.fill();
-    ctx.stroke();
-
-    ctx.strokeStyle = this.attackTouchId ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.10)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(attack.x, attack.y, attack.hitR, 0, Math.PI * 2);
     ctx.stroke();
 
     ctx.font = 'bold 17px Arial';
