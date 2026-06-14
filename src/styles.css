@@ -12,10 +12,62 @@ html, body {
   user-select: none;
 }
 
+body {
+  position: fixed;
+  inset: 0;
+}
+
 canvas {
   display: block;
   margin: 0 auto;
   background: #000;
   touch-action: none;
   -webkit-tap-highlight-color: transparent;
+}
+
+#fullscreenButton {
+  position: fixed;
+  z-index: 20;
+  right: max(14px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  min-width: 176px;
+  min-height: 46px;
+  padding: 10px 14px;
+  border: 2px solid rgba(255, 255, 255, 0.68);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
+  font: bold 15px Arial, Helvetica, sans-serif;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 4px 22px rgba(0, 0, 0, 0.48);
+}
+
+#fullscreenButton:active {
+  background: rgba(130, 0, 0, 0.82);
+  transform: translateY(1px);
+}
+
+#rotateHint {
+  position: fixed;
+  z-index: 19;
+  left: 50%;
+  top: max(18px, env(safe-area-inset-top));
+  transform: translateX(-50%);
+  display: none;
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.68);
+  color: rgba(255, 255, 255, 0.86);
+  font: bold 14px Arial, Helvetica, sans-serif;
+  letter-spacing: 0.03em;
+  text-align: center;
+  pointer-events: none;
+}
+
+body.is-fullscreen #fullscreenButton {
+  display: none !important;
 }
