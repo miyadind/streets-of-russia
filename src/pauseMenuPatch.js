@@ -6,11 +6,15 @@
   }
 
   function resumeRect() {
-    return { x: 390, y: 250, w: 500, h: 90 };
+    return { x: 390, y: 220, w: 500, h: 78 };
+  }
+
+  function switchHeroRect() {
+    return { x: 390, y: 318, w: 500, h: 78 };
   }
 
   function menuRect() {
-    return { x: 390, y: 370, w: 500, h: 90 };
+    return { x: 390, y: 416, w: 500, h: 78 };
   }
 
   function inRect(p, r) {
@@ -35,6 +39,27 @@
     ctx.restore();
   }
 
+  function startQuickHeroSwitch(game) {
+    if (!game || !game.scene || !game.scene.player) return;
+    const player = game.scene.player;
+    game.paused = false;
+    game.casualtyRespawn = {
+      screenIndex: game.scene.screenIndex,
+      x: Math.max(90, Math.min(GAME_CONFIG.width - 140, player.x)),
+      y: Math.max(GAME_CONFIG.laneTop + 20, Math.min(GAME_CONFIG.laneBottom - 10, player.y)),
+      facing: player.facing || 1
+    };
+    game.characterSelectMode = 'switchHero';
+    if (typeof CharacterSelect !== 'undefined') {
+      CharacterSelect.infoOpen = false;
+      CharacterSelect.footerFocus = null;
+      CharacterSelect.selectedIndex = CharacterSelect.heroes.indexOf(player.heroKey || game.selectedHero || 'boris');
+      if (CharacterSelect.selectedIndex < 0) CharacterSelect.selectedIndex = 0;
+    }
+    game.setState('characterSelect');
+    AudioManager.playSfx('menuSelect', 0.75);
+  }
+
   const originalUpdate = GameApp.prototype.update;
   GameApp.prototype.update = function (dt) {
     if (this.state === 'level') {
@@ -56,6 +81,10 @@
           if (inRect(click, resumeRect())) {
             this.paused = false;
             AudioManager.playSfx('menuSelect', 0.65);
+            return;
+          }
+          if (inRect(click, switchHeroRect())) {
+            startQuickHeroSwitch(this);
             return;
           }
           if (inRect(click, menuRect())) {
@@ -92,10 +121,11 @@
     ctx.fillStyle = '#fff';
     ctx.strokeStyle = '#000';
     ctx.lineWidth = 7;
-    ctx.strokeText('ПАУЗА', GAME_CONFIG.width / 2, 190);
-    ctx.fillText('ПАУЗА', GAME_CONFIG.width / 2, 190);
+    ctx.strokeText('ПАУЗА', GAME_CONFIG.width / 2, 178);
+    ctx.fillText('ПАУЗА', GAME_CONFIG.width / 2, 178);
     ctx.restore();
     drawButton(ctx, resumeRect(), 'ПРОДОЛЖИТЬ', true, 30);
+    drawButton(ctx, switchHeroRect(), 'СМЕНИТЬ ПЕРСОНАЖА', false, 28);
     drawButton(ctx, menuRect(), 'В МЕНЮ', false, 30);
   };
 })();
