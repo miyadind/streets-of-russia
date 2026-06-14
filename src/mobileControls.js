@@ -2,17 +2,18 @@ const MobileControls = {
   active: false,
   heldKeys: {},
   moveOrigin: null,
+  touchMode: null,
 
   topSafeY() {
     return 96;
   },
 
-  movementZone() {
-    return { x: 0, y: this.topSafeY(), w: GAME_CONFIG.width / 2, h: GAME_CONFIG.height - this.topSafeY() };
+  attackButton() {
+    return { x: GAME_CONFIG.width - 148, y: 210, r: 58 };
   },
 
-  attackZone() {
-    return { x: GAME_CONFIG.width / 2, y: this.topSafeY(), w: GAME_CONFIG.width / 2, h: GAME_CONFIG.height - this.topSafeY() };
+  movementStartZone() {
+    return { x: 0, y: this.topSafeY(), w: GAME_CONFIG.width, h: GAME_CONFIG.height - this.topSafeY() };
   },
 
   shouldShow(game) {
@@ -41,10 +42,21 @@ const MobileControls = {
     return point && point.x >= rect.x && point.x <= rect.x + rect.w && point.y >= rect.y && point.y <= rect.y + rect.h;
   },
 
+  pointInCircle(point, circle) {
+    const dx = point.x - circle.x;
+    const dy = point.y - circle.y;
+    return dx * dx + dy * dy <= circle.r * circle.r;
+  },
+
+  resetTouchState() {
+    this.moveOrigin = null;
+    this.touchMode = null;
+  },
+
   update(game) {
     this.active = this.shouldShow(game);
     if (!this.active) {
-      this.moveOrigin = null;
+      this.resetTouchState();
       this.releaseHeldKeys();
       return;
     }
@@ -53,25 +65,31 @@ const MobileControls = {
     const p = Input.pointer;
 
     if (!p.down || p.y < this.topSafeY()) {
-      this.moveOrigin = null;
+      this.resetTouchState();
       this.applyDesiredKeys(desired);
       return;
     }
 
-    if (this.pointInRect(p, this.attackZone())) {
-      this.moveOrigin = null;
+    if (!this.touchMode) {
+      if (this.pointInCircle(p, this.attackButton())) {
+        this.touchMode = 'attack';
+      } else if (this.pointInRect(p, this.movementStartZone())) {
+        this.touchMode = 'move';
+        this.moveOrigin = { x: p.x, y: p.y };
+      }
+    }
+
+    if (this.touchMode === 'attack') {
       desired.space = true;
       this.applyDesiredKeys(desired);
       return;
     }
 
-    if (this.pointInRect(p, this.movementZone())) {
-      if (!this.moveOrigin) this.moveOrigin = { x: p.x, y: p.y };
-
+    if (this.touchMode === 'move' && this.moveOrigin) {
       const dx = p.x - this.moveOrigin.x;
       const dy = p.y - this.moveOrigin.y;
       const distance = Math.hypot(dx, dy);
-      const dead = 18;
+      const dead = 16;
 
       if (distance > dead) {
         const nx = dx / Math.max(1, distance);
@@ -79,11 +97,9 @@ const MobileControls = {
         const horizontal = Math.abs(nx);
         const vertical = Math.abs(ny);
 
-        if (horizontal > 0.22) desired[nx < 0 ? 'arrowleft' : 'arrowright'] = true;
-        if (vertical > 0.30) desired[ny < 0 ? 'arrowup' : 'arrowdown'] = true;
+        if (horizontal > 0.20) desired[nx < 0 ? 'arrowleft' : 'arrowright'] = true;
+        if (vertical > 0.28) desired[ny < 0 ? 'arrowup' : 'arrowdown'] = true;
       }
-    } else {
-      this.moveOrigin = null;
     }
 
     this.applyDesiredKeys(desired);
@@ -91,7 +107,7 @@ const MobileControls = {
 
   getStick() {
     const origin = this.moveOrigin || { x: 160, y: GAME_CONFIG.height - 132 };
-    return { x: origin.x, y: origin.y, r: 74, knobR: 30 };
+    return { x: origin.x, y: origin.y, r: 78, knobR: 30 };
   },
 
   getDpad() {
@@ -99,27 +115,20 @@ const MobileControls = {
   },
 
   getAttackButton() {
-    return { x: GAME_CONFIG.width * 0.75, y: GAME_CONFIG.height - 132, r: 74 };
-  },
-
-  pointInCircle(point, circle) {
-    const dx = point.x - circle.x;
-    const dy = point.y - circle.y;
-    return dx * dx + dy * dy <= circle.r * circle.r;
+    const button = this.attackButton();
+    return { x: button.x, y: button.y, r: button.r };
   },
 
   draw(ctx, game) {
     if (!this.shouldShow(game)) return;
 
-    const moveZone = this.movementZone();
-    const attackZone = this.attackZone();
-    const attack = this.getAttackButton();
     const p = Input.pointer;
     const stick = this.getStick();
+    const attack = this.attackButton();
     let knobX = stick.x;
     let knobY = stick.y;
 
-    if (Input.pointer.down && this.moveOrigin && this.pointInRect(p, moveZone)) {
+    if (Input.pointer.down && this.touchMode === 'move' && this.moveOrigin) {
       const dx = p.x - stick.x;
       const dy = p.y - stick.y;
       const distance = Math.hypot(dx, dy);
@@ -131,59 +140,40 @@ const MobileControls = {
 
     ctx.save();
 
-    ctx.fillStyle = 'rgba(255,255,255,0.035)';
-    ctx.fillRect(moveZone.x, moveZone.y, moveZone.w, moveZone.h);
-    ctx.fillStyle = 'rgba(150,0,0,0.045)';
-    ctx.fillRect(attackZone.x, attackZone.y, attackZone.w, attackZone.h);
-
-    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(GAME_CONFIG.width / 2, this.topSafeY());
-    ctx.lineTo(GAME_CONFIG.width / 2, GAME_CONFIG.height);
-    ctx.stroke();
-
     if (this.moveOrigin) {
-      ctx.fillStyle = 'rgba(255,255,255,0.10)';
-      ctx.strokeStyle = 'rgba(255,255,255,0.34)';
-      ctx.lineWidth = 3;
+      ctx.fillStyle = 'rgba(255,255,255,0.055)';
+      ctx.strokeStyle = 'rgba(255,255,255,0.24)';
+      ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(stick.x, stick.y, stick.r, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
 
-      ctx.fillStyle = 'rgba(255,255,255,0.22)';
-      ctx.strokeStyle = 'rgba(255,255,255,0.44)';
-      ctx.lineWidth = 3;
+      ctx.fillStyle = 'rgba(255,255,255,0.18)';
+      ctx.strokeStyle = 'rgba(255,255,255,0.34)';
+      ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(knobX, knobY, stick.knobR, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
     }
 
-    ctx.fillStyle = 'rgba(150,0,0,0.32)';
-    ctx.strokeStyle = 'rgba(255,255,255,0.48)';
-    ctx.lineWidth = 4;
+    ctx.fillStyle = this.touchMode === 'attack' ? 'rgba(150,0,0,0.30)' : 'rgba(150,0,0,0.13)';
+    ctx.strokeStyle = this.touchMode === 'attack' ? 'rgba(255,255,255,0.48)' : 'rgba(255,255,255,0.22)';
+    ctx.lineWidth = this.touchMode === 'attack' ? 4 : 2;
     ctx.beginPath();
     ctx.arc(attack.x, attack.y, attack.r, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
 
-    ctx.font = 'bold 23px Arial';
+    ctx.font = 'bold 19px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillStyle = 'rgba(255,255,255,0.78)';
-    ctx.strokeStyle = 'rgba(0,0,0,0.7)';
-    ctx.lineWidth = 4;
+    ctx.fillStyle = 'rgba(255,255,255,0.58)';
+    ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+    ctx.lineWidth = 3;
     ctx.strokeText('УДАР', attack.x, attack.y);
     ctx.fillText('УДАР', attack.x, attack.y);
-
-    ctx.font = 'bold 18px Arial';
-    ctx.fillStyle = 'rgba(255,255,255,0.45)';
-    ctx.strokeStyle = 'rgba(0,0,0,0.65)';
-    ctx.lineWidth = 3;
-    ctx.strokeText('ДВИЖЕНИЕ', moveZone.x + moveZone.w / 2, GAME_CONFIG.height - 34);
-    ctx.fillText('ДВИЖЕНИЕ', moveZone.x + moveZone.w / 2, GAME_CONFIG.height - 34);
 
     ctx.restore();
   }
