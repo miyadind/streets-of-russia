@@ -39,7 +39,7 @@
     ctx.globalAlpha = alpha;
     ctx.fillStyle = color;
     ctx.shadowColor = glow;
-    ctx.shadowBlur = 9;
+    ctx.shadowBlur = 4;
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fill();
@@ -47,15 +47,15 @@
   }
 
   function drawExitLedArrow(ctx, x, y, phase) {
-    const w = 270;
-    const h = 96;
+    const w = 90;
+    const h = 32;
     const poly = arrowPolygon(x, y, w, h);
     const pulse = 0.5 + 0.5 * Math.sin(phase);
 
     ctx.save();
 
     ctx.shadowColor = 'rgba(80, 160, 255, 0.95)';
-    ctx.shadowBlur = 18 + pulse * 14;
+    ctx.shadowBlur = 8 + pulse * 6;
     ctx.fillStyle = 'rgba(30, 90, 190, 0.20)';
     drawPolygon(ctx, poly);
     ctx.fill();
@@ -63,27 +63,27 @@
     ctx.shadowBlur = 0;
     ctx.fillStyle = 'rgba(11, 13, 18, 0.92)';
     ctx.strokeStyle = 'rgba(215, 225, 240, 0.92)';
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 1.5;
     drawPolygon(ctx, poly);
     ctx.fill();
     ctx.stroke();
 
-    const innerPad = 12;
+    const innerPad = 4;
     const innerPoly = arrowPolygon(x + innerPad, y + innerPad, w - innerPad * 2, h - innerPad * 2);
     ctx.fillStyle = 'rgba(2, 5, 9, 0.78)';
     ctx.strokeStyle = 'rgba(70, 82, 96, 0.92)';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 1;
     drawPolygon(ctx, innerPoly);
     ctx.fill();
     ctx.stroke();
 
     const rows = 6;
-    const cols = 24;
-    const dotR = 4.8;
-    const startX = x + innerPad + 16;
-    const endX = x + w - innerPad - 19;
-    const startY = y + innerPad + 11;
-    const rowGap = (h - innerPad * 2 - 22) / Math.max(1, rows - 1);
+    const cols = 18;
+    const dotR = 1.75;
+    const startX = x + innerPad + 6;
+    const endX = x + w - innerPad - 7;
+    const startY = y + innerPad + 4;
+    const rowGap = (h - innerPad * 2 - 8) / Math.max(1, rows - 1);
     const colGap = (endX - startX) / Math.max(1, cols - 1);
 
     for (let row = 0; row < rows; row++) {
@@ -104,24 +104,14 @@
     }
 
     ctx.shadowColor = 'rgba(70, 160, 255, 0.95)';
-    ctx.shadowBlur = 10 + pulse * 8;
+    ctx.shadowBlur = 4 + pulse * 4;
     ctx.strokeStyle = 'rgba(150, 210, 255, 0.92)';
-    ctx.lineWidth = 4;
+    ctx.lineWidth = 1.6;
     ctx.beginPath();
-    ctx.moveTo(x + w - 54, y - 10);
+    ctx.moveTo(x + w - 18, y - 3);
     ctx.lineTo(x + w, y + h / 2);
-    ctx.lineTo(x + w - 54, y + h + 10);
+    ctx.lineTo(x + w - 18, y + h + 3);
     ctx.stroke();
-
-    ctx.shadowBlur = 0;
-    ctx.font = 'bold 18px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = 'rgba(255,255,255,0.88)';
-    ctx.strokeStyle = 'rgba(0,0,0,0.78)';
-    ctx.lineWidth = 4;
-    ctx.strokeText('ВПЕРЁД', x + w / 2 - 18, y + h + 34);
-    ctx.fillText('ВПЕРЁД', x + w / 2 - 18, y + h + 34);
 
     ctx.restore();
   }
@@ -145,7 +135,7 @@
 
     if (this.encounterCleared) {
       const phase = performance.now() / 260;
-      drawExitLedArrow(ctx, GAME_CONFIG.width - 345, 340, phase);
+      drawExitLedArrow(ctx, GAME_CONFIG.width - 128, 388, phase);
     }
 
     HUD.draw(ctx, this);
