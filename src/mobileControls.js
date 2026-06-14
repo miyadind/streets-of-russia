@@ -1,26 +1,49 @@
 const MobileControls = {
   active: false,
+  heldKeys: {},
 
   shouldShow(game) {
     return !!(Responsive.isTouchDevice && game && game.state === 'level' && game.scene);
   },
 
+  setHeldKey(key, value) {
+    if (this.heldKeys[key] === value) return;
+    this.heldKeys[key] = value;
+    Input.setVirtualKey(key, value);
+  },
+
+  releaseHeldKeys() {
+    for (const key of Object.keys(this.heldKeys)) {
+      if (this.heldKeys[key]) Input.setVirtualKey(key, false);
+    }
+    this.heldKeys = {};
+  },
+
+  applyDesiredKeys(desired) {
+    const keys = ['arrowleft', 'arrowright', 'arrowup', 'arrowdown', 'space'];
+    for (const key of keys) this.setHeldKey(key, !!desired[key]);
+  },
+
   update(game) {
     this.active = this.shouldShow(game);
     if (!this.active) {
-      Input.clearVirtualKeys();
+      this.releaseHeldKeys();
       return;
     }
 
-    Input.clearVirtualKeys();
-    if (!Input.pointer.down) return;
+    const desired = {};
+    if (!Input.pointer.down) {
+      this.applyDesiredKeys(desired);
+      return;
+    }
 
     const p = Input.pointer;
     const stick = this.getStick();
     const attack = this.getAttackButton();
 
     if (this.pointInCircle(p, attack)) {
-      Input.setVirtualKey('space', true);
+      desired.space = true;
+      this.applyDesiredKeys(desired);
       return;
     }
 
@@ -29,16 +52,18 @@ const MobileControls = {
       const dy = p.y - stick.y;
       const distance = Math.hypot(dx, dy);
       const dead = stick.r * 0.18;
-      if (distance <= dead) return;
+      if (distance > dead) {
+        const nx = dx / Math.max(1, distance);
+        const ny = dy / Math.max(1, distance);
+        const horizontal = Math.abs(nx);
+        const vertical = Math.abs(ny);
 
-      const nx = dx / Math.max(1, distance);
-      const ny = dy / Math.max(1, distance);
-      const horizontal = Math.abs(nx);
-      const vertical = Math.abs(ny);
-
-      if (horizontal > 0.26) Input.setVirtualKey(nx < 0 ? 'arrowleft' : 'arrowright', true);
-      if (vertical > 0.32) Input.setVirtualKey(ny < 0 ? 'arrowup' : 'arrowdown', true);
+        if (horizontal > 0.26) desired[nx < 0 ? 'arrowleft' : 'arrowright'] = true;
+        if (vertical > 0.32) desired[ny < 0 ? 'arrowup' : 'arrowdown'] = true;
+      }
     }
+
+    this.applyDesiredKeys(desired);
   },
 
   getStick() {
