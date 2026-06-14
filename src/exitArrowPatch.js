@@ -53,7 +53,6 @@
     const pulse = 0.5 + 0.5 * Math.sin(phase);
 
     ctx.save();
-
     ctx.shadowColor = 'rgba(80, 160, 255, 0.95)';
     ctx.shadowBlur = 8 + pulse * 6;
     ctx.fillStyle = 'rgba(30, 90, 190, 0.20)';
@@ -93,7 +92,6 @@
         color = '#0b74ff';
         glow = 'rgba(20, 145, 255, 1)';
       }
-
       for (let col = 0; col < cols; col++) {
         const cx = startX + col * colGap;
         const cy = startY + row * rowGap;
@@ -112,9 +110,23 @@
     ctx.lineTo(x + w, y + h / 2);
     ctx.lineTo(x + w - 18, y + h + 3);
     ctx.stroke();
-
     ctx.restore();
   }
+
+  LevelScene.prototype.nextScreen = function () {
+    if (this.screenIndex < this.images.streets.length - 1) {
+      this.screenIndex += 1;
+      this.player.x = 82;
+      this.player.y = 620;
+      this.player.facing = 1;
+      this.player.releaseFromPin();
+      const level = this.getLevelConfig();
+      AudioManager.playMusic((level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme');
+      this.spawnInitialWave();
+    } else {
+      this.game.setState('mainMenu');
+    }
+  };
 
   LevelScene.prototype.draw = function (ctx) {
     const bg = this.images.streets[this.screenIndex] || this.images.streets[0];
@@ -130,7 +142,6 @@
     const entities = [{ type: 'player', y: this.player.y, ref: this.player }];
     for (const enemy of this.enemies) entities.push({ type: 'enemy', y: enemy.y, ref: enemy });
     entities.sort((a, b) => a.y - b.y);
-
     for (const entity of entities) entity.ref.draw(ctx, this.debug);
 
     if (this.encounterCleared) {
@@ -218,6 +229,34 @@
         if (this.footerFocus === 'back') goBackToMap(game);
         else this.confirm(game);
       }
+    };
+
+    CharacterSelect.draw = function (ctx, images) {
+      ctx.fillStyle = '#08080d';
+      ctx.fillRect(0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
+      ctx.drawImage(images.main, 0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
+      ctx.fillStyle = 'rgba(0,0,0,0.58)';
+      ctx.fillRect(0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
+
+      this.drawTitle(ctx, 'ВЫБЕРИТЕ ПЕРСОНАЖА', 104);
+
+      for (let i = 0; i < this.heroes.length; i++) {
+        this.drawCard(ctx, images, this.heroes[i], i, i === this.selectedIndex);
+      }
+
+      const back = this.getBackBox();
+      const confirm = this.getConfirmBox();
+      this.drawButton(ctx, back.x, back.y, back.w, back.h, 'НАЗАД', this.footerFocus === 'back');
+      this.drawButton(ctx, confirm.x, confirm.y, confirm.w, confirm.h, 'ДАЛЕЕ', this.footerFocus === 'confirm' || !this.footerFocus);
+
+      ctx.font = '18px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillStyle = 'rgba(255,255,255,0.72)';
+      ctx.fillText('←/→ или A/D — выбрать   ↑/↓ или W/S — кнопки   Enter — подтвердить   I — информация', GAME_CONFIG.width / 2, 704);
+      ctx.textAlign = 'left';
+
+      if (this.infoOpen) this.drawInfoModal(ctx, images);
     };
   }
 })();
