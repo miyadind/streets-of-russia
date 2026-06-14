@@ -154,7 +154,7 @@
     if (this.debug) {
       ctx.strokeStyle = 'rgba(255,255,255,0.25)';
       ctx.lineWidth = 2;
-      ctx.strokeRect(0, GAME_CONFIG.laneTop, GAME_CONFIG.width - 0, GAME_CONFIG.laneBottom - GAME_CONFIG.laneTop);
+      ctx.strokeRect(0, GAME_CONFIG.laneTop, GAME_CONFIG.width, GAME_CONFIG.laneBottom - GAME_CONFIG.laneTop);
     }
   };
 
@@ -267,6 +267,33 @@
       { key: 'menu', label: 'ГЛАВНОЕ МЕНЮ' }
     ];
 
+    const heroDefeatQuotes = {
+      alexey: {
+        author: '— Алексей Навальный',
+        lines: [
+          '«Моё послание на случай, если меня убьют,',
+          'очень простое: не сдавайтесь.',
+          'Не надо, нельзя сдаваться».'
+        ]
+      },
+      boris: {
+        author: '— Борис Немцов',
+        lines: [
+          '«Если бы я боялся Путина по-настоящему,',
+          'я бы не занимался этим делом».'
+        ]
+      },
+      anna: {
+        author: '— Анна Политковская',
+        lines: [
+          '«Мы позволили им увидеть наш страх.',
+          'И этим только сделали их сильнее.',
+          'КГБ уважает только сильных.',
+          'Слабых оно пожирает».'
+        ]
+      }
+    };
+
     function clampValue(value, min, max) {
       return Math.max(min, Math.min(max, value));
     }
@@ -275,11 +302,15 @@
       lines.forEach((line, index) => ctx.fillText(line, x, y + index * lineHeight));
     }
 
+    GameApp.prototype.getHeroDefeatQuote = function () {
+      return heroDefeatQuotes[this.gameOverHero] || heroDefeatQuotes.alexey;
+    };
+
     GameApp.prototype.openGameOver = function (scene) {
       if (this.state === 'gameOver') return;
       this.gameOverSelection = 0;
       this.gameOverRegionStartIndex = this.getCurrentRegionStartIndex(scene);
-      this.gameOverHero = this.selectedHero || 'boris';
+      this.gameOverHero = (scene && scene.player && scene.player.heroKey) || this.selectedHero || 'boris';
       this.setState('gameOver');
       AudioManager.playSfx('playerDown', 0.8);
     };
@@ -370,12 +401,14 @@
         ctx.fillStyle = '#050505';
         ctx.fillRect(0, 0, w, h);
       }
+
       const gradient = ctx.createLinearGradient(0, 0, 0, h);
       gradient.addColorStop(0, 'rgba(0,0,0,0.86)');
       gradient.addColorStop(0.45, 'rgba(18,0,0,0.82)');
       gradient.addColorStop(1, 'rgba(0,0,0,0.92)');
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, w, h);
+
       ctx.save();
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -384,12 +417,21 @@
       ctx.strokeStyle = 'rgba(255,255,255,0.18)';
       ctx.lineWidth = 2;
       ctx.strokeRect(190, 72, 900, 420);
+
       ctx.fillStyle = '#f4d8a8';
       ctx.font = 'bold 42px Arial';
       drawLines(ctx, ['ОНИ ПОБЕЖДАЮТ ТОЛЬКО ТОГДА,', 'КОГДА ТЫ СДАЁШЬСЯ…'], w / 2, 145, 52);
+
+      const quote = this.getHeroDefeatQuote();
+      const lineHeight = quote.lines.length >= 4 ? 34 : 38;
+      const quoteY = quote.lines.length >= 4 ? 286 : 304;
       ctx.fillStyle = '#ffffff';
-      ctx.font = '28px Arial';
-      drawLines(ctx, ['«Моё послание на случай, если меня убьют,', 'очень простое: не сдавайтесь.', 'Не надо, нельзя сдаваться».', '', '— Алексей Навальный'], w / 2, 300, 38);
+      ctx.font = quote.lines.length >= 4 ? '26px Arial' : '28px Arial';
+      drawLines(ctx, quote.lines, w / 2, quoteY, lineHeight);
+      ctx.fillStyle = 'rgba(255,255,255,0.84)';
+      ctx.font = '24px Arial';
+      ctx.fillText(quote.author, w / 2, quoteY + quote.lines.length * lineHeight + 26);
+
       this.getGameOverButtonRects().forEach((button, index) => {
         const selected = index === this.gameOverSelection;
         ctx.fillStyle = selected ? 'rgba(244,216,168,0.95)' : 'rgba(0,0,0,0.68)';
@@ -401,6 +443,7 @@
         ctx.font = 'bold 22px Arial';
         ctx.fillText(button.label, button.x + button.w / 2, button.y + button.h / 2 + 1);
       });
+
       ctx.fillStyle = 'rgba(255,255,255,0.58)';
       ctx.font = '17px Arial';
       ctx.fillText('↑/↓ — выбор   Enter — подтвердить', w / 2, 695);
