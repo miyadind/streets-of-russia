@@ -1,6 +1,8 @@
 (function () {
   if (typeof GameApp === 'undefined') return;
 
+  const PAUSE_ITEMS = ['resume', 'switchHero', 'menu'];
+
   function pauseRect() {
     return { x: 14, y: 16, w: 88, h: 52 };
   }
@@ -17,17 +19,34 @@
     return { x: 390, y: 416, w: 500, h: 78 };
   }
 
+  function getPauseItemRects() {
+    return [
+      { key: 'resume', label: 'ПРОДОЛЖИТЬ', rect: resumeRect(), fontSize: 30 },
+      { key: 'switchHero', label: 'СМЕНИТЬ ПЕРСОНАЖА', rect: switchHeroRect(), fontSize: 28 },
+      { key: 'menu', label: 'В МЕНЮ', rect: menuRect(), fontSize: 30 }
+    ];
+  }
+
   function inRect(p, r) {
     return p && p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
   }
 
   function drawButton(ctx, r, label, active, fontSize) {
     ctx.save();
-    ctx.fillStyle = active ? 'rgba(130,0,0,0.82)' : 'rgba(0,0,0,0.58)';
+    ctx.fillStyle = active ? 'rgba(130,0,0,0.86)' : 'rgba(0,0,0,0.58)';
     ctx.strokeStyle = active ? '#ffffff' : 'rgba(255,255,255,0.70)';
     ctx.lineWidth = active ? 5 : 3;
     ctx.fillRect(r.x, r.y, r.w, r.h);
     ctx.strokeRect(r.x, r.y, r.w, r.h);
+
+    if (active) {
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.font = 'bold 28px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('▶', r.x + 34, r.y + r.h / 2 + 1);
+    }
+
     ctx.font = 'bold ' + (fontSize || 30) + 'px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -37,6 +56,16 @@
     ctx.strokeText(label, r.x + r.w / 2, r.y + r.h / 2 + 2);
     ctx.fillText(label, r.x + r.w / 2, r.y + r.h / 2 + 2);
     ctx.restore();
+  }
+
+  function ensurePauseSelection(game) {
+    if (!Number.isFinite(game.pauseSelection)) game.pauseSelection = 0;
+    game.pauseSelection = Math.max(0, Math.min(PAUSE_ITEMS.length - 1, game.pauseSelection));
+  }
+
+  function setPaused(game, paused) {
+    game.paused = paused;
+    if (paused) game.pauseSelection = 0;
   }
 
   function startQuickHeroSwitch(game) {
@@ -60,37 +89,67 @@
     AudioManager.playSfx('menuSelect', 0.75);
   }
 
+  function activatePauseItem(game, key) {
+    if (key === 'resume') {
+      setPaused(game, false);
+      AudioManager.playSfx('menuSelect', 0.65);
+      return;
+    }
+    if (key === 'switchHero') {
+      startQuickHeroSwitch(game);
+      return;
+    }
+    if (key === 'menu') {
+      setPaused(game, false);
+      game.setState('mainMenu');
+      AudioManager.playSfx('menuSelect', 0.65);
+    }
+  }
+
   const originalUpdate = GameApp.prototype.update;
   GameApp.prototype.update = function (dt) {
     if (this.state === 'level') {
       if (Input.consume('escape')) {
-        this.paused = !this.paused;
+        setPaused(this, !this.paused);
         AudioManager.playSfx('menuSelect', 0.65);
         return;
+      }
+
+      if (this.paused) {
+        ensurePauseSelection(this);
+
+        if (Input.consume('arrowup') || Input.consume('w')) {
+          this.pauseSelection = (this.pauseSelection + PAUSE_ITEMS.length - 1) % PAUSE_ITEMS.length;
+          AudioManager.playSfx('menuMove', 0.7);
+          return;
+        }
+
+        if (Input.consume('arrowdown') || Input.consume('s')) {
+          this.pauseSelection = (this.pauseSelection + 1) % PAUSE_ITEMS.length;
+          AudioManager.playSfx('menuMove', 0.7);
+          return;
+        }
+
+        if (Input.consume('enter') || Input.consume('space')) {
+          activatePauseItem(this, PAUSE_ITEMS[this.pauseSelection]);
+          return;
+        }
       }
 
       const click = Input.consumePointer();
       if (click) {
         if (inRect(click, pauseRect())) {
-          this.paused = !this.paused;
+          setPaused(this, !this.paused);
           AudioManager.playSfx('menuSelect', 0.65);
           return;
         }
 
         if (this.paused) {
-          if (inRect(click, resumeRect())) {
-            this.paused = false;
-            AudioManager.playSfx('menuSelect', 0.65);
-            return;
-          }
-          if (inRect(click, switchHeroRect())) {
-            startQuickHeroSwitch(this);
-            return;
-          }
-          if (inRect(click, menuRect())) {
-            this.paused = false;
-            this.setState('mainMenu');
-            AudioManager.playSfx('menuSelect', 0.65);
+          const items = getPauseItemRects();
+          for (let i = 0; i < items.length; i++) {
+            if (!inRect(click, items[i].rect)) continue;
+            this.pauseSelection = i;
+            activatePauseItem(this, items[i].key);
             return;
           }
         }
@@ -113,6 +172,8 @@
     drawButton(ctx, pauseRect(), 'MENU', false, 18);
 
     if (!this.paused) return;
+    ensurePauseSelection(this);
+
     ctx.save();
     ctx.fillStyle = 'rgba(0,0,0,0.58)';
     ctx.fillRect(0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
@@ -123,9 +184,14 @@
     ctx.lineWidth = 7;
     ctx.strokeText('ПАУЗА', GAME_CONFIG.width / 2, 178);
     ctx.fillText('ПАУЗА', GAME_CONFIG.width / 2, 178);
+    ctx.font = '18px Arial';
+    ctx.fillStyle = 'rgba(255,255,255,0.72)';
+    ctx.fillText('↑/↓ — выбор   Enter/Space — подтвердить   Esc — назад', GAME_CONFIG.width / 2, 520);
     ctx.restore();
-    drawButton(ctx, resumeRect(), 'ПРОДОЛЖИТЬ', true, 30);
-    drawButton(ctx, switchHeroRect(), 'СМЕНИТЬ ПЕРСОНАЖА', false, 28);
-    drawButton(ctx, menuRect(), 'В МЕНЮ', false, 30);
+
+    const items = getPauseItemRects();
+    for (let i = 0; i < items.length; i++) {
+      drawButton(ctx, items[i].rect, items[i].label, i === this.pauseSelection, items[i].fontSize);
+    }
   };
 })();
