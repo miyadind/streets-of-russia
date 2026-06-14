@@ -29,69 +29,63 @@ const Input = {
       if (event.code === 'Backquote') this.keys.dev = false;
     });
 
-    const setPointerFromClient = (clientX, clientY, justDown = false) => {
-      const pos = Responsive.screenToGame(clientX, clientY);
-      this.pointer.x = pos.x;
-      this.pointer.y = pos.y;
+    const setPointerFromGamePoint = (point, justDown = false) => {
+      this.pointer.x = point.x;
+      this.pointer.y = point.y;
+      this.pointer.down = true;
       if (justDown) {
-        this.pointer.down = true;
         this.pointer.justDown = true;
         this.just.any = true;
       }
     };
 
-    const getPrimaryTouch = (event) => {
-      if (event.changedTouches && event.changedTouches.length > 0) return event.changedTouches[0];
-      if (event.touches && event.touches.length > 0) return event.touches[0];
-      return null;
+    const setPointerFromClient = (clientX, clientY, justDown = false) => {
+      const pos = Responsive.screenToGame(clientX, clientY);
+      setPointerFromGamePoint(pos, justDown);
     };
 
-    const syncTouches = (touchList, changedTouchList = null, markChangedAsJustDown = false) => {
+    const syncTouches = (event, markChangedAsJustDown = false) => {
       const changedIds = new Set();
-      if (changedTouchList) {
-        for (let i = 0; i < changedTouchList.length; i++) changedIds.add(changedTouchList[i].identifier);
+      if (event.changedTouches) {
+        for (let i = 0; i < event.changedTouches.length; i++) changedIds.add(event.changedTouches[i].identifier);
       }
 
       this.touches = [];
-      for (let i = 0; i < touchList.length; i++) {
-        const touch = touchList[i];
+      for (let i = 0; i < event.touches.length; i++) {
+        const touch = event.touches[i];
         const pos = Responsive.screenToGame(touch.clientX, touch.clientY);
-        const justDown = markChangedAsJustDown && changedIds.has(touch.identifier);
-        this.touches.push({ id: touch.identifier, x: pos.x, y: pos.y, justDown });
+        this.touches.push({
+          id: touch.identifier,
+          x: pos.x,
+          y: pos.y,
+          justDown: markChangedAsJustDown && changedIds.has(touch.identifier)
+        });
       }
 
-      const first = this.touches[0];
-      this.pointer.down = this.touches.length > 0;
-      if (first) {
-        this.pointer.x = first.x;
-        this.pointer.y = first.y;
-        if (markChangedAsJustDown && first.justDown) this.pointer.justDown = true;
+      if (this.touches.length > 0) {
+        const first = this.touches[0];
+        setPointerFromGamePoint(first, markChangedAsJustDown && first.justDown);
+      } else {
+        this.pointer.down = false;
       }
     };
 
     canvas.addEventListener('touchstart', (event) => {
       if (event.cancelable) event.preventDefault();
-      const touch = getPrimaryTouch(event);
-      if (!touch) return;
       this.lastTouchAt = performance.now();
-      syncTouches(event.touches, event.changedTouches, true);
-      setPointerFromClient(touch.clientX, touch.clientY, true);
+      syncTouches(event, true);
     }, { passive: false });
 
     canvas.addEventListener('touchmove', (event) => {
       if (event.cancelable) event.preventDefault();
-      const touch = getPrimaryTouch(event);
-      if (!touch) return;
       this.lastTouchAt = performance.now();
-      syncTouches(event.touches, event.changedTouches, false);
-      const first = event.touches && event.touches.length ? event.touches[0] : touch;
-      setPointerFromClient(first.clientX, first.clientY, false);
+      syncTouches(event, false);
     }, { passive: false });
 
     const handleTouchEnd = (event) => {
       if (event.cancelable) event.preventDefault();
       this.lastTouchAt = performance.now();
-      syncTouches(event.touches || [], event.changedTouches, false);
+      syncTouches(event, false);
       if (!event.touches || event.touches.length === 0) {
         this.pointer.down = false;
         this.pointer.justDown = false;
@@ -101,7 +95,6 @@ const Input = {
 
     canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
     canvas.addEventListener('touchcancel', handleTouchEnd, { passive: false });
-
     canvas.addEventListener('contextmenu', (event) => event.preventDefault());
 
     canvas.addEventListener('pointerdown', (event) => {
