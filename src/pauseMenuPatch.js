@@ -1,28 +1,33 @@
 (function () {
   if (typeof GameApp === 'undefined') return;
 
-  const PAUSE_ITEMS = ['resume', 'switchHero', 'menu'];
+  const PAUSE_ITEMS = ['resume', 'switchHero', 'developer', 'menu'];
 
   function pauseRect() {
     return { x: 14, y: 16, w: 88, h: 52 };
   }
 
   function resumeRect() {
-    return { x: 390, y: 220, w: 500, h: 78 };
+    return { x: 390, y: 184, w: 500, h: 70 };
   }
 
   function switchHeroRect() {
-    return { x: 390, y: 318, w: 500, h: 78 };
+    return { x: 390, y: 272, w: 500, h: 70 };
+  }
+
+  function developerRect() {
+    return { x: 390, y: 360, w: 500, h: 70 };
   }
 
   function menuRect() {
-    return { x: 390, y: 416, w: 500, h: 78 };
+    return { x: 390, y: 448, w: 500, h: 70 };
   }
 
   function getPauseItemRects() {
     return [
       { key: 'resume', label: 'ПРОДОЛЖИТЬ', rect: resumeRect(), fontSize: 30 },
       { key: 'switchHero', label: 'СМЕНИТЬ ПЕРСОНАЖА', rect: switchHeroRect(), fontSize: 28 },
+      { key: 'developer', label: 'РЕЖИМ РАЗРАБОТЧИКА', rect: developerRect(), fontSize: 25 },
       { key: 'menu', label: 'В МЕНЮ', rect: menuRect(), fontSize: 30 }
     ];
   }
@@ -89,6 +94,16 @@
     AudioManager.playSfx('menuSelect', 0.75);
   }
 
+  function openDeveloperPanel(game) {
+    if (typeof DevPanel === 'undefined') return;
+    setPaused(game, false);
+    DevPanel.open = true;
+    if (typeof DevPanel.syncSelectedLevelWithScene === 'function') {
+      DevPanel.syncSelectedLevelWithScene(game);
+    }
+    AudioManager.playSfx('menuSelect', 0.65);
+  }
+
   function activatePauseItem(game, key) {
     if (key === 'resume') {
       setPaused(game, false);
@@ -97,6 +112,10 @@
     }
     if (key === 'switchHero') {
       startQuickHeroSwitch(game);
+      return;
+    }
+    if (key === 'developer') {
+      openDeveloperPanel(game);
       return;
     }
     if (key === 'menu') {
@@ -182,11 +201,11 @@
     ctx.fillStyle = '#fff';
     ctx.strokeStyle = '#000';
     ctx.lineWidth = 7;
-    ctx.strokeText('ПАУЗА', GAME_CONFIG.width / 2, 178);
-    ctx.fillText('ПАУЗА', GAME_CONFIG.width / 2, 178);
+    ctx.strokeText('ПАУЗА', GAME_CONFIG.width / 2, 148);
+    ctx.fillText('ПАУЗА', GAME_CONFIG.width / 2, 148);
     ctx.font = '18px Arial';
     ctx.fillStyle = 'rgba(255,255,255,0.72)';
-    ctx.fillText('↑/↓ — выбор   Enter/Space — подтвердить   Esc — назад', GAME_CONFIG.width / 2, 520);
+    ctx.fillText('↑/↓ — выбор   Enter/Space — подтвердить   Esc — назад', GAME_CONFIG.width / 2, 540);
     ctx.restore();
 
     const items = getPauseItemRects();
