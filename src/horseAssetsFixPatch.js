@@ -3,64 +3,83 @@
 
   const FOLDER = 'assets/enemies/horse';
 
+  function candidates(name) {
+    return [
+      FOLDER + '/' + name + '.png',
+      FOLDER + '/' + name + '.jpg',
+      FOLDER + '/' + name + '.jpeg',
+      FOLDER + '/' + name + '_ins.png',
+      FOLDER + '/' + name + '_ins.jpg',
+      FOLDER + '/' + name + '_.png',
+      FOLDER + '/' + name + '_.jpg'
+    ];
+  }
+
   Assets.horse = Object.assign(Assets.horse || {}, {
-    idle: FOLDER + '/walk01_ins.jpg',
+    idle: candidates('walk01'),
     walk: [
-      FOLDER + '/walk01_ins.jpg',
-      FOLDER + '/walk02_ins.jpg',
-      FOLDER + '/walk03_.png'
+      candidates('walk01'),
+      candidates('walk02'),
+      candidates('walk03')
     ],
     attack: [
-      FOLDER + '/walk02_ins.jpg',
-      FOLDER + '/walk03_.png'
+      candidates('walk02'),
+      candidates('walk03')
     ]
   });
-  Assets.horse['de' + 'ad'] = FOLDER + '/walk03_.png';
+  Assets.horse.finalFrame = candidates('walk03');
   Assets.horse.appear = FOLDER + '/Appear.mp3';
 
   if (Assets.enemyAppear) Assets.enemyAppear.horse = Assets.horse.appear;
 
-  function loadOptionalImage(src) {
+  function loadFirstExistingImage(srcOrList) {
+    const list = Array.isArray(srcOrList) ? srcOrList : [srcOrList];
     return new Promise((resolve) => {
-      if (!src) return resolve(null);
-      const img = new Image();
-      img.onload = () => resolve(img);
-      img.onerror = () => resolve(null);
-      img.src = src;
+      let index = 0;
+      function tryNext() {
+        const src = list[index++];
+        if (!src) return resolve(null);
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = tryNext;
+        img.src = src;
+      }
+      tryNext();
     });
   }
 
-  if (typeof GameApp !== 'undefined' && !GameApp.prototype.horseAssetFixPatchApplied) {
+  if (typeof GameApp !== 'undefined' && !GameApp.prototype.horseWalkOnlyPatchApplied) {
     const previousLoadImages = GameApp.prototype.loadImages;
     GameApp.prototype.loadImages = async function () {
       const loaded = await previousLoadImages.call(this);
       const horse = Assets.horse || {};
-      const idle = await loadOptionalImage(horse.idle);
-      const walk0 = await loadOptionalImage(horse.walk && horse.walk[0]);
-      const walk1 = await loadOptionalImage(horse.walk && horse.walk[1]);
-      const walk2 = await loadOptionalImage(horse.walk && horse.walk[2]);
-      const action0 = await loadOptionalImage(horse.attack && horse.attack[0]);
-      const action1 = await loadOptionalImage(horse.attack && horse.attack[1]);
-      const finalFrame = await loadOptionalImage(horse['de' + 'ad']);
+
+      const walk0 = await loadFirstExistingImage(horse.walk && horse.walk[0]);
+      const walk1 = await loadFirstExistingImage(horse.walk && horse.walk[1]);
+      const walk2 = await loadFirstExistingImage(horse.walk && horse.walk[2]);
+      const idle = walk0 || await loadFirstExistingImage(horse.idle);
+      const action0 = await loadFirstExistingImage(horse.attack && horse.attack[0]);
+      const action1 = await loadFirstExistingImage(horse.attack && horse.attack[1]);
+      const finalFrame = await loadFirstExistingImage(horse.finalFrame);
 
       if (!loaded.enemies) loaded.enemies = {};
-      const dog = loaded.enemies.dogRegime || {};
       loaded.enemies.horse = {
-        idle: idle || walk0 || dog.idle,
+        idle: idle || walk0 || walk1 || walk2,
         walk: [
-          walk0 || idle || (dog.walk && dog.walk[0]) || dog.idle,
-          walk1 || idle || (dog.walk && dog.walk[1]) || dog.idle,
-          walk2 || walk0 || idle || (dog.walk && dog.walk[0]) || dog.idle
+          walk0 || idle,
+          walk1 || walk0 || idle,
+          walk2 || walk1 || walk0 || idle
         ],
         attack: [
-          action0 || idle || (dog.attack && dog.attack[0]) || dog.idle,
-          action1 || action0 || idle || (dog.attack && dog.attack[1]) || dog.idle
+          action0 || walk1 || walk0 || idle,
+          action1 || walk2 || walk1 || walk0 || idle
         ]
       };
-      loaded.enemies.horse['de' + 'ad'] = finalFrame || idle || dog['de' + 'ad'] || dog.idle;
+      loaded.enemies.horse['de' + 'ad'] = finalFrame || walk2 || walk1 || walk0 || idle;
+      loaded.enemies.horse.dead = loaded.enemies.horse['de' + 'ad'];
       return loaded;
     };
 
-    GameApp.prototype.horseAssetFixPatchApplied = true;
+    GameApp.prototype.horseWalkOnlyPatchApplied = true;
   }
 })();
