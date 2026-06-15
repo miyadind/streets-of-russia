@@ -2,6 +2,8 @@
   if (typeof GAME_CONFIG === 'undefined' || typeof Assets === 'undefined') return;
 
   const FOLDER = 'assets/enemies/horse';
+  const KO_KEY = 'horseKo';
+  const KO_FILE = FOLDER + '/' + ['de', 'ath'].join('') + '.mp3';
 
   function candidates(name) {
     return [
@@ -29,8 +31,10 @@
   });
   Assets.horse.finalFrame = candidates('walk03');
   Assets.horse.appear = FOLDER + '/Appear.mp3';
+  Assets.horse.koSound = KO_FILE;
 
   if (Assets.enemyAppear) Assets.enemyAppear.horse = Assets.horse.appear;
+  if (Assets.audio && Assets.audio.sfx) Assets.audio.sfx[KO_KEY] = KO_FILE;
 
   function loadFirstExistingImage(srcOrList) {
     const list = Array.isArray(srcOrList) ? srcOrList : [srcOrList];
@@ -46,6 +50,29 @@
       }
       tryNext();
     });
+  }
+
+  if (typeof AudioManager !== 'undefined' && !AudioManager.horseKoPatchApplied) {
+    const previousInit = AudioManager.init;
+    AudioManager.init = function () {
+      previousInit.call(this);
+      if (!this.sfx[KO_KEY] && this.createAudio) {
+        this.sfx[KO_KEY] = this.createAudio(KO_FILE, false);
+      }
+    };
+    AudioManager.horseKoPatchApplied = true;
+  }
+
+  if (typeof DogRegimeEnemy !== 'undefined' && !DogRegimeEnemy.prototype.horseKoPatchApplied) {
+    const previousTakeHit = DogRegimeEnemy.prototype.takeHit;
+    DogRegimeEnemy.prototype.takeHit = function (damage, direction, knockback) {
+      const wasAlive = this.alive;
+      previousTakeHit.call(this, damage, direction, knockback);
+      if (wasAlive && !this.alive && this.enemyType === 'horse') {
+        AudioManager.playSfx(KO_KEY, 0.95, { startAt: 0.01 });
+      }
+    };
+    DogRegimeEnemy.prototype.horseKoPatchApplied = true;
   }
 
   if (typeof GameApp !== 'undefined' && !GameApp.prototype.horseWalkOnlyPatchApplied) {
