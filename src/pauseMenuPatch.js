@@ -97,10 +97,17 @@
   function openDeveloperPanel(game) {
     if (typeof DevPanel === 'undefined') return;
     setPaused(game, false);
-    DevPanel.open = true;
-    if (typeof DevPanel.syncSelectedLevelWithScene === 'function') {
-      DevPanel.syncSelectedLevelWithScene(game);
+    GAME_CONFIG.adminTuningEnabled = true;
+
+    if (typeof DevPanel.openFromPauseMenu === 'function') {
+      DevPanel.openFromPauseMenu(game);
+    } else {
+      DevPanel.open = true;
+      DevPanel.tab = 'LEVEL WAVES';
+      if (typeof DevPanel.ensureLevels === 'function') DevPanel.ensureLevels();
+      if (typeof DevPanel.syncSelectedLevelWithScene === 'function') DevPanel.syncSelectedLevelWithScene(game);
     }
+
     AudioManager.playSfx('menuSelect', 0.65);
   }
 
