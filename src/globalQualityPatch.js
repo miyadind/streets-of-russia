@@ -1,25 +1,143 @@
 (function () {
   if (typeof GameApp === 'undefined') return;
 
-  if (typeof Assets !== 'undefined') {
-    Assets.enemyAppear = Object.assign({
-      dogRegime: null,
-      zetnik: 'assets/enemies/zetnik/Appear.mp3',
-      sucker: null,
-      bastard: null
-    }, Assets.enemyAppear || {});
+  const ENEMY_SOUND_FOLDERS = {
+    dogRegime: 'dog-regime',
+    zetnik: 'zetnik',
+    sucker: 'sucker',
+    bastard: 'bastard'
+  };
+
+  function getAssetDirectory(src) {
+    if (!src || typeof src !== 'string' || src.indexOf('/') === -1) return null;
+    return src.slice(0, src.lastIndexOf('/'));
   }
 
-  if (typeof AudioManager !== 'undefined' && !AudioManager.enemyAppearPatchApplied) {
+  function getHeroHitSrc(heroKey) {
+    const heroAssets = Assets && Assets[heroKey];
+    const dir = getAssetDirectory(heroAssets && heroAssets.idle);
+    return dir ? dir + '/Hit.mp3' : null;
+  }
+
+  function getEnemyAppearSrc(enemyType) {
+    const folder = ENEMY_SOUND_FOLDERS[enemyType] || enemyType;
+    return 'assets/enemies/' + folder + '/Appear.mp3';
+  }
+
+  function isUsableSfxKey(key) {
+    const audio = AudioManager && AudioManager.sfx && AudioManager.sfx[key];
+    return !!audio && (!audio.dataset || audio.dataset.failed !== 'true');
+  }
+
+  if (typeof GAME_CONFIG !== 'undefined') {
+    GAME_CONFIG.playerHurtFreezeMs = GAME_CONFIG.playerHurtFreezeMs || 280;
+  }
+
+  if (typeof Assets !== 'undefined') {
+    const enemyAppear = {};
+    for (const enemyType of Object.keys((GAME_CONFIG && GAME_CONFIG.enemies) || {})) {
+      enemyAppear[enemyType] = getEnemyAppearSrc(enemyType);
+    }
+    Assets.enemyAppear = Object.assign(enemyAppear, Assets.enemyAppear || {});
+
+    const heroHit = {};
+    for (const heroKey of Object.keys((GAME_CONFIG && GAME_CONFIG.heroes) || {})) {
+      heroHit[heroKey] = getHeroHitSrc(heroKey);
+    }
+    Assets.heroHit = Object.assign(heroHit, Assets.heroHit || {});
+  }
+
+  if (typeof AudioManager !== 'undefined' && !AudioManager.optionalCharacterAudioPatchApplied) {
     const originalAudioInit = AudioManager.init;
     AudioManager.init = function () {
       originalAudioInit.call(this);
+
       for (const [enemyType, src] of Object.entries((Assets && Assets.enemyAppear) || {})) {
         if (!src) continue;
         this.sfx[enemyType + 'Appear'] = this.createAudio(src, false);
       }
+
+      for (const [heroKey, src] of Object.entries((Assets && Assets.heroHit) || {})) {
+        if (!src) continue;
+        this.sfx[heroKey + 'Hit'] = this.createAudio(src, false);
+      }
     };
-    AudioManager.enemyAppearPatchApplied = true;
+    AudioManager.optionalCharacterAudioPatchApplied = true;
+  }
+
+  if (typeof LevelScene !== 'undefined' && !LevelScene.enemyAppearAudioPatchApplied) {
+    LevelScene.prototype.getWaveAppearKey = function (wave) {
+      for (const group of wave.enemies || []) {
+        const key = group.type + 'Appear';
+        if (isUsableSfxKey(key)) return key;
+      }
+      return null;
+    };
+
+    LevelScene.prototype.getWaveAppearDelayMs = function (wave) {
+      if (wave.appearDelayMs != null) return Math.max(0, Number(wave.appearDelayMs) || 0);
+      const key = this.getWaveAppearKey(wave);
+      return key === 'zetnikAppear' ? 850 : 0;
+    };
+
+    LevelScene.enemyAppearAudioPatchApplied = true;
+  }
+
+  if (typeof Player !== 'undefined' && !Player.hurtFreezePatchApplied) {
+    const originalPlayerUpdate = Player.prototype.update;
+    Player.prototype.update = function (dt, scene) {
+      if (this.state === 'hurt') {
+        this.hurtTimer = Math.max(0, (this.hurtTimer || 0) - dt);
+        this.x = Math.max(70, Math.min(GAME_CONFIG.width - 70, this.x));
+        this.y = Math.max(GAME_CONFIG.laneTop, Math.min(GAME_CONFIG.laneBottom, this.y));
+        if (this.hurtTimer <= 0) {
+          this.state = 'idle';
+          this.hurtTimer = 0;
+        }
+        return;
+      }
+
+      originalPlayerUpdate.call(this, dt, scene);
+    };
+
+    const originalReceiveDamage = Player.prototype.receiveDamage;
+    Player.prototype.receiveDamage = function (amount, options = {}) {
+      const wasAlive = this.hp > 0;
+      const hit = originalReceiveDamage.call(this, amount, options);
+
+      if (hit && wasAlive && this.hp > 0 && this.state !== 'knockdown' && this.state !== 'pinned') {
+        this.state = 'hurt';
+        this.hurtTimer = Math.max(0, options.hurtFreezeMs || GAME_CONFIG.playerHurtFreezeMs || 280);
+        this.attackTimer = 0;
+        this.attackHasHit = false;
+        this.comboStep = 0;
+        this.comboTimer = 0;
+
+        const hitKey = this.heroKey + 'Hit';
+        if (isUsableSfxKey(hitKey)) {
+          AudioManager.playSfx(hitKey, 0.92, { startAt: 0.01 });
+        }
+      }
+
+      return hit;
+    };
+
+    const originalStartAttack = Player.prototype.startAttack;
+    Player.prototype.startAttack = function () {
+      if (this.state === 'hurt') return;
+      originalStartAttack.call(this);
+    };
+
+    const originalGetImage = Player.prototype.getImage;
+    Player.prototype.getImage = function () {
+      if (this.state === 'hurt') {
+        const heroImages = this.getHeroImages();
+        return heroImages.hit || heroImages.idle;
+      }
+      return originalGetImage.call(this);
+    };
+
+    Player.hurtFreezePatchApplied = true;
   }
 
   function loadOptionalImage(src) {
