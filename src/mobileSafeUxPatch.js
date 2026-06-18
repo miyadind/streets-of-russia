@@ -5,6 +5,7 @@
   mobile.introTouchDrag = null;
   mobile.wakeLock = null;
   mobile.mobilePauseOpen = false;
+  mobile.mobileBestiaryIndex = 0;
 
   mobile.requestGameWakeLock = async function () {
     if (!('wakeLock' in navigator)) return;
@@ -22,7 +23,7 @@
   };
 
   mobile.syncGameWakeLock = function (game) {
-    const activeStates = ['intro', 'campaignMap', 'characterSelect', 'level'];
+    const activeStates = ['intro', 'campaignMap', 'characterSelect', 'level', 'settings', 'bestiary'];
     if (game && activeStates.includes(game.state)) this.requestGameWakeLock();
     else this.releaseGameWakeLock();
   };
@@ -59,10 +60,38 @@
   mobile.menuBox = function () { return this.rect(14, 16, 104, 56); };
   mobile.mobilePauseRects = function () {
     return {
-      resume: this.rect(390, 205, 500, 72),
-      developer: this.rect(390, 305, 500, 72),
-      mainMenu: this.rect(390, 405, 500, 72)
+      resume: this.rect(390, 145, 500, 62),
+      settings: this.rect(390, 225, 500, 62),
+      bestiary: this.rect(390, 305, 500, 62),
+      developer: this.rect(390, 385, 500, 62),
+      mainMenu: this.rect(390, 465, 500, 62)
     };
+  };
+
+  mobile.bestiaryRects = function () {
+    return {
+      prev: this.rect(110, 595, 190, 70),
+      next: this.rect(980, 595, 190, 70),
+      back: this.rect(420, 595, 440, 70)
+    };
+  };
+
+  mobile.getBestiaryTypes = function () {
+    const preferred = ['dogRegime', 'zetnik', 'sucker', 'bastard', 'horse'];
+    const configTypes = Object.keys((typeof GAME_CONFIG !== 'undefined' && GAME_CONFIG.enemies) || {});
+    const combined = preferred.concat(configTypes);
+    return combined.filter((type, index) => combined.indexOf(type) === index && ((GAME_CONFIG.enemies || {})[type] || type === 'horse'));
+  };
+
+  mobile.getEnemyLabel = function (type) {
+    const names = {
+      dogRegime: 'ПЁС РЕЖИМА',
+      zetnik: 'ЗЕТНИК',
+      sucker: 'ПРИСОСКА',
+      bastard: 'ТВАРЬ',
+      horse: 'HORSE'
+    };
+    return names[type] || String(type).toUpperCase();
   };
 
   mobile.openDeveloperPanelFromMobile = function (game) {
@@ -83,6 +112,8 @@
 
   mobile.handleMobileLevelMenuTap = function (game, click) {
     if (!click) return false;
+    if (game && game.handleSpeakerClick && game.handleSpeakerClick(click)) return true;
+
     if (!this.mobilePauseOpen) {
       if (this.inRect(click, this.menuBox())) {
         this.mobilePauseOpen = true;
@@ -97,6 +128,21 @@
     if (this.inRect(click, rects.resume)) {
       this.mobilePauseOpen = false;
       this.paused = false;
+      AudioManager.playSfx('menuSelect', 0.65);
+      return true;
+    }
+    if (this.inRect(click, rects.settings)) {
+      this.mobilePauseOpen = false;
+      this.paused = false;
+      if (game) game.setState('settings');
+      AudioManager.playSfx('menuSelect', 0.65);
+      return true;
+    }
+    if (this.inRect(click, rects.bestiary)) {
+      this.mobilePauseOpen = false;
+      this.paused = false;
+      this.mobileBestiaryIndex = 0;
+      if (game) game.setState('bestiary');
       AudioManager.playSfx('menuSelect', 0.65);
       return true;
     }
@@ -118,6 +164,29 @@
     return true;
   };
 
+  mobile.handleBestiaryTap = function (game, click) {
+    if (!click) return false;
+    if (game && game.handleSpeakerClick && game.handleSpeakerClick(click)) return true;
+    const types = this.getBestiaryTypes();
+    const rects = this.bestiaryRects();
+    if (this.inRect(click, rects.prev)) {
+      this.mobileBestiaryIndex = (this.mobileBestiaryIndex + types.length - 1) % Math.max(1, types.length);
+      AudioManager.playSfx('menuMove', 0.7);
+      return true;
+    }
+    if (this.inRect(click, rects.next)) {
+      this.mobileBestiaryIndex = (this.mobileBestiaryIndex + 1) % Math.max(1, types.length);
+      AudioManager.playSfx('menuMove', 0.7);
+      return true;
+    }
+    if (this.inRect(click, rects.back)) {
+      if (game) game.setState('level');
+      AudioManager.playSfx('menuSelect', 0.65);
+      return true;
+    }
+    return true;
+  };
+
   mobile.drawMobileMenuButton = function (ctx) {
     this.drawButton(ctx, this.menuBox(), 'МЕНЮ', false, 18);
   };
@@ -133,12 +202,64 @@
     ctx.fillStyle = '#fff';
     ctx.strokeStyle = '#000';
     ctx.lineWidth = 7;
-    ctx.strokeText('ПАУЗА', GAME_CONFIG.width / 2, 150);
-    ctx.fillText('ПАУЗА', GAME_CONFIG.width / 2, 150);
+    ctx.strokeText('ПАУЗА', GAME_CONFIG.width / 2, 105);
+    ctx.fillText('ПАУЗА', GAME_CONFIG.width / 2, 105);
     ctx.restore();
-    this.drawButton(ctx, rects.resume, 'ВЕРНУТЬСЯ В ИГРУ', true, 28);
-    this.drawButton(ctx, rects.developer, 'РЕЖИМ РАЗРАБОТЧИКА', false, 24);
-    this.drawButton(ctx, rects.mainMenu, 'ГЛАВНОЕ МЕНЮ', false, 28);
+    this.drawButton(ctx, rects.resume, 'ВЕРНУТЬСЯ В ИГРУ', true, 25);
+    this.drawButton(ctx, rects.settings, 'НАСТРОЙКИ', false, 27);
+    this.drawButton(ctx, rects.bestiary, 'ТВАРИ', false, 28);
+    this.drawButton(ctx, rects.developer, 'РЕЖИМ РАЗРАБОТЧИКА', false, 22);
+    this.drawButton(ctx, rects.mainMenu, 'ГЛАВНОЕ МЕНЮ', false, 26);
+  };
+
+  mobile.drawMobileBestiary = function (ctx, game) {
+    this.drawBackground(ctx, game, 0.72);
+    const types = this.getBestiaryTypes();
+    if (!types.length) return;
+    this.mobileBestiaryIndex = Math.max(0, Math.min(types.length - 1, this.mobileBestiaryIndex));
+    const type = types[this.mobileBestiaryIndex];
+    const enemyImages = game.images && game.images.enemies && game.images.enemies[type];
+    const img = enemyImages && (enemyImages.idle || (enemyImages.walk && enemyImages.walk[0]) || enemyImages.dead);
+
+    ctx.save();
+    ctx.font = 'bold 44px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#fff';
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 7;
+    ctx.strokeText('ТВАРИ', GAME_CONFIG.width / 2, 92);
+    ctx.fillText('ТВАРИ', GAME_CONFIG.width / 2, 92);
+
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.fillRect(260, 130, 760, 420);
+    ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(260, 130, 760, 420);
+
+    ctx.font = 'bold 34px Arial';
+    ctx.fillStyle = '#fff';
+    ctx.strokeText(this.getEnemyLabel(type), GAME_CONFIG.width / 2, 185);
+    ctx.fillText(this.getEnemyLabel(type), GAME_CONFIG.width / 2, 185);
+
+    if (img) {
+      const maxW = 360;
+      const maxH = 265;
+      const scale = Math.min(maxW / img.width, maxH / img.height);
+      const w = img.width * scale;
+      const h = img.height * scale;
+      ctx.drawImage(img, GAME_CONFIG.width / 2 - w / 2, 505 - h, w, h);
+    }
+
+    ctx.font = '20px Arial';
+    ctx.fillStyle = '#d8d8d8';
+    ctx.fillText(String(this.mobileBestiaryIndex + 1) + ' / ' + String(types.length), GAME_CONFIG.width / 2, 525);
+    ctx.restore();
+
+    const rects = this.bestiaryRects();
+    this.drawButton(ctx, rects.prev, 'НАЗАД', false, 24);
+    this.drawButton(ctx, rects.back, 'ВЕРНУТЬСЯ В ИГРУ', true, 25);
+    this.drawButton(ctx, rects.next, 'ВПЕРЁД', false, 24);
+    if (game.drawSpeaker) game.drawSpeaker(ctx);
   };
 
   const originalUpdateStandalone = mobile.updateStandalone;
@@ -146,9 +267,17 @@
     if (this.enabled) this.syncGameWakeLock(game);
     if (this.enabled && game && game.state === 'intro') this.handleIntroTouchScroll(game);
 
+    if (this.enabled && game && game.state === 'bestiary') {
+      const click = Input.consumePointer();
+      if (click) this.handleBestiaryTap(game, click);
+      return true;
+    }
+
     if (this.enabled && game && game.state === 'level') {
-      if (typeof DevPanel !== 'undefined') DevPanel.update(game);
-      if (typeof DevPanel !== 'undefined' && DevPanel.open) return true;
+      if (typeof DevPanel !== 'undefined' && DevPanel.open) {
+        DevPanel.update(game);
+        return true;
+      }
       const click = Input.consumePointer();
       if (click && this.handleMobileLevelMenuTap(game, click)) return true;
       if (this.mobilePauseOpen) return true;
@@ -158,12 +287,23 @@
     return originalUpdateStandalone.call(this, game, dt);
   };
 
+  const originalDrawStandalone = mobile.drawStandalone;
+  mobile.drawStandalone = function (ctx, game) {
+    if (this.enabled && game && game.state === 'bestiary') {
+      this.drawMobileBestiary(ctx, game);
+      this.drawDebug(ctx, game);
+      return true;
+    }
+    return originalDrawStandalone.call(this, ctx, game);
+  };
+
   const originalDrawOverlay = mobile.drawOverlay;
   mobile.drawOverlay = function (ctx, game) {
     if (game && game.state === 'level') {
       this.drawMobileMenuButton(ctx);
+      if (game.drawSpeaker) game.drawSpeaker(ctx);
       this.drawMobileLevelMenu(ctx);
-      if (typeof DevPanel !== 'undefined') DevPanel.draw(ctx);
+      if (typeof DevPanel !== 'undefined' && DevPanel.open) DevPanel.draw(ctx);
       this.drawDebug(ctx, game);
       return;
     }
