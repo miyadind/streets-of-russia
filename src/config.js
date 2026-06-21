@@ -28,6 +28,12 @@ const GAME_CONFIG = {
   playerHitStopMs: 55,
   playerHitStunMs: 380,
   playerInvulnerableMs: 520,
+  enemyBodyRadiusX: 42,
+  enemyBodyRadiusY: 20,
+  enemySeparationStrength: 0.55,
+  enemySeparationIterations: 2,
+  enemyAttackSlotRadiusX: 46,
+  enemyAttackSlotRadiusY: 24,
   yHitTolerance: 34,
 
   enemyAttackRangeX: 76,
@@ -180,7 +186,9 @@ const GAME_CONFIG = {
       pinDurationMs: 1700,
       biteTickMs: 450,
       biteDamage: 6,
-      otherEnemyScatterDistance: 120
+      otherEnemyScatterDistance: 120,
+      bodyRadiusX: 52,
+      bodyRadiusY: 24
     },
     bastard: {
       name: 'Bastard',
@@ -202,7 +210,9 @@ const GAME_CONFIG = {
       idleChance: 0.32,
       fallChance: 0.04,
       turnChance: 0.3,
-      knockbackX: 34
+      knockbackX: 34,
+      bodyRadiusX: 44,
+      bodyRadiusY: 20
     }
   },
 
