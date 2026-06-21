@@ -124,6 +124,7 @@ const GAME_CONFIG = {
       speed: 1.35,
       damage: 10,
       scale: 0.105,
+      attackScale: 1.06,
       bossMusic: false,
       bossMusicKey: 'bossTheme',
       minDistanceX: 42,
