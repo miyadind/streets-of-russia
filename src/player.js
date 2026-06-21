@@ -124,7 +124,7 @@ class Player {
 
     if (this.hp > 0 && options.knockdownMs) {
       this.knockDown(options.knockdownMs);
-    } else if (this.hp > 0) {
+    } else if (this.hp > 0 && this.state !== 'pinned' && this.state !== 'knockdown') {
       this.startHitStun(options.hitStunMs, options.invulnerableMs);
     }
 
