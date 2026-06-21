@@ -55,17 +55,28 @@ class LevelScene {
     }
   }
 
-  getWaveAppearKey(wave) {
-    for (const group of wave.enemies || []) {
-      const key = group.type + 'Appear';
-      if (AudioManager.sfx && AudioManager.sfx[key]) return key;
-    }
-    return null;
-  }
-
   getWaveAppearDelayMs(wave) {
     if (wave.appearDelayMs != null) return Math.max(0, Number(wave.appearDelayMs) || 0);
-    return this.getWaveAppearKey(wave) ? 850 : 0;
+    return 0;
+  }
+
+  getEnemyAppearSoundKey(type) {
+    return `${type}Appear`;
+  }
+
+  getEnemyAppearSoundPath(type) {
+    const enemyConfig = (GAME_CONFIG.enemies && GAME_CONFIG.enemies[type]) || {};
+    if (enemyConfig.appearSoundPath) return enemyConfig.appearSoundPath;
+    const folder = String(type || 'enemy').replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
+    return `assets/enemies/${folder}/appear.mp3`;
+  }
+
+  playEnemyAppearSound(type) {
+    if (!type) return;
+    AudioManager.playOptionalSfx(this.getEnemyAppearSoundKey(type), 0.9, {
+      src: this.getEnemyAppearSoundPath(type),
+      startAt: 0.01
+    });
   }
 
   spawnNextWave(expectedTrigger = 'afterWaveCleared') {
@@ -90,11 +101,10 @@ class LevelScene {
 
   beginWave(wave) {
     this.handleWaveAudio(wave);
-    const appearKey = this.getWaveAppearKey(wave);
     const delayMs = this.getWaveAppearDelayMs(wave);
 
-    if (appearKey && delayMs > 0) {
-      AudioManager.playSfx(appearKey, 0.95, { startAt: 0.01 });
+    if (delayMs > 0) {
+      this.playWaveAppearSounds(wave);
       this.pendingWave = wave;
       this.pendingWaveTimer = delayMs;
       this.encounterActive = false;
@@ -103,8 +113,16 @@ class LevelScene {
       return;
     }
 
-    if (appearKey) AudioManager.playSfx(appearKey, 0.95, { startAt: 0.01 });
     this.materializeWave(wave);
+  }
+
+  playWaveAppearSounds(wave) {
+    const playedTypes = new Set();
+    for (const group of wave.enemies || []) {
+      if (!group.type || playedTypes.has(group.type)) continue;
+      playedTypes.add(group.type);
+      this.playEnemyAppearSound(group.type);
+    }
   }
 
   materializeWave(wave) {
@@ -123,6 +141,7 @@ class LevelScene {
   spawnWave(wave) {
     this.enemies = this.enemies.filter(enemy => enemy && enemy.alive && enemy.enemyType === 'bastard');
     let enemyId = this.enemies.length;
+    const playedAppearTypes = new Set();
 
     for (const group of wave.enemies || []) {
       const count = Math.max(0, Number(group.count) || 0);
@@ -135,6 +154,10 @@ class LevelScene {
         const enemy = this.createEnemy(group.type, spawn.x, spawn.y, enemyId);
         if (enemy) {
           this.enemies.push(enemy);
+          if (!playedAppearTypes.has(enemy.enemyType)) {
+            playedAppearTypes.add(enemy.enemyType);
+            this.playEnemyAppearSound(enemy.enemyType);
+          }
           enemyId += 1;
         }
       }
