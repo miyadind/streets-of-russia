@@ -1,5 +1,6 @@
 const AudioManager = {
   sfx: {},
+  optionalSfx: {},
   music: {},
   currentMusicKey: null,
   currentMusic: null,
@@ -9,6 +10,7 @@ const AudioManager = {
 
   init() {
     this.sfx = {};
+    this.optionalSfx = {};
     this.music = {};
     this.currentMusicKey = null;
     this.currentMusic = null;
@@ -25,7 +27,7 @@ const AudioManager = {
     }
   },
 
-  createAudio(src, loop) {
+  createAudio(src, loop, options = {}) {
     const audio = new Audio();
     audio.src = src;
     audio.preload = 'auto';
@@ -33,7 +35,7 @@ const AudioManager = {
     audio.dataset.failed = 'false';
     audio.addEventListener('error', () => {
       audio.dataset.failed = 'true';
-      console.warn('Missing audio:', src);
+      if (!options.silentMissing) console.warn('Missing audio:', src);
     });
     return audio;
   },
@@ -43,7 +45,7 @@ const AudioManager = {
     this.unlocked = true;
     this.ensureAudioContext();
 
-    for (const audio of [...Object.values(this.sfx), ...Object.values(this.music)]) {
+    for (const audio of [...Object.values(this.sfx), ...Object.values(this.music), ...Object.values(this.optionalSfx)]) {
       audio.load();
     }
 
@@ -141,6 +143,43 @@ const AudioManager = {
     } catch (error) {
       console.warn('Cannot play sfx:', key, error);
       this.playSyntheticSfx(key, volume, options);
+    }
+  },
+
+  playOptionalSfx(key, volume = 1, options = {}) {
+    if (!this.isSfxOn()) return false;
+
+    const registered = this.sfx[key];
+    if (registered && (!registered.dataset || registered.dataset.failed !== 'true')) {
+      this.playSfx(key, volume, options);
+      return true;
+    }
+
+    const srcPath = options.src || options.path;
+    if (!srcPath) return false;
+
+    const cacheKey = key || srcPath;
+    let src = this.optionalSfx[cacheKey];
+    if (!src) {
+      src = this.createAudio(srcPath, false, { silentMissing: true });
+      this.optionalSfx[cacheKey] = src;
+      if (this.unlocked) src.load();
+    }
+
+    if (src.dataset && src.dataset.failed === 'true') return false;
+
+    try {
+      const audio = src.cloneNode(true);
+      const playbackRate = options.playbackRate || options.rate || 1;
+      const startAt = options.startAt || 0;
+
+      audio.volume = this.getSfxVolume(volume);
+      audio.playbackRate = Math.max(0.5, Math.min(2, playbackRate));
+      if (startAt > 0) audio.currentTime = startAt;
+      audio.play().catch(() => {});
+      return true;
+    } catch (error) {
+      return false;
     }
   },
 
