@@ -26,8 +26,8 @@ const GAME_CONFIG = {
   ySpeedMultiplier: 0.65,
   comboResetMs: 520,
   playerHitStopMs: 55,
-  playerHitStunMs: 220,
-  playerInvulnerableMs: 360,
+  playerHitStunMs: 380,
+  playerInvulnerableMs: 520,
   yHitTolerance: 34,
 
   enemyAttackRangeX: 76,
