@@ -26,11 +26,24 @@ class Player {
     this.comboTimer = 0;
     this.attackTimer = 0;
     this.attackHasHit = false;
+    this.hitStunTimer = 0;
+    this.invulnerableTimer = 0;
     this.knockdownTimer = 0;
     this.pinnedBy = null;
   }
 
   update(dt, scene) {
+    if (this.invulnerableTimer > 0) this.invulnerableTimer = Math.max(0, this.invulnerableTimer - dt);
+
+    if (this.state === 'hurt') {
+      this.hitStunTimer -= dt;
+      if (this.hitStunTimer <= 0) {
+        this.hitStunTimer = 0;
+        this.state = 'idle';
+      }
+      return;
+    }
+
     if (this.state === 'knockdown') {
       this.knockdownTimer -= dt;
       if (this.knockdownTimer <= 0) this.releaseFromPin();
@@ -92,6 +105,7 @@ class Player {
 
   receiveDamage(amount, options = {}) {
     if (this.hp <= 0) return false;
+    if (this.invulnerableTimer > 0 && !options.ignoreInvulnerability) return false;
 
     const source = options.source || 'melee';
     if (source === 'ranged' && this.abilities.rangedImmune) {
@@ -110,9 +124,25 @@ class Player {
 
     if (this.hp > 0 && options.knockdownMs) {
       this.knockDown(options.knockdownMs);
+    } else if (this.hp > 0) {
+      this.startHitStun(options.hitStunMs, options.invulnerableMs);
     }
 
     return true;
+  }
+
+  startHitStun(durationMs, invulnerableMs) {
+    const stunMs = Math.max(0, durationMs == null ? GAME_CONFIG.playerHitStunMs : Number(durationMs) || 0);
+    const guardMs = Math.max(stunMs, invulnerableMs == null ? GAME_CONFIG.playerInvulnerableMs : Number(invulnerableMs) || 0);
+
+    this.hitStunTimer = stunMs;
+    this.invulnerableTimer = guardMs;
+    this.state = stunMs > 0 ? 'hurt' : 'idle';
+    this.attackTimer = 0;
+    this.attackHasHit = false;
+    this.comboStep = 0;
+    this.comboTimer = 0;
+    this.walkTimer = 0;
   }
 
   tryRevive() {
@@ -120,6 +150,8 @@ class Player {
     this.reviveUsed = true;
     this.hp = Math.max(1, Math.round(this.maxHp * 0.5));
     this.state = 'idle';
+    this.hitStunTimer = 0;
+    this.invulnerableTimer = GAME_CONFIG.playerInvulnerableMs;
     this.knockdownTimer = 0;
     this.pinnedBy = null;
     this.attackTimer = 0;
@@ -134,7 +166,7 @@ class Player {
   }
 
   startAttack() {
-    if (this.state === 'attack' || this.state === 'knockdown' || this.state === 'pinned') return;
+    if (this.state === 'attack' || this.state === 'hurt' || this.state === 'knockdown' || this.state === 'pinned') return;
 
     this.comboStep += 1;
     if (this.comboStep > 3) this.comboStep = 1;
@@ -229,6 +261,8 @@ class Player {
     if (this.state === 'pinned') return false;
     AudioManager.playSfx('playerDown', 0.85);
     this.state = 'knockdown';
+    this.hitStunTimer = 0;
+    this.invulnerableTimer = GAME_CONFIG.playerInvulnerableMs;
     this.knockdownTimer = durationMs;
     this.pinnedBy = null;
     this.attackTimer = 0;
@@ -241,6 +275,8 @@ class Player {
     if (!this.canBeKnockedDown()) return false;
     AudioManager.playSfx('playerDown', 0.85);
     this.state = 'pinned';
+    this.hitStunTimer = 0;
+    this.invulnerableTimer = 0;
     this.knockdownTimer = durationMs;
     this.pinnedBy = enemy;
     this.attackTimer = 0;
@@ -251,6 +287,7 @@ class Player {
 
   releaseFromPin() {
     this.state = 'idle';
+    this.hitStunTimer = 0;
     this.knockdownTimer = 0;
     this.pinnedBy = null;
   }
@@ -267,6 +304,7 @@ class Player {
   getImage() {
     const heroImages = this.getHeroImages();
     if (this.state === 'knockdown' || this.state === 'pinned') return heroImages.knockdown || heroImages.idle;
+    if (this.state === 'hurt') return heroImages.hurt || heroImages.idle;
     if (this.state === 'attack') return heroImages.punch[this.comboStep - 1] || heroImages.punch[0] || heroImages.idle;
     if (this.state === 'walk') return heroImages.walk[this.walkFrame] || heroImages.idle;
     return heroImages.idle;
