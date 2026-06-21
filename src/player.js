@@ -28,12 +28,14 @@ class Player {
     this.attackHasHit = false;
     this.hitStunTimer = 0;
     this.invulnerableTimer = 0;
+    this.flash = 0;
     this.knockdownTimer = 0;
     this.pinnedBy = null;
   }
 
   update(dt, scene) {
     if (this.invulnerableTimer > 0) this.invulnerableTimer = Math.max(0, this.invulnerableTimer - dt);
+    if (this.flash > 0) this.flash = Math.max(0, this.flash - dt);
 
     if (this.state === 'hurt') {
       this.hitStunTimer -= dt;
@@ -116,7 +118,8 @@ class Player {
     this.hp = Math.max(0, this.hp - Math.max(0, amount || 0));
 
     if (options.knockbackX) {
-      this.x += options.knockbackX;
+      const knockbackMultiplier = source === 'melee' ? 2.1 : 1;
+      this.x += options.knockbackX * knockbackMultiplier;
       this.x = Math.max(70, Math.min(GAME_CONFIG.width - 70, this.x));
     }
 
@@ -137,6 +140,7 @@ class Player {
 
     this.hitStunTimer = stunMs;
     this.invulnerableTimer = guardMs;
+    this.flash = Math.max(this.flash || 0, Math.min(220, guardMs));
     this.state = stunMs > 0 ? 'hurt' : 'idle';
     this.attackTimer = 0;
     this.attackHasHit = false;
@@ -152,6 +156,7 @@ class Player {
     this.state = 'idle';
     this.hitStunTimer = 0;
     this.invulnerableTimer = GAME_CONFIG.playerInvulnerableMs;
+    this.flash = GAME_CONFIG.playerInvulnerableMs;
     this.knockdownTimer = 0;
     this.pinnedBy = null;
     this.attackTimer = 0;
@@ -263,6 +268,7 @@ class Player {
     this.state = 'knockdown';
     this.hitStunTimer = 0;
     this.invulnerableTimer = GAME_CONFIG.playerInvulnerableMs;
+    this.flash = GAME_CONFIG.playerInvulnerableMs;
     this.knockdownTimer = durationMs;
     this.pinnedBy = null;
     this.attackTimer = 0;
@@ -277,6 +283,7 @@ class Player {
     this.state = 'pinned';
     this.hitStunTimer = 0;
     this.invulnerableTimer = 0;
+    this.flash = 0;
     this.knockdownTimer = durationMs;
     this.pinnedBy = enemy;
     this.attackTimer = 0;
@@ -321,6 +328,7 @@ class Player {
     ctx.save();
     ctx.translate(this.x, this.y);
     if (this.facing === -1) ctx.scale(-1, 1);
+    if (this.flash > 0 && Math.floor(this.flash / 55) % 2 === 0) ctx.globalAlpha = 0.48;
     ctx.drawImage(img, -w / 2, -h, w, h);
     ctx.restore();
 
