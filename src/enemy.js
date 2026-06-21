@@ -38,6 +38,7 @@ class DogRegimeEnemy {
     this.damage = config.damage;
     this.maxHp = config.hp;
     this.scale = config.scale || GAME_CONFIG.enemyScale;
+    this.attackScale = config.attackScale || 1;
     this.minDistanceX = config.minDistanceX || 42;
     this.preferredDistanceX = config.preferredDistanceX || 76;
     this.attackRangeX = config.attackRangeX || GAME_CONFIG.enemyAttackRangeX;
@@ -406,9 +407,11 @@ class DogRegimeEnemy {
   draw(ctx, debug = false) {
     const img = this.getImage();
     if (!img) return;
-    const scale = this.scale || GAME_CONFIG.enemyScale;
-    const w = img.width * scale;
-    const h = img.height * scale;
+    const baseScale = this.scale || GAME_CONFIG.enemyScale;
+    const frameScale = this.state === 'attack' ? baseScale * (this.attackScale || 1) : baseScale;
+    const w = img.width * frameScale;
+    const h = img.height * frameScale;
+    const baseH = img.height * baseScale;
 
     let alpha = 1;
     if (!this.alive) alpha = Math.max(0, 1 - this.deadTimer / GAME_CONFIG.enemyDeathFadeMs);
@@ -424,7 +427,7 @@ class DogRegimeEnemy {
 
     if (this.alive) {
       const bx = this.x - 38;
-      const by = this.y - h - 12;
+      const by = this.y - baseH - 12;
       ctx.fillStyle = '#220000';
       ctx.fillRect(bx, by, 76, 6);
       ctx.fillStyle = this.hp > this.maxHp * 0.6 ? 'lime' : this.hp > this.maxHp * 0.28 ? 'yellow' : 'red';
