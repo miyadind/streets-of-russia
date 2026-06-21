@@ -52,6 +52,10 @@ class DogRegimeEnemy {
     this.slotSpacingY = config.slotSpacingY || 32;
     this.flankDistanceX = config.flankDistanceX || 105;
     this.pressureDistanceX = config.pressureDistanceX || 150;
+    this.bodyRadiusX = config.bodyRadiusX || GAME_CONFIG.enemyBodyRadiusX || 42;
+    this.bodyRadiusY = config.bodyRadiusY || GAME_CONFIG.enemyBodyRadiusY || 20;
+    this.attackSlotRadiusX = config.attackSlotRadiusX || GAME_CONFIG.enemyAttackSlotRadiusX || 46;
+    this.attackSlotRadiusY = config.attackSlotRadiusY || GAME_CONFIG.enemyAttackSlotRadiusY || 24;
     this.hp = resetHp ? this.maxHp : Math.min(this.hp, this.maxHp);
   }
 
@@ -106,10 +110,18 @@ class DogRegimeEnemy {
     }
 
     const activeAttackers = this.countActiveAttackers(scene);
-    const canAttackNow = activeAttackers < this.maxAttackers || this.intent === 'attack';
+    const hasAttackPermission = activeAttackers < this.maxAttackers || this.intent === 'attack';
     const inAttackRange = this.isInAttackRange(player);
+    const clearAttackPosition = this.hasClearAttackPosition(scene);
+    const canAttackNow = hasAttackPermission && clearAttackPosition;
 
     if (this.decisionTimer <= 0) this.chooseIntent(player, canAttackNow, inAttackRange);
+
+    if (this.intent === 'attack' && !clearAttackPosition) {
+      this.intent = Math.random() < 0.5 ? 'flank' : 'strafe';
+      this.strafeDirection = Math.random() < 0.5 ? -1 : 1;
+      this.decisionTimer = 140 + Math.random() * 180;
+    }
 
     if (inAttackRange && canAttackNow && this.cooldown <= 0 && this.intent === 'attack') {
       this.state = 'attack';
@@ -187,27 +199,29 @@ class DogRegimeEnemy {
   }
 
   getCombatSlot(scene, player) {
-    const aliveDogs = (scene.enemies || [])
-      .filter(enemy => enemy.alive && enemy.enemyType === this.enemyType)
+    const aliveEnemies = (scene.enemies || [])
+      .filter(enemy => enemy && enemy.alive && enemy.blocksWaveClear !== false && enemy.state !== 'jump' && enemy.state !== 'crash')
       .sort((a, b) => a.id - b.id);
-    const index = Math.max(0, aliveDogs.indexOf(this));
+    const index = Math.max(0, aliveEnemies.indexOf(this));
     const playerFacing = player ? player.facing || 1 : 1;
     const backSide = -playerFacing;
     const frontSide = playerFacing;
     const slots = [
       { side: frontSide, y: 0, role: 'attacker' },
-      { side: backSide, y: 0, role: 'back' },
+      { side: backSide, y: 0, role: 'attacker' },
       { side: backSide, y: -1, role: 'flank' },
       { side: frontSide, y: 1, role: 'frontFlank' },
       { side: backSide, y: 1, role: 'flank' },
-      { side: frontSide, y: -1, role: 'frontFlank' }
+      { side: frontSide, y: -1, role: 'frontFlank' },
+      { side: frontSide, y: 2, role: 'outer' },
+      { side: backSide, y: -2, role: 'outer' }
     ];
     return slots[index % slots.length];
   }
 
   getSlotTarget(player, slot, canAttackNow) {
     let distanceX = this.preferredDistanceX;
-    if (slot.role === 'back' || slot.role === 'flank') distanceX = this.flankDistanceX;
+    if (slot.role === 'back' || slot.role === 'flank' || slot.role === 'outer') distanceX = this.flankDistanceX;
     if (!canAttackNow && slot.role !== 'attacker') distanceX = Math.min(this.flankDistanceX, this.pressureDistanceX);
 
     const x = player.x + slot.side * distanceX + slot.side * Math.abs(slot.y) * this.slotSpacingX;
@@ -243,9 +257,35 @@ class DogRegimeEnemy {
     return (scene.enemies || []).filter(enemy =>
       enemy !== this &&
       enemy.alive &&
-      enemy.enemyType === this.enemyType &&
+      enemy.blocksWaveClear !== false &&
       (enemy.state === 'attack' || enemy.intent === 'attack')
     ).length;
+  }
+
+  hasClearAttackPosition(scene) {
+    const player = scene.player;
+    if (!player || !this.isInAttackRange(player)) return true;
+
+    const mySide = Math.sign(this.x - player.x || this.facing || 1);
+    for (const other of scene.enemies || []) {
+      if (!other || other === this || !other.alive || other.remove) continue;
+      if (other.blocksWaveClear === false) continue;
+      if (other.state === 'jump' || other.state === 'crash' || other.state === 'knockdown') continue;
+
+      const otherSide = Math.sign(other.x - player.x || other.facing || 1);
+      if (otherSide !== mySide) continue;
+
+      const otherRadiusX = other.attackSlotRadiusX || other.bodyRadiusX || GAME_CONFIG.enemyAttackSlotRadiusX || 46;
+      const otherRadiusY = other.attackSlotRadiusY || other.bodyRadiusY || GAME_CONFIG.enemyAttackSlotRadiusY || 24;
+      const nearThisEnemy = Math.abs(other.x - this.x) < this.attackSlotRadiusX + otherRadiusX &&
+        Math.abs(other.y - this.y) < this.attackSlotRadiusY + otherRadiusY;
+      const nearPlayerLine = Math.abs(other.y - player.y) < this.attackRangeY;
+      const otherIsCommitted = other.state === 'attack' || other.intent === 'attack' || Math.abs(other.x - player.x) < this.attackRangeX;
+
+      if (nearThisEnemy && nearPlayerLine && otherIsCommitted) return false;
+    }
+
+    return true;
   }
 
   isInAttackRange(player) {
@@ -324,6 +364,15 @@ class DogRegimeEnemy {
     }
   }
 
+  getGroundBodyBox() {
+    return {
+      x: this.x - this.bodyRadiusX,
+      y: this.y - this.bodyRadiusY,
+      w: this.bodyRadiusX * 2,
+      h: this.bodyRadiusY * 2
+    };
+  }
+
   getHurtbox() {
     return { x: this.x - 38, y: this.y - 140, w: 76, h: 140 };
   }
@@ -387,6 +436,9 @@ class DogRegimeEnemy {
       ctx.strokeStyle = 'rgba(255,0,0,0.85)';
       ctx.lineWidth = 2;
       ctx.strokeRect(hb.x, hb.y, hb.w, hb.h);
+      const gb = this.getGroundBodyBox();
+      ctx.strokeStyle = 'rgba(0,180,255,0.75)';
+      ctx.strokeRect(gb.x, gb.y, gb.w, gb.h);
       if (this.state === 'attack') {
         const ab = this.getAttackBox();
         ctx.strokeStyle = 'orange';
