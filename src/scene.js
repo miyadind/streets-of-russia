@@ -162,6 +162,8 @@ class LevelScene {
         }
       }
     }
+
+    this.separateEnemies(16.67, true);
   }
 
   getBossMusicKey(wave) {
@@ -224,6 +226,63 @@ class LevelScene {
     return { x: GAME_CONFIG.width - 130 - index * 34, y };
   }
 
+  separateEnemies(dt = 16.67, force = false) {
+    const active = this.enemies.filter(enemy =>
+      enemy &&
+      enemy.alive &&
+      !enemy.remove &&
+      enemy.state !== 'jump' &&
+      enemy.state !== 'crash' &&
+      enemy.state !== 'pinBite'
+    );
+
+    const iterations = force ? 4 : Math.max(1, GAME_CONFIG.enemySeparationIterations || 1);
+    const strength = force ? 0.85 : Math.max(0, Math.min(1, GAME_CONFIG.enemySeparationStrength == null ? 0.5 : GAME_CONFIG.enemySeparationStrength));
+    const dtScale = Math.max(0.65, Math.min(1.35, dt / 16.67));
+
+    for (let pass = 0; pass < iterations; pass++) {
+      for (let i = 0; i < active.length; i++) {
+        const a = active[i];
+        const arx = a.bodyRadiusX || GAME_CONFIG.enemyBodyRadiusX || 42;
+        const ary = a.bodyRadiusY || GAME_CONFIG.enemyBodyRadiusY || 20;
+
+        for (let j = i + 1; j < active.length; j++) {
+          const b = active[j];
+          const brx = b.bodyRadiusX || GAME_CONFIG.enemyBodyRadiusX || 42;
+          const bry = b.bodyRadiusY || GAME_CONFIG.enemyBodyRadiusY || 20;
+          const minX = arx + brx;
+          const minY = ary + bry;
+          let dx = b.x - a.x;
+          let dy = b.y - a.y;
+
+          if (dx === 0 && dy === 0) {
+            const sign = (a.id || 0) <= (b.id || 0) ? 1 : -1;
+            dx = sign * 0.01;
+            dy = sign * 0.01;
+          }
+
+          const nx = dx / minX;
+          const ny = dy / minY;
+          const distSq = nx * nx + ny * ny;
+          if (distSq >= 1) continue;
+
+          const dist = Math.max(0.001, Math.sqrt(distSq));
+          const overlap = (1 - dist) * strength * dtScale;
+          const pushX = (nx / dist) * minX * overlap * 0.5;
+          const pushY = (ny / dist) * minY * overlap * 0.5;
+
+          a.x -= pushX;
+          a.y -= pushY;
+          b.x += pushX;
+          b.y += pushY;
+
+          if (a.clampToScreen) a.clampToScreen();
+          if (b.clampToScreen) b.clampToScreen();
+        }
+      }
+    }
+  }
+
   restartCurrentLevel() {
     this.player.x = 190;
     this.player.y = 620;
@@ -267,6 +326,7 @@ class LevelScene {
     }
 
     for (const enemy of this.enemies) enemy.update(dt, this);
+    this.separateEnemies(dt);
     this.enemies = this.enemies.filter(enemy => !enemy.remove);
 
     if (this.nonBlockingWaveTimer > 0) {
