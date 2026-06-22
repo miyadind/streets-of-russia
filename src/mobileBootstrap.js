@@ -7,26 +7,29 @@
   function applySmartDogDefaults() {
     if (typeof GAME_CONFIG === 'undefined' || !GAME_CONFIG.enemies || !GAME_CONFIG.enemies.dogRegime) return;
     var dog = GAME_CONFIG.enemies.dogRegime;
-    if (dog.smartAiVersion >= 2) return;
+    if (dog.smartAiVersion >= 3) return;
     Object.assign(dog, {
-      smartAiVersion: 2,
-      minDistanceX: 58,
-      preferredDistanceX: 86,
+      smartAiVersion: 3,
+      minDistanceX: 52,
+      preferredDistanceX: 78,
       tooFarDistanceX: 150,
-      attackMinDistanceX: 50,
-      attackMaxDistanceX: 88,
-      attackRangeX: 74,
-      attackRangeY: 34,
+      attackMinDistanceX: 44,
+      attackMaxDistanceX: 96,
+      attackRangeX: 82,
+      attackRangeY: 38,
       maxAttackers: 1,
-      decisionMinMs: 220,
-      decisionMaxMs: 520,
-      strafeChance: 0.52,
-      retreatChance: 0.22,
-      attackChance: 0.46,
-      closeRetreatChance: 0.78,
-      playerAttackFearDistance: 126,
-      postAttackRetreatMs: 320,
-      flankDistanceX: 116,
+      decisionMinMs: 120,
+      decisionMaxMs: 280,
+      strafeChance: 0.32,
+      retreatChance: 0.16,
+      attackChance: 0.86,
+      closeRetreatChance: 0.42,
+      playerAttackFearDistance: 86,
+      postAttackRetreatMs: 220,
+      attackCooldownMinMs: 300,
+      attackCooldownMaxMs: 520,
+      backstabChance: 0.78,
+      flankDistanceX: 112,
       pressureDistanceX: 160
     });
   }
@@ -37,7 +40,7 @@
     HUD.getEnemyRosterLayout = function () {
       var isMobile = typeof Responsive !== 'undefined' && Responsive.isTouchDevice;
       if (isMobile) {
-        return { maxVisible: 4, cardW: 154, cardH: 40, gap: 5, x: 18, y: 96, portrait: 30, font: 'bold 12px Arial', nameMax: 13 };
+        return { maxVisible: 4, cardW: 166, cardH: 42, gap: 5, x: 18, y: 100, portrait: 32, font: 'bold 13px Arial', nameMax: 14 };
       }
       return { maxVisible: 6, cardW: 170, cardH: 46, gap: 6, x: GAME_CONFIG.width - 188, y: 96, portrait: 36, font: 'bold 13px Arial', nameMax: 15 };
     };
@@ -57,12 +60,14 @@
         var portrait = this.getEnemyPortraitImage(scene, enemy);
         var pad = Math.max(4, Math.round((layout.cardH - layout.portrait) / 2));
 
-        ctx.fillStyle = 'rgba(0,0,0,0.62)';
+        ctx.save();
+        ctx.fillStyle = 'rgba(0,0,0,0.78)';
         ctx.fillRect(layout.x, y, layout.cardW, layout.cardH);
-        ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+        ctx.strokeStyle = 'rgba(255,255,255,0.56)';
+        ctx.lineWidth = 2;
         ctx.strokeRect(layout.x, y, layout.cardW, layout.cardH);
 
-        ctx.fillStyle = 'rgba(255,255,255,0.09)';
+        ctx.fillStyle = 'rgba(255,255,255,0.12)';
         ctx.fillRect(layout.x + pad, y + pad, layout.portrait, layout.portrait);
         if (portrait) this.drawEnemyPortrait(ctx, portrait, layout.x + pad, y + pad, layout.portrait);
 
@@ -70,13 +75,19 @@
         ctx.font = layout.font;
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
-        ctx.fillText(this.shorten(name, layout.nameMax), layout.x + pad * 2 + layout.portrait, y + layout.cardH / 2 + 1);
-        ctx.textBaseline = 'alphabetic';
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 3;
+        var label = this.shorten(name, layout.nameMax);
+        var tx = layout.x + pad * 2 + layout.portrait;
+        var ty = y + layout.cardH / 2 + 1;
+        ctx.strokeText(label, tx, ty);
+        ctx.fillText(label, tx, ty);
+        ctx.restore();
       }
 
       if (enemies.length > layout.maxVisible) {
         var moreY = layout.y + layout.maxVisible * (layout.cardH + layout.gap);
-        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.fillStyle = 'rgba(0,0,0,0.65)';
         ctx.fillRect(layout.x, moreY, layout.cardW, 22);
         ctx.fillStyle = '#ddd';
         ctx.font = 'bold 11px Arial';
@@ -102,5 +113,13 @@
     applySmartDogDefaults();
     patchMobileEnemyRoster();
     if (MobileApp && MobileApp.attach) MobileApp.attach(this);
+  };
+
+  var originalDrawOverlay = MobileApp.drawOverlay;
+  MobileApp.drawOverlay = function (ctx, game) {
+    if (typeof originalDrawOverlay === 'function') originalDrawOverlay.call(this, ctx, game);
+    if (game && game.state === 'level' && game.scene && typeof HUD !== 'undefined' && typeof HUD.drawEnemyRoster === 'function') {
+      HUD.drawEnemyRoster(ctx, game.scene);
+    }
   };
 })();
