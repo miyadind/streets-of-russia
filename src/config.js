@@ -125,6 +125,7 @@ const GAME_CONFIG = {
       damage: 10,
       scale: 0.105,
       attackScale: 1.11,
+      smartAiVersion: 2,
       bossMusic: false,
       bossMusicKey: 'bossTheme',
       minDistanceX: 58,
