@@ -41,6 +41,9 @@ class DogRegimeEnemy {
     this.attackScale = config.attackScale || 1;
     this.minDistanceX = config.minDistanceX || 42;
     this.preferredDistanceX = config.preferredDistanceX || 76;
+    this.tooFarDistanceX = config.tooFarDistanceX || Math.max(this.preferredDistanceX + 40, 140);
+    this.attackMinDistanceX = config.attackMinDistanceX || Math.max(34, this.minDistanceX - 6);
+    this.attackMaxDistanceX = config.attackMaxDistanceX || this.attackRangeX || GAME_CONFIG.enemyAttackRangeX;
     this.attackRangeX = config.attackRangeX || GAME_CONFIG.enemyAttackRangeX;
     this.attackRangeY = config.attackRangeY || GAME_CONFIG.enemyAttackRangeY;
     this.maxAttackers = config.maxAttackers || 1;
@@ -49,6 +52,9 @@ class DogRegimeEnemy {
     this.strafeChance = config.strafeChance == null ? 0.38 : config.strafeChance;
     this.retreatChance = config.retreatChance == null ? 0.08 : config.retreatChance;
     this.attackChance = config.attackChance == null ? 0.72 : config.attackChance;
+    this.closeRetreatChance = config.closeRetreatChance == null ? 0.72 : config.closeRetreatChance;
+    this.playerAttackFearDistance = config.playerAttackFearDistance || 115;
+    this.postAttackRetreatMs = config.postAttackRetreatMs || 260;
     this.slotSpacingX = config.slotSpacingX || 46;
     this.slotSpacingY = config.slotSpacingY || 32;
     this.flankDistanceX = config.flankDistanceX || 105;
@@ -102,6 +108,7 @@ class DogRegimeEnemy {
 
     const player = scene.player;
     const dx = player.x - this.x;
+    const absX = Math.abs(dx);
     this.facing = dx >= 0 ? 1 : -1;
 
     if (this.state === 'attack') {
@@ -114,12 +121,25 @@ class DogRegimeEnemy {
     const hasAttackPermission = activeAttackers < this.maxAttackers || this.intent === 'attack';
     const inAttackRange = this.isInAttackRange(player);
     const clearAttackPosition = this.hasClearAttackPosition(scene);
-    const canAttackNow = hasAttackPermission && clearAttackPosition;
+    const playerThreat = this.isPlayerAttackThreat(player);
+    const goodAttackDistance = absX >= this.attackMinDistanceX && absX <= this.attackMaxDistanceX;
+    const canAttackNow = hasAttackPermission && clearAttackPosition && goodAttackDistance && !playerThreat;
 
-    if (this.decisionTimer <= 0) this.chooseIntent(player, canAttackNow, inAttackRange);
+    if (this.decisionTimer <= 0) this.chooseIntent(player, canAttackNow, inAttackRange, playerThreat, absX);
 
-    if (this.intent === 'attack' && !clearAttackPosition) {
-      this.intent = Math.random() < 0.5 ? 'flank' : 'strafe';
+    if (playerThreat) {
+      this.intent = Math.random() < 0.72 ? 'retreat' : 'strafe';
+      this.retreatTimer = 180 + Math.random() * 160;
+      this.strafeDirection = Math.random() < 0.5 ? -1 : 1;
+      this.decisionTimer = 160 + Math.random() * 160;
+    } else if (absX < this.minDistanceX && this.intent !== 'retreat' && Math.random() < this.closeRetreatChance) {
+      this.intent = 'retreat';
+      this.retreatTimer = 180 + Math.random() * 180;
+      this.decisionTimer = 150 + Math.random() * 170;
+    }
+
+    if (this.intent === 'attack' && (!clearAttackPosition || !goodAttackDistance || playerThreat)) {
+      this.intent = Math.random() < 0.55 ? 'flank' : 'strafe';
       this.strafeDirection = Math.random() < 0.5 ? -1 : 1;
       this.decisionTimer = 140 + Math.random() * 180;
     }
@@ -136,13 +156,23 @@ class DogRegimeEnemy {
     this.clampToScreen();
   }
 
-  chooseIntent(player, canAttackNow, inAttackRange) {
+  chooseIntent(player, canAttackNow, inAttackRange, playerThreat = false, absX = Infinity) {
     const roll = Math.random();
 
-    if (canAttackNow && this.cooldown <= 0 && (inAttackRange || Math.abs(player.x - this.x) < this.pressureDistanceX) && roll < this.attackChance) {
+    if (playerThreat) {
+      this.intent = roll < 0.72 ? 'retreat' : 'strafe';
+      this.retreatTimer = 160 + Math.random() * 160;
+      this.strafeDirection = Math.random() < 0.5 ? -1 : 1;
+    } else if (absX < this.minDistanceX) {
+      this.intent = roll < this.closeRetreatChance ? 'retreat' : 'strafe';
+      this.retreatTimer = 170 + Math.random() * 160;
+      this.strafeDirection = Math.random() < 0.5 ? -1 : 1;
+    } else if (canAttackNow && this.cooldown <= 0 && inAttackRange && roll < this.attackChance) {
       this.intent = 'attack';
+    } else if (absX > this.tooFarDistanceX) {
+      this.intent = 'approach';
     } else if (!canAttackNow) {
-      this.intent = roll < 0.65 ? 'flank' : 'strafe';
+      this.intent = roll < 0.7 ? 'flank' : 'strafe';
       this.strafeDirection = Math.random() < 0.5 ? -1 : 1;
     } else if (roll < this.retreatChance) {
       this.intent = 'retreat';
@@ -151,7 +181,7 @@ class DogRegimeEnemy {
       this.intent = 'strafe';
       this.strafeDirection = Math.random() < 0.5 ? -1 : 1;
     } else {
-      this.intent = 'approach';
+      this.intent = 'hold';
     }
 
     this.decisionTimer = this.decisionMinMs + Math.random() * Math.max(1, this.decisionMaxMs - this.decisionMinMs);
@@ -164,36 +194,48 @@ class DogRegimeEnemy {
     const dxToPlayer = player.x - this.x;
     const absX = Math.abs(dxToPlayer);
     const dyToTarget = target.y - this.y;
+    const playerThreat = this.isPlayerAttackThreat(player);
     let moveX = 0;
     let moveY = 0;
 
-    if (this.intent === 'retreat' && this.retreatTimer > 0) {
+    if (playerThreat) {
+      moveX = -Math.sign(dxToPlayer || this.facing);
+      moveY = Math.abs(dyToTarget) > 8 ? Math.sign(dyToTarget) : this.strafeDirection;
+    } else if (this.intent === 'retreat' && this.retreatTimer > 0) {
       const softRetreatX = player.x - Math.sign(dxToPlayer || this.facing) * this.preferredDistanceX;
       moveX = Math.sign(softRetreatX - this.x);
       if (Math.abs(dyToTarget) > 8) moveY = Math.sign(dyToTarget);
+      else if (Math.random() < 0.18) moveY = this.strafeDirection;
     } else if (absX < this.minDistanceX) {
-      const stepAwayTarget = player.x - Math.sign(dxToPlayer || this.facing) * this.preferredDistanceX;
-      moveX = Math.sign(stepAwayTarget - this.x);
+      moveX = -Math.sign(dxToPlayer || this.facing);
       if (Math.abs(dyToTarget) > 8) moveY = Math.sign(dyToTarget);
-    } else if (Math.abs(this.x - target.x) > 10) {
+      else moveY = this.strafeDirection;
+    } else if (absX > this.tooFarDistanceX || Math.abs(this.x - target.x) > 18) {
       moveX = Math.sign(target.x - this.x);
     }
 
     if (this.intent === 'flank') {
       if (Math.abs(dyToTarget) > 8) moveY = Math.sign(dyToTarget);
-      if (Math.abs(this.x - target.x) <= 16 && Math.abs(dyToTarget) <= 10) this.intent = 'approach';
+      if (absX < this.preferredDistanceX) moveX = -Math.sign(dxToPlayer || this.facing);
+      if (Math.abs(this.x - target.x) <= 20 && Math.abs(dyToTarget) <= 10) this.intent = 'hold';
     } else if (this.intent === 'strafe') {
       if (Math.abs(dyToTarget) > 20) moveY = Math.sign(dyToTarget);
       else moveY = this.strafeDirection;
+      if (absX < this.minDistanceX) moveX = -Math.sign(dxToPlayer || this.facing);
+      else if (absX > this.tooFarDistanceX) moveX = Math.sign(target.x - this.x);
     } else if (this.intent === 'hold') {
       if (Math.abs(dyToTarget) > 10) moveY = Math.sign(dyToTarget);
+      if (absX < this.minDistanceX) moveX = -Math.sign(dxToPlayer || this.facing);
+      else if (absX > this.tooFarDistanceX) moveX = Math.sign(target.x - this.x);
     } else if (Math.abs(dyToTarget) > 12) {
       moveY = Math.sign(dyToTarget);
     }
 
     if (this.intent === 'attack') {
       if (Math.abs(player.y - this.y) > this.attackRangeY * 0.7) moveY = Math.sign(player.y - this.y);
-      if (absX > this.attackRangeX * 0.85) moveX = Math.sign(dxToPlayer);
+      if (absX < this.attackMinDistanceX) moveX = -Math.sign(dxToPlayer || this.facing);
+      else if (absX > this.attackMaxDistanceX) moveX = Math.sign(dxToPlayer);
+      else moveX = 0;
     }
 
     this.applyMovement(moveX, moveY, dt);
@@ -263,6 +305,15 @@ class DogRegimeEnemy {
     ).length;
   }
 
+  isPlayerAttackThreat(player) {
+    if (!player || player.state !== 'attack') return false;
+    const sideFromPlayer = Math.sign(this.x - player.x || 1);
+    const playerFacing = player.facing || 1;
+    const absX = Math.abs(this.x - player.x);
+    const absY = Math.abs(this.y - player.y);
+    return sideFromPlayer === playerFacing && absX < this.playerAttackFearDistance && absY < this.attackRangeY * 1.55;
+  }
+
   hasClearAttackPosition(scene) {
     const player = scene.player;
     if (!player || !this.isInAttackRange(player)) return true;
@@ -314,10 +365,10 @@ class DogRegimeEnemy {
 
     if (this.attackTimer >= GAME_CONFIG.enemyWindupMs + GAME_CONFIG.enemyActiveMs + GAME_CONFIG.enemyRecoveryMs) {
       this.state = 'walk';
-      this.intent = Math.random() < 0.65 ? 'flank' : 'strafe';
+      this.intent = Math.random() < 0.7 ? 'retreat' : 'strafe';
       this.strafeDirection = Math.random() < 0.5 ? -1 : 1;
-      this.retreatTimer = 0;
-      this.cooldown = 420 + Math.random() * 340;
+      this.retreatTimer = this.postAttackRetreatMs;
+      this.cooldown = 520 + Math.random() * 420;
       this.attackTimer = 0;
       this.attackHasHit = false;
     }
