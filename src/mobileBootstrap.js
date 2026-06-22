@@ -7,23 +7,25 @@
   function applySmartDogDefaults() {
     if (typeof GAME_CONFIG === 'undefined' || !GAME_CONFIG.enemies || !GAME_CONFIG.enemies.dogRegime) return;
     var dog = GAME_CONFIG.enemies.dogRegime;
-    if (dog.smartAiVersion >= 3) return;
+    if (dog.smartAiVersion >= 4) return;
     Object.assign(dog, {
-      smartAiVersion: 3,
-      minDistanceX: 52,
-      preferredDistanceX: 78,
+      smartAiVersion: 4,
+      minDistanceX: 44,
+      preferredDistanceX: 64,
       tooFarDistanceX: 150,
-      attackMinDistanceX: 44,
-      attackMaxDistanceX: 96,
-      attackRangeX: 82,
-      attackRangeY: 38,
+      attackMinDistanceX: 30,
+      attackMaxDistanceX: 128,
+      attackRangeX: 128,
+      attackRangeY: 42,
+      clubReachForward: 142,
+      clubReachBack: 16,
       maxAttackers: 1,
       decisionMinMs: 120,
       decisionMaxMs: 280,
       strafeChance: 0.32,
       retreatChance: 0.16,
       attackChance: 0.86,
-      closeRetreatChance: 0.42,
+      closeRetreatChance: 0.32,
       playerAttackFearDistance: 86,
       postAttackRetreatMs: 220,
       attackCooldownMinMs: 300,
