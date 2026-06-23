@@ -19,10 +19,12 @@ const AudioManager = {
     this.musicActuallyPlaying = false;
 
     for (const [key, src] of Object.entries((Assets.audio && Assets.audio.sfx) || {})) {
+      if (!src) continue;
       this.sfx[key] = this.createAudio(src, false);
     }
 
     for (const [key, src] of Object.entries((Assets.audio && Assets.audio.music) || {})) {
+      if (!src) continue;
       this.music[key] = this.createAudio(src, true);
     }
   },
@@ -185,7 +187,16 @@ const AudioManager = {
 
   playSyntheticSfx(key, volume = 1, options = {}) {
     if (!this.isSfxOn()) return;
-    if (key !== 'menuMove') return;
+    const presets = {
+      menuMove: { start: 540, end: 880, duration: 0.095, gain: 0.18, type: 'square' },
+      menuSelect: { start: 660, end: 1040, duration: 0.13, gain: 0.22, type: 'triangle' },
+      menuBack: { start: 430, end: 260, duration: 0.13, gain: 0.18, type: 'triangle' },
+      waveStart: { start: 360, end: 720, duration: 0.18, gain: 0.18, type: 'sawtooth' },
+      waveClear: { start: 520, end: 980, duration: 0.2, gain: 0.2, type: 'triangle' },
+      bossAppear: { start: 120, end: 220, duration: 0.28, gain: 0.22, type: 'sawtooth' }
+    };
+    const preset = presets[key];
+    if (!preset) return;
     const context = this.ensureAudioContext();
     if (!context) return;
     if (context.state === 'suspended') context.resume().catch(() => {});
@@ -195,18 +206,18 @@ const AudioManager = {
     const gain = context.createGain();
     const osc = context.createOscillator();
 
-    osc.type = 'square';
-    osc.frequency.setValueAtTime(540 * rate, now);
-    osc.frequency.exponentialRampToValueAtTime(880 * rate, now + 0.055);
+    osc.type = preset.type;
+    osc.frequency.setValueAtTime(preset.start * rate, now);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(1, preset.end * rate), now + preset.duration * 0.62);
 
     gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(this.getSfxVolume(volume) * 0.18, now + 0.008);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.09);
+    gain.gain.exponentialRampToValueAtTime(this.getSfxVolume(volume) * preset.gain, now + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + preset.duration);
 
     osc.connect(gain);
     gain.connect(context.destination);
     osc.start(now);
-    osc.stop(now + 0.095);
+    osc.stop(now + preset.duration + 0.01);
   },
 
   playMusic(key, forceRestart = false, retryIfBlocked = false) {

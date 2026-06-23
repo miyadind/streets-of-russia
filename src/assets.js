@@ -1,30 +1,30 @@
 window.Assets = {
   backgrounds:{
     main:'assets/backgrounds/Main.png',
-    level1:['assets/backgrounds/street01.png','assets/backgrounds/street02.png','assets/backgrounds/street03.png']
+    level1:['assets/backgrounds/street01.png','assets/backgrounds/street02.png','assets/backgrounds/street12.png']
   },
   audio:{
     music:{
       menuTheme:'assets/audio/music/menu-theme.mp3',
-      levelTheme:'assets/audio/music/level-theme.mp3',
-      street01Theme:'assets/audio/music/street01-theme.mp3',
-      street02Theme:'assets/audio/music/street02-theme.mp3',
-      street03Theme:'assets/audio/music/street03-theme.mp3',
-      bossTheme:'assets/audio/music/boss-theme.mp3'
+      levelTheme:'assets/audio/music/menu-theme.mp3',
+      street01Theme:'assets/audio/music/menu-theme.mp3',
+      street02Theme:'assets/audio/music/menu-theme.mp3',
+      street03Theme:'assets/audio/music/menu-theme.mp3',
+      bossTheme:'assets/audio/music/menu-theme.mp3'
     },
     sfx:{
-      menuMove:'assets/audio/sfx/menu-move.wav',
-      menuSelect:'assets/audio/sfx/menu-select.wav',
+      menuMove:null,
+      menuSelect:null,
       punch:'assets/audio/sfx/punch.wav',
       punch1:'assets/audio/sfx/punch1.mp3',
       punch2:'assets/audio/sfx/punch2.mp3',
       punch3:'assets/audio/sfx/punch3.mp3',
-      hit:'assets/audio/sfx/hit.wav',
-      enemyDown:'assets/audio/sfx/enemy-down.wav',
-      playerDown:'assets/audio/sfx/player-down.wav',
-      waveStart:'assets/audio/sfx/wave-start.wav',
-      waveClear:'assets/audio/sfx/wave-clear.wav',
-      bossAppear:'assets/audio/sfx/boss-appear.wav',
+      hit:'assets/audio/sfx/punch2.mp3',
+      enemyDown:'assets/audio/sfx/punch3.mp3',
+      playerDown:'assets/audio/sfx/punch3.mp3',
+      waveStart:null,
+      waveClear:null,
+      bossAppear:null,
       zetnikPreparing:'assets/enemies/zetnik/preparing.mp3',
       zetnikCrash:'assets/enemies/zetnik/crash.mp3'
     }
@@ -57,7 +57,7 @@ window.Assets = {
     idle:'assets/enemies/zetnik/run01.png',
     walk:['assets/enemies/zetnik/run01.png','assets/enemies/zetnik/run02.png','assets/enemies/zetnik/run03.png'],
     preparing:'assets/enemies/zetnik/preparing.png',
-    attack:['assets/enemies/zetnik/push.png','assets/enemies/zetnik/push.png'],
+    attack:['assets/enemies/zetnik/preparing.png','assets/enemies/zetnik/fly.png'],
     fly:'assets/enemies/zetnik/fly.png',
     crashed:'assets/enemies/zetnik/crashed.png',
     dead:'assets/enemies/zetnik/crashed.png'
@@ -65,7 +65,7 @@ window.Assets = {
   sucker:{
     idle:'assets/enemies/sucker/idle.png',
     walk:['assets/enemies/sucker/walk0.png','assets/enemies/sucker/walk1.png'],
-    attack:['assets/enemies/sucker/punch0.png','assets/enemies/sucker/punch1.png'],
+    attack:['assets/enemies/sucker/bite0.png','assets/enemies/sucker/bite1.png'],
     slide:'assets/enemies/sucker/slideAttack0.png',
     bite:['assets/enemies/sucker/bite0.png','assets/enemies/sucker/bite1.png'],
     dead:'assets/enemies/sucker/dead.png'
@@ -73,6 +73,6 @@ window.Assets = {
   bastard:{
     idle:'assets/enemies/bastard/idle.png',
     fall:'assets/enemies/bastard/fall.png',
-    walk:['assets/enemies/bastard/walk0.png','assets/enemies/bastard/walk1.png','assets/enemies/bastard/walk2.png']
+    walk:['assets/enemies/bastard/idle.png','assets/enemies/bastard/walk1.png','assets/enemies/bastard/walk2.png']
   }
 };

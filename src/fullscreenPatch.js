@@ -28,7 +28,7 @@
       }
 
       setTimeout(() => {
-        if (typeof Responsive !== 'undefined' && Responsive.resize) Responsive.resize();
+        if (this.canResizeGame()) Responsive.resize();
         this.updateVisibility();
       }, 120);
     },
@@ -84,7 +84,11 @@
         this.hint.style.display = mobile && portrait ? 'block' : 'none';
       }
 
-      if (typeof Responsive !== 'undefined' && Responsive.resize) Responsive.resize();
+      if (this.canResizeGame()) Responsive.resize();
+    },
+
+    canResizeGame() {
+      return typeof Responsive !== 'undefined' && Responsive.canvas && Responsive.ctx && typeof Responsive.resize === 'function';
     },
 
     init() {

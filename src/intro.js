@@ -57,7 +57,7 @@ const Intro = {
   },
 
   getVoiceSrc() {
-    return 'assets/audio/music/intro voice.mp3';
+    return 'assets/audio/music/intro-voice.mp3';
   },
 
   startVoice() {
