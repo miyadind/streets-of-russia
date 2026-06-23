@@ -121,7 +121,9 @@
 
   var originalInit = GameApp.prototype.init;
   GameApp.prototype.init = async function () {
+    window.game = this;
     await originalInit.call(this);
+    window.game = this;
     loadHitboxEditorPatch();
     applySmartDogDefaults();
     patchMobileEnemyRoster();
