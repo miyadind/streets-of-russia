@@ -1,20 +1,20 @@
 (function () {
   if (typeof GAME_CONFIG === 'undefined' || typeof Assets === 'undefined') return;
 
-  const HORSE_FOLDER = 'assets/enemies/Horse';
+  const HORSE_FOLDER = 'assets/enemies/horse';
 
   Assets.horse = Object.assign({
-    idle: HORSE_FOLDER + '/idle.png',
+    idle: HORSE_FOLDER + '/walk01.png',
     walk: [
-      HORSE_FOLDER + '/walk0.png',
-      HORSE_FOLDER + '/walk1.png',
-      HORSE_FOLDER + '/walk2.png'
+      HORSE_FOLDER + '/walk01.png',
+      HORSE_FOLDER + '/walk02.png',
+      HORSE_FOLDER + '/walk03.png'
     ],
     attack: [
-      HORSE_FOLDER + '/punch0.png',
-      HORSE_FOLDER + '/punch1.png'
+      HORSE_FOLDER + '/walk02.png',
+      HORSE_FOLDER + '/walk03.png'
     ],
-    dead: HORSE_FOLDER + '/dead.png'
+    dead: HORSE_FOLDER + '/walk03.png'
   }, Assets.horse || {});
 
   GAME_CONFIG.enemies.horse = Object.assign({

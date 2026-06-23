@@ -5,31 +5,23 @@
   const KO_KEY = 'horseKo';
   const KO_FILE = FOLDER + '/' + ['de', 'ath'].join('') + '.mp3';
 
-  function candidates(name) {
-    return [
-      FOLDER + '/' + name + '.png',
-      FOLDER + '/' + name + '.jpg',
-      FOLDER + '/' + name + '.jpeg',
-      FOLDER + '/' + name + '_ins.png',
-      FOLDER + '/' + name + '_ins.jpg',
-      FOLDER + '/' + name + '_.png',
-      FOLDER + '/' + name + '_.jpg'
-    ];
+  function frame(name) {
+    return FOLDER + '/' + name + '.png';
   }
 
   Assets.horse = Object.assign(Assets.horse || {}, {
-    idle: candidates('walk01'),
+    idle: frame('walk01'),
     walk: [
-      candidates('walk01'),
-      candidates('walk02'),
-      candidates('walk03')
+      frame('walk01'),
+      frame('walk02'),
+      frame('walk03')
     ],
     attack: [
-      candidates('walk02'),
-      candidates('walk03')
+      frame('walk02'),
+      frame('walk03')
     ]
   });
-  Assets.horse.finalFrame = candidates('walk03');
+  Assets.horse.finalFrame = frame('walk03');
   Assets.horse.appear = FOLDER + '/Appear.mp3';
   Assets.horse.koSound = KO_FILE;
 
