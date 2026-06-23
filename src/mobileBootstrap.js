@@ -4,6 +4,15 @@
 
   GameApp.prototype.mobileBootstrapPatched = true;
 
+  function loadHitboxEditorPatch() {
+    if (window.__hitboxEditorPatchRequested) return;
+    window.__hitboxEditorPatchRequested = true;
+    var script = document.createElement('script');
+    script.src = 'src/hitboxEditorPatch.js';
+    script.defer = true;
+    document.body.appendChild(script);
+  }
+
   function applySmartDogDefaults() {
     if (typeof GAME_CONFIG === 'undefined' || !GAME_CONFIG.enemies || !GAME_CONFIG.enemies.dogRegime) return;
     var dog = GAME_CONFIG.enemies.dogRegime;
@@ -100,6 +109,7 @@
     HUD.mobileEnemyRosterPatchApplied = true;
   }
 
+  loadHitboxEditorPatch();
   applySmartDogDefaults();
   patchMobileEnemyRoster();
 
@@ -112,6 +122,7 @@
   var originalInit = GameApp.prototype.init;
   GameApp.prototype.init = async function () {
     await originalInit.call(this);
+    loadHitboxEditorPatch();
     applySmartDogDefaults();
     patchMobileEnemyRoster();
     if (MobileApp && MobileApp.attach) MobileApp.attach(this);
