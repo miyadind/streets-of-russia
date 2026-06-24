@@ -113,6 +113,7 @@ const Input = {
     }, { passive: false });
 
     window.addEventListener('pointerup', (event) => {
+      if (performance.now() - this.lastTouchAt < 450 || this.touches.length > 0) return;
       if (event && event.cancelable) event.preventDefault();
       this.pointer.down = false;
       this.clearVirtualKeys();

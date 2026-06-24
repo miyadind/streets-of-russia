@@ -64,10 +64,17 @@ class Player {
     if (Input.consume('space')) this.startAttack();
 
     if (this.state === 'attack') {
+      if (typeof Responsive !== 'undefined' && Responsive.isTouchDevice) {
+        this.updateMovement(dt, false);
+      }
       this.updateAttack(dt, scene);
       return;
     }
 
+    this.updateMovement(dt, true);
+  }
+
+  updateMovement(dt, updateState) {
     let dx = 0;
     let dy = 0;
     if (Input.pressed('a') || Input.pressed('arrowleft')) dx -= 1;
@@ -84,19 +91,21 @@ class Player {
       this.y += dy * this.speed * GAME_CONFIG.ySpeedMultiplier;
       if (dx !== 0) this.facing = Math.sign(dx);
 
-      if (Input.consume('a') || Input.consume('d') || Input.consume('w') || Input.consume('s') ||
-          Input.consume('arrowleft') || Input.consume('arrowright') || Input.consume('arrowup') || Input.consume('arrowdown')) {
-        this.nextWalkFrame();
-        this.walkTimer = 0;
-      }
+      if (updateState) {
+        if (Input.consume('a') || Input.consume('d') || Input.consume('w') || Input.consume('s') ||
+            Input.consume('arrowleft') || Input.consume('arrowright') || Input.consume('arrowup') || Input.consume('arrowdown')) {
+          this.nextWalkFrame();
+          this.walkTimer = 0;
+        }
 
-      this.walkTimer += dt;
-      if (this.walkTimer >= GAME_CONFIG.walkFrameMs) {
-        this.walkTimer -= GAME_CONFIG.walkFrameMs;
-        this.nextWalkFrame();
+        this.walkTimer += dt;
+        if (this.walkTimer >= GAME_CONFIG.walkFrameMs) {
+          this.walkTimer -= GAME_CONFIG.walkFrameMs;
+          this.nextWalkFrame();
+        }
+        this.state = 'walk';
       }
-      this.state = 'walk';
-    } else {
+    } else if (updateState) {
       this.state = 'idle';
       this.walkTimer = 0;
     }
