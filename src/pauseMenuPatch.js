@@ -1,32 +1,37 @@
 (function () {
   if (typeof GameApp === 'undefined') return;
 
-  const PAUSE_ITEMS = ['resume', 'switchHero', 'developer', 'menu'];
+  const PAUSE_ITEMS = ['resume', 'switchHero', 'bestiary', 'developer', 'menu'];
 
   function pauseRect() {
     return { x: 14, y: 16, w: 88, h: 52 };
   }
 
   function resumeRect() {
-    return { x: 390, y: 184, w: 500, h: 70 };
+    return { x: 390, y: 148, w: 500, h: 62 };
   }
 
   function switchHeroRect() {
-    return { x: 390, y: 272, w: 500, h: 70 };
+    return { x: 390, y: 222, w: 500, h: 62 };
+  }
+
+  function bestiaryRect() {
+    return { x: 390, y: 296, w: 500, h: 62 };
   }
 
   function developerRect() {
-    return { x: 390, y: 360, w: 500, h: 70 };
+    return { x: 390, y: 370, w: 500, h: 62 };
   }
 
   function menuRect() {
-    return { x: 390, y: 448, w: 500, h: 70 };
+    return { x: 390, y: 444, w: 500, h: 62 };
   }
 
   function getPauseItemRects() {
     return [
       { key: 'resume', label: 'ПРОДОЛЖИТЬ', rect: resumeRect(), fontSize: 30 },
       { key: 'switchHero', label: 'СМЕНИТЬ ПЕРСОНАЖА', rect: switchHeroRect(), fontSize: 28 },
+      { key: 'bestiary', label: 'ТВАРИ', rect: bestiaryRect(), fontSize: 28 },
       { key: 'developer', label: 'РЕЖИМ РАЗРАБОТЧИКА', rect: developerRect(), fontSize: 25 },
       { key: 'menu', label: 'В МЕНЮ', rect: menuRect(), fontSize: 30 }
     ];
@@ -119,6 +124,11 @@
     }
     if (key === 'switchHero') {
       startQuickHeroSwitch(game);
+      return;
+    }
+    if (key === 'bestiary') {
+      setPaused(game, false);
+      if (game.openBestiary) game.openBestiary('level');
       return;
     }
     if (key === 'developer') {

@@ -247,18 +247,19 @@ class Player {
   canCounterSlide(enemy) {
     if (this.state !== 'attack') return false;
 
-    const config = GAME_CONFIG.enemies.sucker || {};
-    const counterRangeX = config.counterRangeX || 120;
-    const counterRangeY = config.counterRangeY || GAME_CONFIG.enemyAttackRangeY;
-    const dx = enemy.x - this.x;
-    const dy = enemy.y - this.y;
-    const facingEnemy = Math.sign(dx || this.facing) === this.facing;
+    const data = this.getAttackData();
+    if (this.attackTimer < data.activeStart || this.attackTimer > data.activeEnd) return false;
 
-    if (!facingEnemy) return false;
-    if (Math.abs(dy) > counterRangeY) return false;
-    if (Math.abs(dx) <= counterRangeX) return true;
-
-    return Combat.overlap(this.getHitbox(), enemy.getHurtbox());
+    const attack = this.getHitbox();
+    const target = enemy.getHurtbox();
+    const forgiveness = 18;
+    const expandedTarget = {
+      x: target.x - forgiveness,
+      y: target.y - forgiveness,
+      w: target.w + forgiveness * 2,
+      h: target.h + forgiveness * 2
+    };
+    return Combat.overlap(attack, expandedTarget);
   }
 
   knockDown(durationMs = 900) {

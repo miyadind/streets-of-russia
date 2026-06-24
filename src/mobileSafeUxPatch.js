@@ -142,8 +142,8 @@
       this.mobilePauseOpen = false;
       this.paused = false;
       this.mobileBestiaryIndex = 0;
-      if (game) game.setState('bestiary');
-      AudioManager.playSfx('menuSelect', 0.65);
+      if (game && game.openBestiary) game.openBestiary('level');
+      else if (game) game.setState('bestiary');
       return true;
     }
     if (this.inRect(click, rects.developer)) {

@@ -161,12 +161,20 @@
       return worldBox(this.x, this.y, this.facing, heroBox(this.heroKey, 'pushbox'));
     };
 
-    Player.prototype.getCounterBox = function () {
-      return null;
-    };
+    Player.prototype.canCounterSlide = function (enemy) {
+      if (this.state !== 'attack' || !enemy) return false;
+      const data = this.getAttackData();
+      if (this.attackTimer < data.activeStart || this.attackTimer > data.activeEnd) return false;
 
-    Player.prototype.canCounterSlide = function () {
-      return false;
+      const attack = this.getHitbox();
+      const target = enemy.getHurtbox();
+      const forgiveness = 18;
+      return boxOverlap(attack, {
+        x: target.x - forgiveness,
+        y: target.y - forgiveness,
+        w: target.w + forgiveness * 2,
+        h: target.h + forgiveness * 2
+      });
     };
 
     const originalPlayerDraw = Player.prototype.hitboxSimpleDrawOriginal || Player.prototype.draw;
