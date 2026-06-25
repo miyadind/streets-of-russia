@@ -3,7 +3,7 @@
 
   const FOLDER = 'assets/enemies/gundos';
   const INTRO_DURATION_MS = 56425;
-  const SWING_LEAD_MS = 5000;
+  const DEVIL_LEAD_MS = 2000;
 
   Assets.gundos = {
     walk: [FOLDER + '/walk0.png', FOLDER + '/walk1.png'],
@@ -15,32 +15,54 @@
   GAME_CONFIG.enemies.gundos = Object.assign({
     name: 'gundos',
     hp: 9999,
-    speed: 0.55,
-    scale: 0.38,
+    speed: 1.25,
+    scale: 0.266,
     damage: 0,
     blocksWaveClear: true,
     canAttack: false,
     canDie: false,
     introDurationMs: INTRO_DURATION_MS,
-    swingLeadMs: SWING_LEAD_MS,
-    patrolLeft: 890,
-    patrolRight: 1160,
-    patrolTop: 555,
-    patrolBottom: 665
+    devilLeadMs: DEVIL_LEAD_MS,
+    entranceTargetX: 1040,
+    entranceY: 620
   }, GAME_CONFIG.enemies.gundos || {});
 
+  function migrateIntroSequence() {
+    const config = GAME_CONFIG.enemies.gundos;
+    if (Number(config.introSequenceVersion) >= 2) return;
+    Object.assign(config, {
+      introSequenceVersion: 2,
+      speed: 1.25,
+      scale: 0.266,
+      devilLeadMs: DEVIL_LEAD_MS,
+      entranceTargetX: 1040,
+      entranceY: 620
+    });
+    delete config.swingLeadMs;
+    delete config.patrolLeft;
+    delete config.patrolRight;
+    delete config.patrolTop;
+    delete config.patrolBottom;
+  }
+
+  migrateIntroSequence();
+
   if (typeof DevPanel !== 'undefined') {
+    const previousLoad = DevPanel.load;
+    DevPanel.load = function () {
+      if (previousLoad) previousLoad.call(this);
+      migrateIntroSequence();
+    };
+
     if (DevPanel.tabs && !DevPanel.tabs.includes('GUNDOS')) DevPanel.tabs.push('GUNDOS');
     if (!DevPanel.fieldGroups) DevPanel.fieldGroups = {};
     if (!DevPanel.fieldGroups.GUNDOS) DevPanel.fieldGroups.GUNDOS = [];
     const fields = [
       { label: 'Gundos speed', path: 'enemies.gundos.speed', min: 0.1, max: 3, step: 0.05 },
       { label: 'Gundos scale', path: 'enemies.gundos.scale', min: 0.1, max: 0.7, step: 0.01 },
-      { label: 'Patrol left', path: 'enemies.gundos.patrolLeft', min: 500, max: 1200, step: 10 },
-      { label: 'Patrol right', path: 'enemies.gundos.patrolRight', min: 600, max: 1280, step: 10 },
-      { label: 'Patrol top', path: 'enemies.gundos.patrolTop', min: 350, max: 700, step: 5 },
-      { label: 'Patrol bottom', path: 'enemies.gundos.patrolBottom', min: 400, max: 760, step: 5 },
-      { label: 'Swing lead ms', path: 'enemies.gundos.swingLeadMs', min: 500, max: 15000, step: 250 }
+      { label: 'Entrance target X', path: 'enemies.gundos.entranceTargetX', min: 600, max: 1200, step: 10 },
+      { label: 'Entrance Y', path: 'enemies.gundos.entranceY', min: 350, max: 720, step: 5 },
+      { label: 'Devil lead ms', path: 'enemies.gundos.devilLeadMs', min: 0, max: 10000, step: 250 }
     ];
     for (const field of fields) {
       if (!DevPanel.fieldGroups.GUNDOS.some(item => item.path === field.path)) {
@@ -98,15 +120,12 @@
       this.walkFrame = 0;
       this.walkTimer = 0;
       this.introElapsed = 0;
-      this.targetX = x;
-      this.targetY = y;
-      this.targetTimer = 0;
       this.voice = null;
       this.voiceStarted = false;
       this.voiceEnded = false;
       this.transformed = false;
+      this.introFinished = false;
       this.previousMusicVolume = null;
-      this.startVoice();
     }
 
     getConfig() {
@@ -148,27 +167,24 @@
       return this.introElapsed;
     }
 
-    choosePatrolTarget() {
+    walkToEntrance(dt) {
       const config = this.getConfig();
-      this.targetX = config.patrolLeft + Math.random() * (config.patrolRight - config.patrolLeft);
-      this.targetY = config.patrolTop + Math.random() * (config.patrolBottom - config.patrolTop);
-      this.targetTimer = 1100 + Math.random() * 1800;
-    }
+      const dx = config.entranceTargetX - this.x;
+      const dy = config.entranceY - this.y;
+      const distance = Math.hypot(dx, dy);
+      if (distance <= 4) {
+        this.x = config.entranceTargetX;
+        this.y = config.entranceY;
+        this.state = 'swing';
+        this.facing = -1;
+        this.startVoice();
+        return;
+      }
 
-    patrol(dt) {
-      const config = this.getConfig();
-      this.targetTimer -= dt;
-      const dx = this.targetX - this.x;
-      const dy = this.targetY - this.y;
-      if (this.targetTimer <= 0 || Math.hypot(dx, dy) < 12) this.choosePatrolTarget();
-
-      const nextDx = this.targetX - this.x;
-      const nextDy = this.targetY - this.y;
-      const distance = Math.max(1, Math.hypot(nextDx, nextDy));
       const frameScale = Math.max(0.7, Math.min(1.6, dt / 16.67));
-      this.x += nextDx / distance * config.speed * frameScale;
-      this.y += nextDy / distance * config.speed * GAME_CONFIG.ySpeedMultiplier * frameScale;
-      if (Math.abs(nextDx) > 3) this.facing = nextDx >= 0 ? 1 : -1;
+      this.x += dx / distance * config.speed * frameScale;
+      this.y += dy / distance * config.speed * GAME_CONFIG.ySpeedMultiplier * frameScale;
+      if (Math.abs(dx) > 3) this.facing = dx >= 0 ? 1 : -1;
 
       this.walkTimer += dt;
       if (this.walkTimer >= 360) {
@@ -182,9 +198,15 @@
       this.transformed = true;
       this.state = 'devil';
       this.facing = -1;
+      AudioManager.playSfx('bossAppear', 0.95);
+    }
+
+    finishIntro(scene) {
+      if (this.introFinished) return;
+      this.introFinished = true;
+      if (!this.transformed) this.transform(scene);
       if (AudioManager.currentMusic) AudioManager.currentMusic.volume = AudioManager.getMusicVolume();
       if (scene) scene.gundosIntroActive = false;
-      AudioManager.playSfx('bossAppear', 0.95);
     }
 
     stopVoice() {
@@ -198,8 +220,14 @@
     }
 
     update(dt, scene) {
-      if (this.transformed) return;
+      if (this.introFinished) return;
       scene.gundosIntroActive = true;
+
+      if (this.state === 'introWalk') {
+        this.walkToEntrance(dt);
+        return;
+      }
+
       this.introElapsed += dt;
       if (this.voice) this.voice.volume = AudioManager.getSfxVolume(1);
 
@@ -208,17 +236,10 @@
       const duration = this.voice && Number.isFinite(this.voice.duration) && this.voice.duration > 0
         ? this.voice.duration * 1000
         : config.introDurationMs;
-      const swingAt = Math.max(0, duration - config.swingLeadMs);
+      const devilAt = Math.max(0, duration - config.devilLeadMs);
 
-      if (elapsed >= swingAt) {
-        this.state = 'swing';
-        this.facing = -1;
-      } else {
-        this.state = 'introWalk';
-        this.patrol(dt);
-      }
-
-      if (this.voiceEnded || elapsed >= duration) this.transform(scene);
+      if (elapsed >= devilAt) this.transform(scene);
+      if (this.voiceEnded || elapsed >= duration) this.finishIntro(scene);
     }
 
     takeHit() {
