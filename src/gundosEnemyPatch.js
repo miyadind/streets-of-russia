@@ -2,14 +2,19 @@
   if (typeof GAME_CONFIG === 'undefined' || typeof Assets === 'undefined') return;
 
   const FOLDER = 'assets/enemies/gundos';
+  const ASSET_VERSION = 'bcbac33';
   const INTRO_DURATION_MS = 56425;
   const DEVIL_LEAD_MS = 2000;
 
+  function versioned(file) {
+    return FOLDER + '/' + file + '?v=' + ASSET_VERSION;
+  }
+
   Assets.gundos = {
-    walk: [FOLDER + '/walk0.png', FOLDER + '/walk1.png'],
-    swing: FOLDER + '/swing.png',
-    devil: FOLDER + '/devil.png',
-    appear: FOLDER + '/Appear.mp3'
+    walk: [versioned('walk0.png'), versioned('walk1.png')],
+    swing: versioned('swing.png'),
+    devil: versioned('devil.png'),
+    appear: versioned('Appear.mp3')
   };
 
   GAME_CONFIG.enemies.gundos = Object.assign({
