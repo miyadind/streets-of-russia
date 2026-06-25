@@ -6,7 +6,8 @@
     { type: 'zetnik', label: 'zetnik' },
     { type: 'sucker', label: 'sucker' },
     { type: 'bastard', label: 'bastard' },
-    { type: 'horse', label: 'horse' }
+    { type: 'horse', label: 'horse' },
+    { type: 'gundos', label: 'gundos' }
   ];
 
   const BestiaryScreen = {
