@@ -289,6 +289,12 @@
   window.GundosEnemy = GundosEnemy;
 
   if (typeof LevelScene !== 'undefined') {
+    const previousPlayEnemyAppearSound = LevelScene.prototype.playEnemyAppearSound;
+    LevelScene.prototype.playEnemyAppearSound = function (type) {
+      if (type === 'gundos') return;
+      return previousPlayEnemyAppearSound.call(this, type);
+    };
+
     const previousCreateEnemy = LevelScene.prototype.createEnemy;
     LevelScene.prototype.createEnemy = function (type, x, y, id) {
       if (type === 'gundos') return new GundosEnemy(x, y, this.images, id);
