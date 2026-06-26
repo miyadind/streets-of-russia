@@ -2,7 +2,7 @@
   if (typeof GAME_CONFIG === 'undefined' || typeof Assets === 'undefined') return;
 
   const FOLDER = 'assets/enemies/gundos';
-  const ASSET_VERSION = 'gundos-shield-1';
+  const ASSET_VERSION = 'gundos-medic-1';
   const INTRO_DURATION_MS = 56425;
   const DEVIL_LEAD_MS = 2000;
 
@@ -14,6 +14,7 @@
     walk: [versioned('walk0.png'), versioned('walk1.png')],
     swing: versioned('swing.png'),
     devil: versioned('devil.png'),
+    fireWall: 'assets/effects/gundos-fire-wall.png?v=' + ASSET_VERSION,
     appear: versioned('Appear.mp3')
   };
 
@@ -21,7 +22,7 @@
     name: 'gundos',
     hp: 6,
     speed: 1.25,
-    scale: 0.133,
+    scale: 0.266,
     damage: 0,
     blocksWaveClear: true,
     canAttack: false,
@@ -34,6 +35,8 @@
     zetnikSpawnMaxMs: 2450,
     maxZetniks: 3,
     guardZetniks: 3,
+    medicSpawnMs: 1200,
+    medicRespawnMs: 12500,
     zetnikHitDamage: 1,
     arenaMoveSpeed: 0,
     arenaTop: 540,
@@ -42,12 +45,12 @@
 
   function migrateIntroSequence() {
     const config = GAME_CONFIG.enemies.gundos;
-    if (Number(config.introSequenceVersion) >= 5) return;
+    if (Number(config.introSequenceVersion) >= 6) return;
     Object.assign(config, {
-      introSequenceVersion: 5,
+      introSequenceVersion: 6,
       speed: 1.25,
       hp: 6,
-      scale: 0.133,
+      scale: 0.266,
       devilLeadMs: DEVIL_LEAD_MS,
       entranceTargetX: 1040,
       entranceY: 620,
@@ -55,6 +58,8 @@
       zetnikSpawnMaxMs: 2450,
       maxZetniks: 3,
       guardZetniks: 3,
+      medicSpawnMs: 1200,
+      medicRespawnMs: 12500,
       zetnikHitDamage: 1,
       arenaMoveSpeed: 0,
       arenaTop: 540,
@@ -141,13 +146,15 @@
       const walk1 = await loadImage(Assets.gundos.walk[1]);
       const swing = await loadImage(Assets.gundos.swing);
       const devil = await loadImage(Assets.gundos.devil);
+      const fireWall = await loadImage(Assets.gundos.fireWall);
       if (!loaded.enemies) loaded.enemies = {};
       loaded.enemies.gundos = {
         idle: walk0 || walk1,
         walk: [walk0 || walk1, walk1 || walk0],
         swing: swing || walk1 || walk0,
         devil: devil || swing || walk1 || walk0,
-        dead: devil || swing || walk1 || walk0
+        dead: devil || swing || walk1 || walk0,
+        fireWall
       };
       return loaded;
     };
@@ -181,6 +188,7 @@
       this.arenaMoveDirection = Math.random() < 0.5 ? -1 : 1;
       this.voicePausedByGame = false;
       this.guardSpawned = false;
+      this.medicSpawnTimer = this.getConfig().medicSpawnMs || 1200;
     }
 
     getConfig() {
@@ -329,6 +337,7 @@
       scene.activeGundos = this;
       if (!this.introFinished) {
         this.ensureGuardWall(scene);
+        this.updateIntroMedic(dt, scene);
       } else {
         this.enforceFireRing(scene);
         this.updateZetnikPressure(dt, scene);
@@ -346,6 +355,18 @@
 
       if (elapsed >= devilAt) this.transform(scene);
       if (this.voiceEnded || elapsed >= duration) this.finishIntro(scene);
+    }
+
+    updateIntroMedic(dt, scene) {
+      if (!scene || !scene.spawnGundosMedicBastard) return;
+      const activeMedic = (scene.enemies || []).some(enemy =>
+        enemy && enemy.alive && !enemy.remove && enemy.enemyType === 'bastard' && enemy.gundosMedic
+      );
+      if (activeMedic) return;
+      this.medicSpawnTimer -= dt;
+      if (this.medicSpawnTimer > 0) return;
+      scene.spawnGundosMedicBastard(this);
+      this.medicSpawnTimer = this.getConfig().medicRespawnMs || 12500;
     }
 
     updateArenaMovement(dt) {
@@ -366,11 +387,12 @@
     enforceFireRing(scene) {
       if (!this.transformed || !scene || !scene.player) return;
       const player = scene.player;
-      const ringX = this.x - 125;
-      const ringY = this.y - 54;
-      const inY = Math.abs(player.y - ringY) <= 128;
-      if (!inY || player.x <= ringX - 74) return;
-      player.x = ringX - 74;
+      const wallLeft = this.x - 380;
+      const wallRight = this.x - 50;
+      const wallY = this.y - 66;
+      const inY = Math.abs(player.y - wallY) <= 86;
+      if (!inY || player.x <= wallLeft || player.x >= wallRight + 38) return;
+      player.x = wallLeft - 34;
       if (player.state !== 'knockdown' && player.state !== 'pinned') {
         player.startHitStun(90, 180);
         player.flash = Math.max(player.flash || 0, 180);
@@ -448,7 +470,7 @@
       const scale = this.getConfig().scale;
       const width = image.width * scale;
       const height = image.height * scale;
-      if (this.transformed && this.introFinished && this.alive) this.drawFireRing(ctx);
+      if (this.transformed && this.introFinished && this.alive) this.drawFireWall(ctx);
       ctx.save();
       if (!this.alive) ctx.globalAlpha = Math.max(0, 1 - this.deathTimer / 1200);
       else if (this.flash > 0) {
@@ -469,27 +491,27 @@
       }
     }
 
-    drawFireRing(ctx) {
-      const cx = this.x - 125;
-      const cy = this.y - 54;
-      const pulse = 0.5 + 0.5 * Math.sin(Date.now() / 130);
+    drawFireWall(ctx) {
+      const set = this.images.enemies.gundos || {};
+      const img = set.fireWall;
+      const wallX = this.x - 380;
+      const wallY = this.y - 124;
+      const wallW = 360;
+      const wallH = 96;
       ctx.save();
-      ctx.globalCompositeOperation = 'source-over';
-      ctx.lineCap = 'round';
-      ctx.shadowColor = '#ff4a17';
-      ctx.shadowBlur = 14 + pulse * 10;
-      ctx.strokeStyle = 'rgba(255, 67, 24, 0.86)';
-      ctx.lineWidth = 16;
-      ctx.beginPath();
-      ctx.ellipse(cx, cy, 62, 108, 0, -Math.PI * 0.58, Math.PI * 0.58);
-      ctx.stroke();
-      ctx.shadowColor = '#ffd447';
-      ctx.shadowBlur = 8 + pulse * 8;
-      ctx.strokeStyle = 'rgba(255, 215, 72, 0.9)';
-      ctx.lineWidth = 6;
-      ctx.beginPath();
-      ctx.ellipse(cx, cy, 56, 100, 0, -Math.PI * 0.55, Math.PI * 0.55);
-      ctx.stroke();
+      if (img) {
+        ctx.globalAlpha = 0.96;
+        ctx.drawImage(img, wallX, wallY, wallW, wallH);
+      } else {
+        const gradient = ctx.createLinearGradient(wallX, wallY, wallX + wallW, wallY);
+        gradient.addColorStop(0, 'rgba(255,70,15,0.15)');
+        gradient.addColorStop(0.5, 'rgba(255,210,60,0.95)');
+        gradient.addColorStop(1, 'rgba(255,70,15,0.15)');
+        ctx.shadowColor = '#ff4a17';
+        ctx.shadowBlur = 24;
+        ctx.fillStyle = gradient;
+        ctx.fillRect(wallX, wallY + 34, wallW, 20);
+      }
       ctx.restore();
     }
 
@@ -497,13 +519,13 @@
       if (!this.alive) return;
       const maxHp = Math.max(1, this.maxHp || this.getConfig().hp || 1);
       const ratio = Math.max(0, Math.min(1, this.hp / maxHp));
-      const w = 120;
-      const h = 10;
-      const x = this.x - w / 2;
-      const y = this.y - 160;
+      const w = 360;
+      const h = 18;
+      const x = GAME_CONFIG.width / 2 - w / 2;
+      const y = 22;
       ctx.save();
       ctx.fillStyle = 'rgba(0,0,0,0.72)';
-      ctx.fillRect(x - 2, y - 2, w + 4, h + 4);
+      ctx.fillRect(x - 3, y - 3, w + 6, h + 6);
       ctx.fillStyle = '#5f1010';
       ctx.fillRect(x, y, w, h);
       ctx.fillStyle = '#ff3b30';
@@ -511,6 +533,11 @@
       ctx.strokeStyle = 'rgba(255,255,255,0.8)';
       ctx.lineWidth = 1;
       ctx.strokeRect(x, y, w, h);
+      ctx.font = 'bold 14px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#fff0d0';
+      ctx.fillText('GUNDOS', GAME_CONFIG.width / 2, y + h / 2 + 1);
       ctx.restore();
     }
   }
@@ -539,6 +566,7 @@
       this.gundosIntroLocked = false;
       this.gundosArenaActive = false;
       this.activeGundos = null;
+      this.gundosFloatTexts = [];
       previousSpawnInitialWave.call(this);
     };
 
@@ -601,6 +629,54 @@
       this.playEnemyAppearSound('zetnik');
     };
 
+    LevelScene.prototype.spawnGundosMedicBastard = function (boss) {
+      const zone = this.getWalkZone ? this.getWalkZone() : {
+        left: 0,
+        top: GAME_CONFIG.laneTop,
+        bottom: GAME_CONFIG.laneBottom
+      };
+      const id = this.enemies.length + Math.floor(Math.random() * 1000);
+      const y = Math.min(zone.bottom - 26, Math.max(zone.top + 28, (this.player && this.player.y) || 620));
+      const enemy = new BastardEnemy(-70, y, this.images, id);
+      const targetX = Math.min(zone.left + 315, (boss ? boss.x - 520 : 315));
+      if (enemy.setupGundosMedic) enemy.setupGundosMedic(targetX, y);
+      this.enemies.push(enemy);
+      this.playEnemyAppearSound('bastard');
+      return enemy;
+    };
+
+    LevelScene.prototype.addGundosFloatText = function (text, x, y, color) {
+      if (!this.gundosFloatTexts) this.gundosFloatTexts = [];
+      this.gundosFloatTexts.push({ text, x, y, color: color || '#ffffff', age: 0 });
+    };
+
+    LevelScene.prototype.updateGundosFloatTexts = function (dt) {
+      if (!this.gundosFloatTexts) return;
+      for (const item of this.gundosFloatTexts) {
+        item.age += dt;
+        item.y -= 0.035 * dt;
+      }
+      this.gundosFloatTexts = this.gundosFloatTexts.filter(item => item.age < 900);
+    };
+
+    LevelScene.prototype.drawGundosFloatTexts = function (ctx) {
+      if (!this.gundosFloatTexts || !this.gundosFloatTexts.length) return;
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = 'bold 22px Arial';
+      for (const item of this.gundosFloatTexts) {
+        const alpha = Math.max(0, 1 - item.age / 900);
+        ctx.globalAlpha = alpha;
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = 'rgba(0,0,0,0.75)';
+        ctx.fillStyle = item.color;
+        ctx.strokeText(item.text, item.x, item.y);
+        ctx.fillText(item.text, item.x, item.y);
+      }
+      ctx.restore();
+    };
+
     LevelScene.prototype.releaseGundosGuardWall = function () {
       for (const enemy of this.enemies || []) {
         if (enemy && enemy.gundosMinion && enemy.gundosGuarding && enemy.releaseGundosGuard) {
@@ -622,6 +698,18 @@
         item.enemy.x = item.x;
         item.enemy.y = item.y;
       }
+    };
+
+    const previousSceneUpdate = LevelScene.prototype.update;
+    LevelScene.prototype.update = function (dt) {
+      previousSceneUpdate.call(this, dt);
+      this.updateGundosFloatTexts(dt);
+    };
+
+    const previousSceneDraw = LevelScene.prototype.draw;
+    LevelScene.prototype.draw = function (ctx) {
+      previousSceneDraw.call(this, ctx);
+      this.drawGundosFloatTexts(ctx);
     };
 
     LevelScene.prototype.pauseGundosVoice = function () {

@@ -244,6 +244,11 @@ class Player {
           this.playComboHitSound();
           enemy.takeHit(data.damage, this.facing, data.knockback);
           if (enemy.enemyType === 'bastard') {
+            const healAmount = 5;
+            if (healAmount > 0) {
+              this.hp = Math.min(this.maxHp, this.hp + healAmount);
+              if (scene.addGundosFloatText) scene.addGundosFloatText('+5 HP', enemy.x, enemy.y - 150, '#6dff8d');
+            }
             AudioManager.playSfx('enemyDown', 0.75, { playbackRate: 1.08, startAt: 0.01 });
           }
           scene.hitStop = GAME_CONFIG.playerHitStopMs;

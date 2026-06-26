@@ -23,6 +23,10 @@ class BastardEnemy {
     this.moveY = Math.random() < 0.5 ? -1 : 1;
     this.flash = 0;
     this.knockdowns = 0;
+    this.gundosMedic = false;
+    this.gundosMedicTimer = 0;
+    this.gundosMedicPhase = 'none';
+    this.gundosMedicTargetX = x;
   }
 
   applyTuning(resetHp = false) {
@@ -48,6 +52,11 @@ class BastardEnemy {
   }
 
   update(dt) {
+    if (this.gundosMedic) {
+      this.updateGundosMedic(dt);
+      return;
+    }
+
     this.applyTuning(false);
     if (this.flash > 0) this.flash -= dt;
 
@@ -65,6 +74,60 @@ class BastardEnemy {
 
     if (this.state === 'idle') return;
     if (this.state === 'wander') this.wander(dt);
+  }
+
+  setupGundosMedic(targetX = 285, y = this.y) {
+    this.gundosMedic = true;
+    this.gundosMedicTimer = 10000;
+    this.gundosMedicPhase = 'enter';
+    this.gundosMedicTargetX = targetX;
+    this.x = -70;
+    this.y = y;
+    this.facing = 1;
+    this.moveX = 1;
+    this.moveY = 0;
+    this.state = 'wander';
+    this.speed = Math.max(this.speed || 0.75, 1.45);
+    this.blocksWaveClear = false;
+    this.alive = true;
+    this.remove = false;
+  }
+
+  updateGundosMedic(dt) {
+    this.applyTuning(false);
+    this.speed = Math.max(this.speed || 0.75, 1.45);
+    if (this.flash > 0) this.flash -= dt;
+    this.walkTimer += dt;
+    if (this.walkTimer >= GAME_CONFIG.enemyWalkFrameMs) {
+      this.walkTimer -= GAME_CONFIG.enemyWalkFrameMs;
+      this.walkFrame = (this.walkFrame + 1) % 3;
+    }
+
+    if (this.gundosMedicPhase === 'enter') {
+      this.facing = 1;
+      this.x += this.speed * 1.75;
+      if (this.x >= this.gundosMedicTargetX) {
+        this.x = this.gundosMedicTargetX;
+        this.gundosMedicPhase = 'idle';
+        this.state = 'idle';
+      }
+      return;
+    }
+
+    this.gundosMedicTimer -= dt;
+    if (this.gundosMedicTimer <= 0) {
+      this.gundosMedicPhase = 'exit';
+      this.state = 'wander';
+    }
+
+    if (this.gundosMedicPhase === 'exit') {
+      this.facing = -1;
+      this.x -= this.speed * 2.2;
+      if (this.x < -120) this.remove = true;
+      return;
+    }
+
+    this.state = this.flash > 0 ? 'fallen' : 'idle';
   }
 
   chooseNextAction() {

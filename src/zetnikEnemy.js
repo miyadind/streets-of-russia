@@ -161,6 +161,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
     this.gundosSpeed = 0;
     this.state = 'gundosGuard';
     this.intent = 'gundosGuard';
+    this.walkFrame = 0;
   }
 
   updateGundosMinion(dt, scene) {
@@ -177,11 +178,6 @@ class ZetnikEnemy extends DogRegimeEnemy {
       this.facing = -1;
       if (scene && scene.player && Combat.overlap(this.getHurtbox(), scene.player.getBodyBox())) {
         scene.player.x = Math.min(scene.player.x, this.x - 86);
-      }
-      this.walkTimer += dt;
-      if (this.walkTimer >= GAME_CONFIG.enemyWalkFrameMs) {
-        this.walkTimer -= GAME_CONFIG.enemyWalkFrameMs;
-        this.walkFrame = (this.walkFrame + 1) % 3;
       }
       return;
     }
@@ -379,6 +375,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
   getImage() {
     const enemyImages = this.getEnemyImages();
     if (!this.alive || this.state === 'crash') return enemyImages.crashed || enemyImages.dead || enemyImages.attack[0] || enemyImages.idle;
+    if (this.gundosGuarding) return enemyImages.preparing || enemyImages.attack[0] || enemyImages.idle;
     if (this.gundosMinion) return this.redirectedToBoss
       ? (enemyImages.fly || enemyImages.preparing || enemyImages.attack[0] || enemyImages.idle)
       : (enemyImages.walk[this.walkFrame] || enemyImages.idle || enemyImages.preparing || enemyImages.attack[0]);
