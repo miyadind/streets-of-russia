@@ -2,7 +2,7 @@
   if (typeof GAME_CONFIG === 'undefined' || typeof Assets === 'undefined') return;
 
   const FOLDER = 'assets/enemies/gundos';
-  const ASSET_VERSION = 'bcbac33';
+  const ASSET_VERSION = 'gundos-battle-1';
   const INTRO_DURATION_MS = 56425;
   const DEVIL_LEAD_MS = 2000;
 
@@ -19,29 +19,38 @@
 
   GAME_CONFIG.enemies.gundos = Object.assign({
     name: 'gundos',
-    hp: 9999,
+    hp: 6,
     speed: 1.25,
-    scale: 0.266,
+    scale: 0.133,
     damage: 0,
     blocksWaveClear: true,
     canAttack: false,
-    canDie: false,
+    canDie: true,
     introDurationMs: INTRO_DURATION_MS,
     devilLeadMs: DEVIL_LEAD_MS,
     entranceTargetX: 1040,
-    entranceY: 620
+    entranceY: 620,
+    zetnikSpawnMinMs: 1450,
+    zetnikSpawnMaxMs: 2450,
+    maxZetniks: 3,
+    zetnikHitDamage: 1
   }, GAME_CONFIG.enemies.gundos || {});
 
   function migrateIntroSequence() {
     const config = GAME_CONFIG.enemies.gundos;
-    if (Number(config.introSequenceVersion) >= 2) return;
+    if (Number(config.introSequenceVersion) >= 3) return;
     Object.assign(config, {
-      introSequenceVersion: 2,
+      introSequenceVersion: 3,
       speed: 1.25,
-      scale: 0.266,
+      hp: 6,
+      scale: 0.133,
       devilLeadMs: DEVIL_LEAD_MS,
       entranceTargetX: 1040,
-      entranceY: 620
+      entranceY: 620,
+      zetnikSpawnMinMs: 1450,
+      zetnikSpawnMaxMs: 2450,
+      maxZetniks: 3,
+      zetnikHitDamage: 1
     });
     delete config.swingLeadMs;
     delete config.patrolLeft;
@@ -65,9 +74,13 @@
     const fields = [
       { label: 'Gundos speed', path: 'enemies.gundos.speed', min: 0.1, max: 3, step: 0.05 },
       { label: 'Gundos scale', path: 'enemies.gundos.scale', min: 0.1, max: 0.7, step: 0.01 },
+      { label: 'Gundos HP', path: 'enemies.gundos.hp', min: 1, max: 20, step: 1 },
       { label: 'Entrance target X', path: 'enemies.gundos.entranceTargetX', min: 600, max: 1200, step: 10 },
       { label: 'Entrance Y', path: 'enemies.gundos.entranceY', min: 350, max: 720, step: 5 },
-      { label: 'Devil lead ms', path: 'enemies.gundos.devilLeadMs', min: 0, max: 10000, step: 250 }
+      { label: 'Devil lead ms', path: 'enemies.gundos.devilLeadMs', min: 0, max: 10000, step: 250 },
+      { label: 'Zetnik min spawn', path: 'enemies.gundos.zetnikSpawnMinMs', min: 500, max: 6000, step: 100 },
+      { label: 'Zetnik max spawn', path: 'enemies.gundos.zetnikSpawnMaxMs', min: 500, max: 8000, step: 100 },
+      { label: 'Max Zetniks', path: 'enemies.gundos.maxZetniks', min: 1, max: 8, step: 1 }
     ];
     for (const field of fields) {
       if (!DevPanel.fieldGroups.GUNDOS.some(item => item.path === field.path)) {
@@ -131,6 +144,8 @@
       this.transformed = false;
       this.introFinished = false;
       this.previousMusicVolume = null;
+      this.spawnTimer = 900;
+      this.deathTimer = 0;
     }
 
     getConfig() {
@@ -172,7 +187,7 @@
       return this.introElapsed;
     }
 
-    walkToEntrance(dt) {
+    walkToEntrance(dt, scene) {
       const config = this.getConfig();
       const dx = config.entranceTargetX - this.x;
       const dy = config.entranceY - this.y;
@@ -182,6 +197,11 @@
         this.y = config.entranceY;
         this.state = 'swing';
         this.facing = -1;
+        if (scene) {
+          scene.gundosIntroActive = true;
+          scene.gundosIntroLocked = false;
+          scene.gundosArenaActive = true;
+        }
         this.startVoice();
         return;
       }
@@ -211,7 +231,11 @@
       this.introFinished = true;
       if (!this.transformed) this.transform(scene);
       if (AudioManager.currentMusic) AudioManager.currentMusic.volume = AudioManager.getMusicVolume();
-      if (scene) scene.gundosIntroActive = false;
+      if (scene) {
+        scene.gundosIntroActive = false;
+        scene.gundosIntroLocked = false;
+        scene.gundosArenaActive = true;
+      }
     }
 
     stopVoice() {
@@ -225,13 +249,23 @@
     }
 
     update(dt, scene) {
-      if (this.introFinished) return;
+      if (!this.alive) {
+        this.deathTimer += dt;
+        if (this.deathTimer > 1200) this.remove = true;
+        return;
+      }
+
       scene.gundosIntroActive = true;
 
       if (this.state === 'introWalk') {
-        this.walkToEntrance(dt);
+        scene.gundosIntroLocked = true;
+        this.walkToEntrance(dt, scene);
         return;
       }
+
+      scene.gundosIntroLocked = false;
+      scene.gundosArenaActive = true;
+      this.updateZetnikPressure(dt, scene);
 
       this.introElapsed += dt;
       if (this.voice) this.voice.volume = AudioManager.getSfxVolume(1);
@@ -247,12 +281,53 @@
       if (this.voiceEnded || elapsed >= duration) this.finishIntro(scene);
     }
 
+    updateZetnikPressure(dt, scene) {
+      const config = this.getConfig();
+      this.spawnTimer -= dt;
+      if (this.spawnTimer > 0) return;
+
+      const active = (scene.enemies || []).filter(enemy =>
+        enemy && enemy.alive && enemy.enemyType === 'zetnik' && enemy.gundosMinion && !enemy.remove
+      ).length;
+      if (active < (config.maxZetniks || 3) && scene.spawnGundosZetnik) {
+        scene.spawnGundosZetnik(this);
+      }
+
+      const min = config.zetnikSpawnMinMs || 1450;
+      const max = Math.max(min, config.zetnikSpawnMaxMs || 2450);
+      this.spawnTimer = min + Math.random() * (max - min);
+    }
+
+    receiveZetnikHit(zetnik, scene) {
+      if (!this.alive) return;
+      const config = this.getConfig();
+      this.hp = Math.max(0, this.hp - (config.zetnikHitDamage || 1));
+      this.flash = 220;
+      AudioManager.playSfx('zetnikCrash', 1, { playbackRate: 0.82, startAt: 0.01 });
+      if (scene) scene.hitStop = Math.max(scene.hitStop || 0, 80);
+      if (this.hp <= 0) this.defeat(scene);
+    }
+
+    defeat(scene) {
+      if (!this.alive) return;
+      this.alive = false;
+      this.blocksWaveClear = false;
+      this.deathTimer = 0;
+      this.stopVoice();
+      if (scene) {
+        scene.gundosIntroActive = false;
+        scene.gundosIntroLocked = false;
+        scene.gundosArenaActive = false;
+      }
+      AudioManager.playSfx('enemyDown', 1, { playbackRate: 0.82, startAt: 0.01 });
+    }
+
     takeHit() {
-      // The introduction and transformation are invulnerable.
+      this.flash = 120;
     }
 
     getBodyBox() {
-      return { x: this.x - 55, y: this.y - 190, w: 110, h: 190 };
+      return { x: this.x - 35, y: this.y - 125, w: 70, h: 125 };
     }
 
     getHurtbox() {
@@ -277,10 +352,16 @@
       const width = image.width * scale;
       const height = image.height * scale;
       ctx.save();
+      if (!this.alive) ctx.globalAlpha = Math.max(0, 1 - this.deathTimer / 1200);
+      else if (this.flash > 0) {
+        this.flash = Math.max(0, this.flash - 16);
+        ctx.globalAlpha = 0.55;
+      }
       ctx.translate(this.x, this.y);
       if (this.facing < 0) ctx.scale(-1, 1);
       ctx.drawImage(image, -width / 2, -height, width, height);
       ctx.restore();
+      this.drawHealthBar(ctx);
 
       if (debug) {
         const body = this.getBodyBox();
@@ -288,6 +369,27 @@
         ctx.lineWidth = 2;
         ctx.strokeRect(body.x, body.y, body.w, body.h);
       }
+    }
+
+    drawHealthBar(ctx) {
+      if (!this.alive) return;
+      const maxHp = Math.max(1, this.maxHp || this.getConfig().hp || 1);
+      const ratio = Math.max(0, Math.min(1, this.hp / maxHp));
+      const w = 120;
+      const h = 10;
+      const x = this.x - w / 2;
+      const y = this.y - 160;
+      ctx.save();
+      ctx.fillStyle = 'rgba(0,0,0,0.72)';
+      ctx.fillRect(x - 2, y - 2, w + 4, h + 4);
+      ctx.fillStyle = '#5f1010';
+      ctx.fillRect(x, y, w, h);
+      ctx.fillStyle = '#ff3b30';
+      ctx.fillRect(x, y, w * ratio, h);
+      ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x, y, w, h);
+      ctx.restore();
     }
   }
 
@@ -312,6 +414,8 @@
         if (enemy && enemy.enemyType === 'gundos' && enemy.stopVoice) enemy.stopVoice();
       }
       this.gundosIntroActive = false;
+      this.gundosIntroLocked = false;
+      this.gundosArenaActive = false;
       previousSpawnInitialWave.call(this);
     };
 
@@ -319,6 +423,8 @@
     LevelScene.prototype.materializeWave = function (wave) {
       if ((wave.enemies || []).some(group => group.type === 'gundos')) {
         this.gundosIntroActive = true;
+        this.gundosIntroLocked = true;
+        this.gundosArenaActive = false;
         const zone = this.getWalkZone ? this.getWalkZone() : {
           left: 0,
           right: GAME_CONFIG.width,
@@ -332,12 +438,35 @@
       }
       previousMaterializeWave.call(this, wave);
     };
+
+    LevelScene.prototype.getGundosLanes = function () {
+      const zone = this.getWalkZone ? this.getWalkZone() : {
+        top: GAME_CONFIG.laneTop,
+        bottom: GAME_CONFIG.laneBottom
+      };
+      const top = zone.top + 24;
+      const bottom = zone.bottom - 26;
+      const mid = (top + bottom) / 2;
+      return [top, mid, bottom];
+    };
+
+    LevelScene.prototype.spawnGundosZetnik = function (boss) {
+      const lanes = this.getGundosLanes();
+      const y = lanes[Math.floor(Math.random() * lanes.length)];
+      const id = this.enemies.length + Math.floor(Math.random() * 1000);
+      const x = Math.min(GAME_CONFIG.width + 110, (boss && boss.x ? boss.x + 180 : GAME_CONFIG.width + 80));
+      const enemy = new ZetnikEnemy(x, y, this.images, id);
+      if (enemy.setupGundosMinion) enemy.setupGundosMinion(boss);
+      this.enemies.push(enemy);
+      this.playEnemyAppearSound('zetnik');
+      return enemy;
+    };
   }
 
   if (typeof Player !== 'undefined') {
     const previousPlayerUpdate = Player.prototype.update;
     Player.prototype.update = function (dt, scene) {
-      if (scene && scene.gundosIntroActive) {
+      if (scene && scene.gundosIntroLocked) {
         this.state = 'idle';
         this.attackTimer = 0;
         this.attackHasHit = false;

@@ -25,8 +25,8 @@ window.Assets = {
       waveStart:null,
       waveClear:null,
       bossAppear:null,
-      zetnikPreparing:'assets/enemies/zetnik/preparing.mp3',
-      zetnikCrash:'assets/enemies/zetnik/crash.mp3'
+      zetnikPreparing:'assets/enemies/zetnik/preparing.mp3?v=zetnik-audio-1',
+      zetnikCrash:'assets/enemies/zetnik/crash.mp3?v=zetnik-audio-1'
     }
   },
   boris:{

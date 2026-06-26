@@ -13,6 +13,12 @@ class ZetnikEnemy extends DogRegimeEnemy {
     this.lockedTargetY = y;
     this.jumpHasHit = false;
     this.crashTimer = 0;
+    this.gundosMinion = false;
+    this.gundosBoss = null;
+    this.redirectedToBoss = false;
+    this.gundosDirection = -1;
+    this.gundosSpeed = 5.8;
+    this.gundosHitPlayer = false;
   }
 
   applyTuning(resetHp = false) {
@@ -35,6 +41,11 @@ class ZetnikEnemy extends DogRegimeEnemy {
 
   update(dt, scene) {
     if (this.remove) return;
+
+    if (this.gundosMinion) {
+      this.updateGundosMinion(dt, scene);
+      return;
+    }
 
     if (!this.alive) {
       this.deadTimer += dt;
@@ -115,6 +126,89 @@ class ZetnikEnemy extends DogRegimeEnemy {
     this.attackTimer = 0;
     this.attackHasHit = false;
     AudioManager.playSfx('zetnikPreparing', 0.9, { playbackRate: 1, startAt: 0.01 });
+  }
+
+  setupGundosMinion(boss) {
+    this.gundosMinion = true;
+    this.gundosBoss = boss || null;
+    this.redirectedToBoss = false;
+    this.gundosDirection = -1;
+    this.gundosSpeed = 5.8 + Math.random() * 1.2;
+    this.gundosHitPlayer = false;
+    this.blocksWaveClear = false;
+    this.state = 'gundosCharge';
+    this.intent = 'gundosCharge';
+    this.facing = -1;
+    this.hp = Math.max(this.hp, 1);
+    this.alive = true;
+    this.remove = false;
+    this.flash = 0;
+    this.hitStun = 0;
+    this.walkTimer = 0;
+  }
+
+  updateGundosMinion(dt, scene) {
+    if (!this.alive) {
+      this.updateCrash(dt);
+      return;
+    }
+
+    if (this.flash > 0) this.flash -= dt;
+    const frameScale = Math.max(0.65, Math.min(1.55, dt / 16.67));
+    this.x += this.gundosDirection * this.gundosSpeed * frameScale;
+    this.facing = this.gundosDirection >= 0 ? 1 : -1;
+    this.updateWalkFrame(dt);
+
+    const player = scene && scene.player;
+    if (!this.redirectedToBoss && player && !this.gundosHitPlayer && Combat.overlap(this.getHurtbox(), player.getBodyBox())) {
+      this.gundosHitPlayer = true;
+      player.receiveDamage(this.damage, {
+        source: 'ranged',
+        knockbackX: this.facing * this.crashKnockbackX,
+        knockdownMs: this.knockdownMs
+      });
+      this.finishGundosCrash(scene);
+      return;
+    }
+
+    const boss = this.gundosBoss || this.findGundosBoss(scene);
+    if (this.redirectedToBoss && boss && boss.alive && Combat.overlap(this.getHurtbox(), boss.getHurtbox())) {
+      if (boss.receiveZetnikHit) boss.receiveZetnikHit(this, scene);
+      this.finishGundosCrash(scene);
+      return;
+    }
+
+    if (this.x < -140 || this.x > GAME_CONFIG.width + 180) {
+      this.remove = true;
+    }
+  }
+
+  findGundosBoss(scene) {
+    if (!scene || !scene.enemies) return null;
+    return scene.enemies.find(enemy => enemy && enemy.enemyType === 'gundos' && enemy.alive) || null;
+  }
+
+  redirectToGundos(player) {
+    const boss = this.gundosBoss;
+    this.redirectedToBoss = true;
+    this.gundosDirection = boss && boss.x < this.x ? -1 : 1;
+    this.gundosSpeed = Math.max(this.gundosSpeed, 8.2);
+    this.facing = this.gundosDirection >= 0 ? 1 : -1;
+    this.flash = 260;
+    this.state = 'gundosRedirected';
+    if (player && player.playComboHitSound) player.playComboHitSound();
+    AudioManager.playSfx('zetnikPreparing', 0.75, { playbackRate: 1.25, startAt: 0.01 });
+  }
+
+  finishGundosCrash(scene) {
+    this.alive = false;
+    this.state = 'crash';
+    this.crashTimer = 0;
+    this.deadTimer = 0;
+    this.hp = 0;
+    this.flash = 180;
+    AudioManager.playSfx('zetnikCrash', 0.95, { playbackRate: 1, startAt: 0.01 });
+    if (scene) scene.hitStop = Math.max(scene.hitStop || 0, 45);
   }
 
   updatePrepareJump(dt, scene) {
@@ -202,6 +296,10 @@ class ZetnikEnemy extends DogRegimeEnemy {
   }
 
   takeHit(damage, direction, knockback) {
+    if (this.gundosMinion) {
+      if (!this.redirectedToBoss && this.alive) this.redirectToGundos();
+      return;
+    }
     if (this.state === 'jump' || this.state === 'prepareJump') return;
     super.takeHit(damage, direction, knockback);
   }
@@ -220,6 +318,9 @@ class ZetnikEnemy extends DogRegimeEnemy {
   getImage() {
     const enemyImages = this.getEnemyImages();
     if (!this.alive || this.state === 'crash') return enemyImages.crashed || enemyImages.dead || enemyImages.attack[0] || enemyImages.idle;
+    if (this.gundosMinion) return this.redirectedToBoss
+      ? (enemyImages.fly || enemyImages.preparing || enemyImages.attack[0] || enemyImages.idle)
+      : (enemyImages.preparing || enemyImages.fly || enemyImages.attack[0] || enemyImages.idle);
     if (this.state === 'prepareJump') return enemyImages.preparing || enemyImages.attack[0] || enemyImages.idle;
     if (this.state === 'jump') return enemyImages.fly || enemyImages.attack[0] || enemyImages.idle;
     if (this.hitStun > 0) return enemyImages.idle;
@@ -239,6 +340,10 @@ class ZetnikEnemy extends DogRegimeEnemy {
 
     ctx.save();
     ctx.globalAlpha = alpha;
+    if (this.redirectedToBoss && this.flash > 0) {
+      ctx.shadowColor = '#66ff66';
+      ctx.shadowBlur = 22;
+    }
     ctx.translate(this.x, this.y);
     if (this.facing === -1) ctx.scale(-1, 1);
     ctx.drawImage(img, -w / 2, -h, w, h);
