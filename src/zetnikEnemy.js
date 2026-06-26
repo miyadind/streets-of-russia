@@ -157,7 +157,11 @@ class ZetnikEnemy extends DogRegimeEnemy {
     const frameScale = Math.max(0.65, Math.min(1.55, dt / 16.67));
     this.x += this.gundosDirection * this.gundosSpeed * frameScale;
     this.facing = this.gundosDirection >= 0 ? 1 : -1;
-    this.updateWalkFrame(dt);
+    this.walkTimer += dt;
+    if (this.walkTimer >= GAME_CONFIG.enemyWalkFrameMs) {
+      this.walkTimer -= GAME_CONFIG.enemyWalkFrameMs;
+      this.walkFrame = (this.walkFrame + 1) % 3;
+    }
 
     const player = scene && scene.player;
     if (!this.redirectedToBoss && player && !this.gundosHitPlayer && Combat.overlap(this.getHurtbox(), player.getBodyBox())) {
