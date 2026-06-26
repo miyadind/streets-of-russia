@@ -133,7 +133,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
     this.gundosBoss = boss || null;
     this.redirectedToBoss = false;
     this.gundosDirection = -1;
-    this.gundosSpeed = 5.8 + Math.random() * 1.2;
+    this.gundosSpeed = 4.8 + Math.random() * 0.9;
     this.gundosHitPlayer = false;
     this.blocksWaveClear = false;
     this.state = 'gundosCharge';
@@ -309,6 +309,9 @@ class ZetnikEnemy extends DogRegimeEnemy {
   }
 
   getHurtbox() {
+    if (this.gundosMinion) {
+      return { x: this.x - 58, y: this.y - 150, w: 116, h: 132 };
+    }
     if (this.state === 'jump') {
       return { x: this.x - 44, y: this.y - 150, w: 88, h: 120 };
     }
@@ -324,7 +327,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
     if (!this.alive || this.state === 'crash') return enemyImages.crashed || enemyImages.dead || enemyImages.attack[0] || enemyImages.idle;
     if (this.gundosMinion) return this.redirectedToBoss
       ? (enemyImages.fly || enemyImages.preparing || enemyImages.attack[0] || enemyImages.idle)
-      : (enemyImages.preparing || enemyImages.fly || enemyImages.attack[0] || enemyImages.idle);
+      : (enemyImages.walk[this.walkFrame] || enemyImages.idle || enemyImages.preparing || enemyImages.attack[0]);
     if (this.state === 'prepareJump') return enemyImages.preparing || enemyImages.attack[0] || enemyImages.idle;
     if (this.state === 'jump') return enemyImages.fly || enemyImages.attack[0] || enemyImages.idle;
     if (this.hitStun > 0) return enemyImages.idle;

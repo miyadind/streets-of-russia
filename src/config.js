@@ -274,6 +274,12 @@ const GAME_CONFIG = {
             { type: 'dogRegime', count: 1, side: 'left' },
             { type: 'zetnik', count: 1, side: 'right' }
           ]
+        },
+        {
+          trigger: 'afterWaveCleared',
+          enemies: [
+            { type: 'sucker', count: 1, side: 'right' }
+          ]
         }
       ],
       walkZone: {
@@ -298,18 +304,6 @@ const GAME_CONFIG = {
       waves: [
         {
           trigger: 'onEnter',
-          enemies: [
-            { type: 'dogRegime', count: 2, side: 'right' }
-          ]
-        },
-        {
-          trigger: 'afterWaveCleared',
-          enemies: [
-            { type: 'sucker', count: 1, side: 'right' }
-          ]
-        },
-        {
-          trigger: 'afterWaveCleared',
           enemies: [
             { type: 'gundos', count: 1, side: 'right' }
           ]

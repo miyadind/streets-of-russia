@@ -2,7 +2,7 @@
   if (typeof GAME_CONFIG === 'undefined' || typeof Assets === 'undefined') return;
 
   const FOLDER = 'assets/enemies/gundos';
-  const ASSET_VERSION = 'gundos-battle-1';
+  const ASSET_VERSION = 'gundos-battle-2';
   const INTRO_DURATION_MS = 56425;
   const DEVIL_LEAD_MS = 2000;
 
@@ -33,14 +33,17 @@
     zetnikSpawnMinMs: 1450,
     zetnikSpawnMaxMs: 2450,
     maxZetniks: 3,
-    zetnikHitDamage: 1
+    zetnikHitDamage: 1,
+    arenaMoveSpeed: 0.6,
+    arenaTop: 540,
+    arenaBottom: 675
   }, GAME_CONFIG.enemies.gundos || {});
 
   function migrateIntroSequence() {
     const config = GAME_CONFIG.enemies.gundos;
-    if (Number(config.introSequenceVersion) >= 3) return;
+    if (Number(config.introSequenceVersion) >= 4) return;
     Object.assign(config, {
-      introSequenceVersion: 3,
+      introSequenceVersion: 4,
       speed: 1.25,
       hp: 6,
       scale: 0.133,
@@ -50,7 +53,10 @@
       zetnikSpawnMinMs: 1450,
       zetnikSpawnMaxMs: 2450,
       maxZetniks: 3,
-      zetnikHitDamage: 1
+      zetnikHitDamage: 1,
+      arenaMoveSpeed: 0.6,
+      arenaTop: 540,
+      arenaBottom: 675
     });
     delete config.swingLeadMs;
     delete config.patrolLeft;
@@ -59,13 +65,36 @@
     delete config.patrolBottom;
   }
 
+  function configureFarEastFinale() {
+    if (!GAME_CONFIG.levels) return;
+    const street02 = GAME_CONFIG.levels.street02;
+    const street03 = GAME_CONFIG.levels.street03;
+
+    if (street02 && Array.isArray(street02.waves) &&
+        !street02.waves.some(wave => (wave.enemies || []).some(group => group.type === 'sucker'))) {
+      street02.waves.push({
+        trigger: 'afterWaveCleared',
+        enemies: [{ type: 'sucker', count: 1, side: 'right' }]
+      });
+    }
+
+    if (street03) {
+      street03.waves = [{
+        trigger: 'onEnter',
+        enemies: [{ type: 'gundos', count: 1, side: 'right' }]
+      }];
+    }
+  }
+
   migrateIntroSequence();
+  configureFarEastFinale();
 
   if (typeof DevPanel !== 'undefined') {
     const previousLoad = DevPanel.load;
     DevPanel.load = function () {
       if (previousLoad) previousLoad.call(this);
       migrateIntroSequence();
+      configureFarEastFinale();
     };
 
     if (DevPanel.tabs && !DevPanel.tabs.includes('GUNDOS')) DevPanel.tabs.push('GUNDOS');
@@ -80,7 +109,8 @@
       { label: 'Devil lead ms', path: 'enemies.gundos.devilLeadMs', min: 0, max: 10000, step: 250 },
       { label: 'Zetnik min spawn', path: 'enemies.gundos.zetnikSpawnMinMs', min: 500, max: 6000, step: 100 },
       { label: 'Zetnik max spawn', path: 'enemies.gundos.zetnikSpawnMaxMs', min: 500, max: 8000, step: 100 },
-      { label: 'Max Zetniks', path: 'enemies.gundos.maxZetniks', min: 1, max: 8, step: 1 }
+      { label: 'Max Zetniks', path: 'enemies.gundos.maxZetniks', min: 1, max: 8, step: 1 },
+      { label: 'Arena move speed', path: 'enemies.gundos.arenaMoveSpeed', min: 0, max: 2.5, step: 0.05 }
     ];
     for (const field of fields) {
       if (!DevPanel.fieldGroups.GUNDOS.some(item => item.path === field.path)) {
@@ -146,6 +176,8 @@
       this.previousMusicVolume = null;
       this.spawnTimer = 900;
       this.deathTimer = 0;
+      this.arenaMoveDirection = Math.random() < 0.5 ? -1 : 1;
+      this.voicePausedByGame = false;
     }
 
     getConfig() {
@@ -201,6 +233,7 @@
           scene.gundosIntroActive = true;
           scene.gundosIntroLocked = false;
           scene.gundosArenaActive = true;
+          scene.activeGundos = this;
         }
         this.startVoice();
         return;
@@ -248,6 +281,23 @@
       if (AudioManager.currentMusic) AudioManager.currentMusic.volume = AudioManager.getMusicVolume();
     }
 
+    pauseVoice() {
+      if (!this.voice || this.voice.paused || this.voice.ended) return;
+      try {
+        this.voice.pause();
+        this.voicePausedByGame = true;
+      } catch (error) {}
+    }
+
+    resumeVoice() {
+      if (!this.voice || !this.voicePausedByGame || this.voice.ended) return;
+      this.voicePausedByGame = false;
+      try {
+        this.voice.volume = AudioManager.getSfxVolume(1);
+        this.voice.play().catch(() => {});
+      } catch (error) {}
+    }
+
     update(dt, scene) {
       if (!this.alive) {
         this.deathTimer += dt;
@@ -265,6 +315,8 @@
 
       scene.gundosIntroLocked = false;
       scene.gundosArenaActive = true;
+      scene.activeGundos = this;
+      this.updateArenaMovement(dt);
       this.updateZetnikPressure(dt, scene);
 
       this.introElapsed += dt;
@@ -279,6 +331,21 @@
 
       if (elapsed >= devilAt) this.transform(scene);
       if (this.voiceEnded || elapsed >= duration) this.finishIntro(scene);
+    }
+
+    updateArenaMovement(dt) {
+      const config = this.getConfig();
+      const top = config.arenaTop || 540;
+      const bottom = config.arenaBottom || 675;
+      const speed = config.arenaMoveSpeed == null ? 0.6 : config.arenaMoveSpeed;
+      this.y += this.arenaMoveDirection * speed * Math.max(0.65, Math.min(1.55, dt / 16.67));
+      if (this.y <= top) {
+        this.y = top;
+        this.arenaMoveDirection = 1;
+      } else if (this.y >= bottom) {
+        this.y = bottom;
+        this.arenaMoveDirection = -1;
+      }
     }
 
     updateZetnikPressure(dt, scene) {
@@ -318,6 +385,7 @@
         scene.gundosIntroActive = false;
         scene.gundosIntroLocked = false;
         scene.gundosArenaActive = false;
+        scene.activeGundos = null;
       }
       AudioManager.playSfx('enemyDown', 1, { playbackRate: 0.82, startAt: 0.01 });
     }
@@ -416,6 +484,7 @@
       this.gundosIntroActive = false;
       this.gundosIntroLocked = false;
       this.gundosArenaActive = false;
+      this.activeGundos = null;
       previousSpawnInitialWave.call(this);
     };
 
@@ -425,6 +494,7 @@
         this.gundosIntroActive = true;
         this.gundosIntroLocked = true;
         this.gundosArenaActive = false;
+        this.activeGundos = null;
         const zone = this.getWalkZone ? this.getWalkZone() : {
           left: 0,
           right: GAME_CONFIG.width,
@@ -461,6 +531,26 @@
       this.playEnemyAppearSound('zetnik');
       return enemy;
     };
+
+    LevelScene.prototype.pauseGundosVoice = function () {
+      const boss = this.activeGundos || (this.enemies || []).find(enemy => enemy && enemy.enemyType === 'gundos');
+      if (boss && boss.pauseVoice) boss.pauseVoice();
+    };
+
+    LevelScene.prototype.resumeGundosVoice = function () {
+      const boss = this.activeGundos || (this.enemies || []).find(enemy => enemy && enemy.enemyType === 'gundos');
+      if (boss && boss.resumeVoice) boss.resumeVoice();
+    };
+
+    LevelScene.prototype.stopGundosVoice = function () {
+      for (const enemy of this.enemies || []) {
+        if (enemy && enemy.enemyType === 'gundos' && enemy.stopVoice) enemy.stopVoice();
+      }
+      this.gundosIntroActive = false;
+      this.gundosIntroLocked = false;
+      this.gundosArenaActive = false;
+      this.activeGundos = null;
+    };
   }
 
   if (typeof Player !== 'undefined') {
@@ -477,12 +567,67 @@
     };
   }
 
-  const street03 = GAME_CONFIG.levels && GAME_CONFIG.levels.street03;
-  if (street03 && Array.isArray(street03.waves) &&
-      !street03.waves.some(wave => (wave.enemies || []).some(group => group.type === 'gundos'))) {
-    street03.waves.push({
-      trigger: 'afterWaveCleared',
-      enemies: [{ type: 'gundos', count: 1, side: 'right' }]
+  if (typeof GameApp !== 'undefined') {
+    const previousSetState = GameApp.prototype.setState;
+    GameApp.prototype.setState = function (nextState) {
+      const previousState = this.state;
+      const scene = this.scene;
+      if (scene && previousState === 'level' && nextState !== 'level') {
+        const keepPausedForHeroSwitch = nextState === 'characterSelect' && this.characterSelectMode === 'switchHero';
+        if (keepPausedForHeroSwitch && scene.pauseGundosVoice) scene.pauseGundosVoice();
+        else if (scene.stopGundosVoice) scene.stopGundosVoice();
+      }
+
+      const result = previousSetState.call(this, nextState);
+
+      if (this.scene && previousState !== 'level' && nextState === 'level' && this.scene.resumeGundosVoice) {
+        this.scene.resumeGundosVoice();
+      }
+
+      return result;
+    };
+
+    const previousGameUpdate = GameApp.prototype.update;
+    GameApp.prototype.update = function (dt) {
+      const wasPaused = !!this.gundosAudioPauseState;
+      const shouldPause = this.state === 'level' && !!this.paused;
+      if (this.scene) {
+        if (shouldPause && !wasPaused && this.scene.pauseGundosVoice) this.scene.pauseGundosVoice();
+        if (!shouldPause && wasPaused && this.scene.resumeGundosVoice) this.scene.resumeGundosVoice();
+      }
+      if (shouldPause && !wasPaused && AudioManager.pauseAllAudio) AudioManager.pauseAllAudio();
+      if (!shouldPause && wasPaused && AudioManager.resumePausedAudio) AudioManager.resumePausedAudio();
+      this.gundosAudioPauseState = shouldPause;
+      return previousGameUpdate.call(this, dt);
+    };
+
+    window.addEventListener('load', () => {
+      let hiddenPaused = false;
+      let hiddenPausedGameplay = false;
+      document.addEventListener('visibilitychange', () => {
+        const game = window.game || null;
+        if (document.hidden) {
+          hiddenPaused = true;
+          hiddenPausedGameplay = !!(game && game.state === 'level' && !game.paused);
+          if (game && game.state === 'level') game.paused = true;
+          if (game && game.scene && game.scene.pauseGundosVoice) game.scene.pauseGundosVoice();
+          if (AudioManager.pauseAllAudio) AudioManager.pauseAllAudio();
+        } else if (hiddenPaused) {
+          hiddenPaused = false;
+          if (game && hiddenPausedGameplay) game.paused = false;
+          hiddenPausedGameplay = false;
+          if (game && game.scene && game.scene.resumeGundosVoice && !game.paused) game.scene.resumeGundosVoice();
+          if (AudioManager.resumePausedAudio && (!game || !game.paused)) AudioManager.resumePausedAudio();
+        }
+      });
+      window.addEventListener('blur', () => {
+        const game = window.game || null;
+        if (game && game.state === 'level') game.paused = true;
+        if (game && game.scene && game.scene.pauseGundosVoice) game.scene.pauseGundosVoice();
+        if (AudioManager.pauseAllAudio) AudioManager.pauseAllAudio();
+      });
     });
   }
+
+  configureFarEastFinale();
 })();

@@ -7,6 +7,8 @@ const AudioManager = {
   audioContext: null,
   unlocked: false,
   musicActuallyPlaying: false,
+  activeSfx: [],
+  pausedAudio: [],
 
   init() {
     this.sfx = {};
@@ -17,6 +19,8 @@ const AudioManager = {
     this.audioContext = null;
     this.unlocked = false;
     this.musicActuallyPlaying = false;
+    this.activeSfx = [];
+    this.pausedAudio = [];
 
     for (const [key, src] of Object.entries((Assets.audio && Assets.audio.sfx) || {})) {
       if (!src) continue;
@@ -120,6 +124,18 @@ const AudioManager = {
     return GAME_CONFIG.settings.sfxEnabled;
   },
 
+  trackSfx(audio) {
+    if (!audio) return audio;
+    this.activeSfx = this.activeSfx.filter(item => item && !item.ended && !item.paused);
+    this.activeSfx.push(audio);
+    const cleanup = () => {
+      this.activeSfx = this.activeSfx.filter(item => item !== audio);
+    };
+    audio.addEventListener('ended', cleanup, { once: true });
+    audio.addEventListener('error', cleanup, { once: true });
+    return audio;
+  },
+
   playSfx(key, volume = 1, options = {}) {
     if (!this.isSfxOn()) return;
     const src = this.sfx[key];
@@ -141,6 +157,7 @@ const AudioManager = {
       audio.volume = this.getSfxVolume(volume);
       audio.playbackRate = Math.max(0.5, Math.min(2, playbackRate));
       if (startAt > 0) audio.currentTime = startAt;
+      this.trackSfx(audio);
       audio.play().catch(() => this.playSyntheticSfx(key, volume, options));
     } catch (error) {
       console.warn('Cannot play sfx:', key, error);
@@ -178,6 +195,7 @@ const AudioManager = {
       audio.volume = this.getSfxVolume(volume);
       audio.playbackRate = Math.max(0.5, Math.min(2, playbackRate));
       if (startAt > 0) audio.currentTime = startAt;
+      this.trackSfx(audio);
       audio.play().catch(() => {});
       return true;
     } catch (error) {
@@ -258,6 +276,36 @@ const AudioManager = {
     this.currentMusic.currentTime = 0;
     this.currentMusic = null;
     this.musicActuallyPlaying = false;
+  },
+
+  pauseAllAudio() {
+    this.pausedAudio = [];
+    const candidates = [
+      this.currentMusic,
+      ...this.activeSfx.filter(item => item && !item.ended)
+    ];
+
+    for (const audio of candidates) {
+      if (!audio || audio.paused || audio.ended) continue;
+      try {
+        audio.pause();
+        this.pausedAudio.push(audio);
+      } catch (error) {}
+    }
+
+    this.musicActuallyPlaying = false;
+  },
+
+  resumePausedAudio() {
+    const paused = this.pausedAudio || [];
+    this.pausedAudio = [];
+    for (const audio of paused) {
+      if (!audio || audio.ended) continue;
+      try {
+        if (audio === this.currentMusic) audio.volume = this.getMusicVolume();
+        audio.play().catch(() => {});
+      } catch (error) {}
+    }
   },
 
   refreshSettings() {

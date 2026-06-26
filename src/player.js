@@ -219,6 +219,22 @@ class Player {
           scene.hitStop = GAME_CONFIG.playerHitStopMs;
           break;
         }
+        if (enemy.enemyType === 'zetnik' && enemy.gundosMinion && !enemy.redirectedToBoss) {
+          const target = enemy.getHurtbox();
+          const pad = 34;
+          const expandedTarget = {
+            x: target.x - pad,
+            y: target.y - pad,
+            w: target.w + pad * 2,
+            h: target.h + pad * 2
+          };
+          if (Combat.overlap(hitbox, expandedTarget)) {
+            this.attackHasHit = true;
+            enemy.redirectToGundos(this);
+            scene.hitStop = GAME_CONFIG.playerHitStopMs;
+            break;
+          }
+        }
         if (Combat.sameLane(this.y, enemy.y) && Combat.overlap(hitbox, enemy.getHurtbox())) {
           this.attackHasHit = true;
           this.playComboHitSound();
