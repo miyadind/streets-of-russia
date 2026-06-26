@@ -2,7 +2,7 @@
   if (typeof GAME_CONFIG === 'undefined' || typeof Assets === 'undefined') return;
 
   const FOLDER = 'assets/enemies/gundos';
-  const ASSET_VERSION = 'gundos-flag-1';
+  const ASSET_VERSION = 'gundos-shield-1';
   const INTRO_DURATION_MS = 56425;
   const DEVIL_LEAD_MS = 2000;
 
@@ -33,17 +33,18 @@
     zetnikSpawnMinMs: 1450,
     zetnikSpawnMaxMs: 2450,
     maxZetniks: 3,
+    guardZetniks: 3,
     zetnikHitDamage: 1,
-    arenaMoveSpeed: 0.6,
+    arenaMoveSpeed: 0,
     arenaTop: 540,
     arenaBottom: 675
   }, GAME_CONFIG.enemies.gundos || {});
 
   function migrateIntroSequence() {
     const config = GAME_CONFIG.enemies.gundos;
-    if (Number(config.introSequenceVersion) >= 4) return;
+    if (Number(config.introSequenceVersion) >= 5) return;
     Object.assign(config, {
-      introSequenceVersion: 4,
+      introSequenceVersion: 5,
       speed: 1.25,
       hp: 6,
       scale: 0.133,
@@ -53,8 +54,9 @@
       zetnikSpawnMinMs: 1450,
       zetnikSpawnMaxMs: 2450,
       maxZetniks: 3,
+      guardZetniks: 3,
       zetnikHitDamage: 1,
-      arenaMoveSpeed: 0.6,
+      arenaMoveSpeed: 0,
       arenaTop: 540,
       arenaBottom: 675
     });
@@ -178,6 +180,7 @@
       this.deathTimer = 0;
       this.arenaMoveDirection = Math.random() < 0.5 ? -1 : 1;
       this.voicePausedByGame = false;
+      this.guardSpawned = false;
     }
 
     getConfig() {
@@ -234,6 +237,7 @@
           scene.gundosIntroLocked = false;
           scene.gundosArenaActive = true;
           scene.activeGundos = this;
+          this.ensureGuardWall(scene);
         }
         this.startVoice();
         return;
@@ -268,7 +272,14 @@
         scene.gundosIntroActive = false;
         scene.gundosIntroLocked = false;
         scene.gundosArenaActive = true;
+        if (scene.releaseGundosGuardWall) scene.releaseGundosGuardWall();
       }
+    }
+
+    ensureGuardWall(scene) {
+      if (this.guardSpawned || !scene || !scene.spawnGundosGuardWall) return;
+      this.guardSpawned = true;
+      scene.spawnGundosGuardWall(this);
     }
 
     stopVoice() {
@@ -316,8 +327,12 @@
       scene.gundosIntroLocked = false;
       scene.gundosArenaActive = true;
       scene.activeGundos = this;
-      this.updateArenaMovement(dt);
-      this.updateZetnikPressure(dt, scene);
+      if (!this.introFinished) {
+        this.ensureGuardWall(scene);
+      } else {
+        this.enforceFireRing(scene);
+        this.updateZetnikPressure(dt, scene);
+      }
 
       this.introElapsed += dt;
       if (this.voice) this.voice.volume = AudioManager.getSfxVolume(1);
@@ -345,6 +360,20 @@
       } else if (this.y >= bottom) {
         this.y = bottom;
         this.arenaMoveDirection = -1;
+      }
+    }
+
+    enforceFireRing(scene) {
+      if (!this.transformed || !scene || !scene.player) return;
+      const player = scene.player;
+      const ringX = this.x - 125;
+      const ringY = this.y - 54;
+      const inY = Math.abs(player.y - ringY) <= 128;
+      if (!inY || player.x <= ringX - 74) return;
+      player.x = ringX - 74;
+      if (player.state !== 'knockdown' && player.state !== 'pinned') {
+        player.startHitStun(90, 180);
+        player.flash = Math.max(player.flash || 0, 180);
       }
     }
 
@@ -419,6 +448,7 @@
       const scale = this.getConfig().scale;
       const width = image.width * scale;
       const height = image.height * scale;
+      if (this.transformed && this.introFinished && this.alive) this.drawFireRing(ctx);
       ctx.save();
       if (!this.alive) ctx.globalAlpha = Math.max(0, 1 - this.deathTimer / 1200);
       else if (this.flash > 0) {
@@ -437,6 +467,30 @@
         ctx.lineWidth = 2;
         ctx.strokeRect(body.x, body.y, body.w, body.h);
       }
+    }
+
+    drawFireRing(ctx) {
+      const cx = this.x - 125;
+      const cy = this.y - 54;
+      const pulse = 0.5 + 0.5 * Math.sin(Date.now() / 130);
+      ctx.save();
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.lineCap = 'round';
+      ctx.shadowColor = '#ff4a17';
+      ctx.shadowBlur = 14 + pulse * 10;
+      ctx.strokeStyle = 'rgba(255, 67, 24, 0.86)';
+      ctx.lineWidth = 16;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, 62, 108, 0, -Math.PI * 0.58, Math.PI * 0.58);
+      ctx.stroke();
+      ctx.shadowColor = '#ffd447';
+      ctx.shadowBlur = 8 + pulse * 8;
+      ctx.strokeStyle = 'rgba(255, 215, 72, 0.9)';
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, 56, 100, 0, -Math.PI * 0.55, Math.PI * 0.55);
+      ctx.stroke();
+      ctx.restore();
     }
 
     drawHealthBar(ctx) {
@@ -485,7 +539,6 @@
       this.gundosIntroLocked = false;
       this.gundosArenaActive = false;
       this.activeGundos = null;
-      this.gundosDrops = [];
       previousSpawnInitialWave.call(this);
     };
 
@@ -533,96 +586,42 @@
       return enemy;
     };
 
-    LevelScene.prototype.ensureGundosDrops = function () {
-      if (!this.gundosDrops) this.gundosDrops = [];
-      return this.gundosDrops;
+    LevelScene.prototype.spawnGundosGuardWall = function (boss) {
+      const lanes = this.getGundosLanes();
+      const count = Math.max(1, (GAME_CONFIG.enemies.gundos && GAME_CONFIG.enemies.gundos.guardZetniks) || 3);
+      const start = Math.max(0, Math.floor((lanes.length - count) / 2));
+      for (let index = 0; index < count; index++) {
+        const lane = lanes[Math.min(lanes.length - 1, start + index)];
+        const id = this.enemies.length + Math.floor(Math.random() * 1000);
+        const x = (boss ? boss.x : GAME_CONFIG.width - 220) - 138 - index * 10;
+        const enemy = new ZetnikEnemy(x, lane, this.images, id);
+        if (enemy.setupGundosGuard) enemy.setupGundosGuard(boss, x, lane);
+        this.enemies.push(enemy);
+      }
+      this.playEnemyAppearSound('zetnik');
     };
 
-    LevelScene.prototype.addGundosFlagDrop = function (x, y) {
-      const drops = this.ensureGundosDrops();
-      drops.push({ type: 'flag', x, y, age: 0 });
-      if (!drops.some(drop => drop.type === 'stick' && !drop.picked)) {
-        drops.push({ type: 'stick', x: x + 42, y: y + 4, age: 0, picked: false });
+    LevelScene.prototype.releaseGundosGuardWall = function () {
+      for (const enemy of this.enemies || []) {
+        if (enemy && enemy.gundosMinion && enemy.gundosGuarding && enemy.releaseGundosGuard) {
+          enemy.releaseGundosGuard();
+        }
       }
     };
 
-    LevelScene.prototype.updateGundosDrops = function (dt) {
-      const drops = this.ensureGundosDrops();
-      const player = this.player;
-      for (const drop of drops) {
-        drop.age += dt;
-        if (drop.type !== 'stick' || drop.picked || !player) continue;
-        const nearX = Math.abs(player.x - drop.x) <= 62;
-        const nearY = Math.abs(player.y - drop.y) <= 46;
-        if (!nearX || !nearY) continue;
-        drop.picked = true;
-        player.gundosStickCharges = Math.max(player.gundosStickCharges || 0, 6);
-        AudioManager.playSfx('menuSelect', 0.75, { playbackRate: 1.18, startAt: 0.01 });
+    const previousSeparateEnemies = LevelScene.prototype.separateEnemies;
+    LevelScene.prototype.separateEnemies = function (dt, force) {
+      const saved = [];
+      for (const enemy of this.enemies || []) {
+        if (enemy && enemy.enemyType === 'gundos') {
+          saved.push({ enemy, x: enemy.x, y: enemy.y });
+        }
       }
-    };
-
-    LevelScene.prototype.drawGundosDrops = function (ctx) {
-      const drops = this.ensureGundosDrops();
-      for (const drop of drops) {
-        if (drop.picked) continue;
-        if (drop.type === 'flag') this.drawGundosGroundFlag(ctx, drop);
-        if (drop.type === 'stick') this.drawGundosStickPickup(ctx, drop);
+      previousSeparateEnemies.call(this, dt, force);
+      for (const item of saved) {
+        item.enemy.x = item.x;
+        item.enemy.y = item.y;
       }
-    };
-
-    LevelScene.prototype.drawGundosGroundFlag = function (ctx, drop) {
-      const img = this.images && this.images.enemies && this.images.enemies.zetnik && this.images.enemies.zetnik.flag;
-      ctx.save();
-      ctx.globalAlpha = 0.78;
-      ctx.translate(drop.x, drop.y - 8);
-      ctx.rotate(-0.34);
-      if (img) {
-        const scale = 0.045;
-        const w = img.width * scale;
-        const h = img.height * scale;
-        ctx.drawImage(img, -w / 2, -h / 2, w, h);
-      } else {
-        ctx.fillStyle = '#771111';
-        ctx.fillRect(-42, -10, 84, 20);
-      }
-      ctx.restore();
-    };
-
-    LevelScene.prototype.drawGundosStickPickup = function (ctx, drop) {
-      const pulse = 0.5 + 0.5 * Math.sin(drop.age / 150);
-      ctx.save();
-      ctx.translate(drop.x, drop.y - 18);
-      ctx.rotate(-0.55);
-      ctx.shadowColor = '#ffe66d';
-      ctx.shadowBlur = 12 + pulse * 12;
-      ctx.strokeStyle = '#ffe66d';
-      ctx.lineWidth = 8;
-      ctx.beginPath();
-      ctx.moveTo(-42, 0);
-      ctx.lineTo(42, 0);
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-      ctx.strokeStyle = '#5b4a37';
-      ctx.lineWidth = 5;
-      ctx.beginPath();
-      ctx.moveTo(-42, 0);
-      ctx.lineTo(42, 0);
-      ctx.stroke();
-      ctx.fillStyle = '#d7c08a';
-      ctx.fillRect(-28, -5, 18, 10);
-      ctx.restore();
-    };
-
-    const previousSceneUpdate = LevelScene.prototype.update;
-    LevelScene.prototype.update = function (dt) {
-      previousSceneUpdate.call(this, dt);
-      if (this.gundosDrops && this.gundosDrops.length) this.updateGundosDrops(dt);
-    };
-
-    const previousSceneDraw = LevelScene.prototype.draw;
-    LevelScene.prototype.draw = function (ctx) {
-      previousSceneDraw.call(this, ctx);
-      if (this.gundosDrops && this.gundosDrops.length) this.drawGundosDrops(ctx);
     };
 
     LevelScene.prototype.pauseGundosVoice = function () {

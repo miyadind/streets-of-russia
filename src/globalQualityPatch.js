@@ -204,13 +204,11 @@
     const fly = await loadOptionalImage(Assets.zetnik && Assets.zetnik.fly);
     const preparing = await loadOptionalImage(Assets.zetnik && Assets.zetnik.preparing);
     const crashed = await loadOptionalImage(Assets.zetnik && Assets.zetnik.crashed);
-    const flag = await loadOptionalImage(Assets.zetnik && Assets.zetnik.flag);
 
     if (loaded.enemies && loaded.enemies.zetnik) {
       loaded.enemies.zetnik.preparing = preparing || loaded.enemies.zetnik.attack[0] || loaded.enemies.zetnik.idle;
       loaded.enemies.zetnik.fly = fly || loaded.enemies.zetnik.attack[0] || loaded.enemies.zetnik.idle;
       loaded.enemies.zetnik.crashed = crashed || loaded.enemies.zetnik.dead || loaded.enemies.zetnik.attack[0] || loaded.enemies.zetnik.idle;
-      loaded.enemies.zetnik.flag = flag || loaded.enemies.zetnik.walk[0] || loaded.enemies.zetnik.idle;
       loaded.enemies.zetnik.dead = loaded.enemies.zetnik.crashed;
     }
     return loaded;

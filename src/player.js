@@ -31,7 +31,6 @@ class Player {
     this.flash = 0;
     this.knockdownTimer = 0;
     this.pinnedBy = null;
-    this.gundosStickCharges = 0;
   }
 
   update(dt, scene) {
@@ -231,12 +230,10 @@ class Player {
           };
           if (Combat.overlap(hitbox, expandedTarget)) {
             this.attackHasHit = true;
-            if (this.gundosStickCharges > 0) {
-              this.gundosStickCharges -= 1;
+            if (enemy.gundosGuarding && enemy.holdGundosGuard) {
+              enemy.holdGundosGuard(this);
+            } else {
               enemy.redirectToGundos(this);
-            } else if (enemy.finishGundosCrash) {
-              if (this.playComboHitSound) this.playComboHitSound();
-              enemy.finishGundosCrash(scene, true);
             }
             scene.hitStop = GAME_CONFIG.playerHitStopMs;
             break;
@@ -379,24 +376,6 @@ class Player {
     if (this.facing === -1) ctx.scale(-1, 1);
     if (this.flash > 0 && Math.floor(this.flash / 55) % 2 === 0) ctx.globalAlpha = 0.48;
     ctx.drawImage(img, -w / 2, -h, w, h);
-    if (this.gundosStickCharges > 0) {
-      ctx.save();
-      ctx.translate(28, -84);
-      ctx.rotate(-0.65);
-      ctx.strokeStyle = '#5b4a37';
-      ctx.lineWidth = 5;
-      ctx.beginPath();
-      ctx.moveTo(-8, 0);
-      ctx.lineTo(50, 0);
-      ctx.stroke();
-      ctx.strokeStyle = 'rgba(255,230,109,0.9)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(-8, 0);
-      ctx.lineTo(50, 0);
-      ctx.stroke();
-      ctx.restore();
-    }
     ctx.restore();
 
     if (debug && this.state === 'attack') {

@@ -57,7 +57,6 @@ window.Assets = {
     idle:'assets/enemies/zetnik/run01.png',
     walk:['assets/enemies/zetnik/run01.png','assets/enemies/zetnik/run02.png','assets/enemies/zetnik/run03.png'],
     preparing:'assets/enemies/zetnik/preparing.png',
-    flag:'assets/enemies/zetnik/flag.png?v=flag-1',
     attack:['assets/enemies/zetnik/preparing.png','assets/enemies/zetnik/fly.png'],
     fly:'assets/enemies/zetnik/fly.png',
     crashed:'assets/enemies/zetnik/crashed.png',
