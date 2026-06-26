@@ -2,7 +2,7 @@
   if (typeof GAME_CONFIG === 'undefined' || typeof Assets === 'undefined') return;
 
   const FOLDER = 'assets/enemies/gundos';
-  const ASSET_VERSION = 'gundos-battle-2';
+  const ASSET_VERSION = 'gundos-battle-3';
   const INTRO_DURATION_MS = 56425;
   const DEVIL_LEAD_MS = 2000;
 
@@ -612,6 +612,7 @@
           if (game && game.state === 'level') game.paused = true;
           if (game && game.scene && game.scene.pauseGundosVoice) game.scene.pauseGundosVoice();
           if (AudioManager.pauseAllAudio) AudioManager.pauseAllAudio();
+          if (game && game.state === 'level') game.gundosAudioPauseState = true;
         } else if (hiddenPaused) {
           hiddenPaused = false;
           if (game && hiddenPausedGameplay) game.paused = false;
@@ -625,6 +626,7 @@
         if (game && game.state === 'level') game.paused = true;
         if (game && game.scene && game.scene.pauseGundosVoice) game.scene.pauseGundosVoice();
         if (AudioManager.pauseAllAudio) AudioManager.pauseAllAudio();
+        if (game && game.state === 'level') game.gundosAudioPauseState = true;
       });
     });
   }

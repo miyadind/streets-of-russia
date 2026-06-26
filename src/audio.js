@@ -279,20 +279,22 @@ const AudioManager = {
   },
 
   pauseAllAudio() {
-    this.pausedAudio = [];
+    const paused = (this.pausedAudio || []).filter(audio => audio && !audio.ended);
     const candidates = [
       this.currentMusic,
       ...this.activeSfx.filter(item => item && !item.ended)
     ];
 
     for (const audio of candidates) {
-      if (!audio || audio.paused || audio.ended) continue;
+      if (!audio || audio.ended || paused.includes(audio)) continue;
+      if (audio.paused) continue;
       try {
         audio.pause();
-        this.pausedAudio.push(audio);
+        paused.push(audio);
       } catch (error) {}
     }
 
+    this.pausedAudio = paused;
     this.musicActuallyPlaying = false;
   },
 
@@ -303,7 +305,11 @@ const AudioManager = {
       if (!audio || audio.ended) continue;
       try {
         if (audio === this.currentMusic) audio.volume = this.getMusicVolume();
-        audio.play().catch(() => {});
+        audio.play()
+          .then(() => {
+            if (audio === this.currentMusic) this.musicActuallyPlaying = true;
+          })
+          .catch(() => {});
       } catch (error) {}
     }
   },
