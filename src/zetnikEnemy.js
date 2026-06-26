@@ -155,6 +155,12 @@ class ZetnikEnemy extends DogRegimeEnemy {
 
     if (this.flash > 0) this.flash -= dt;
     const frameScale = Math.max(0.65, Math.min(1.55, dt / 16.67));
+    const player = scene && scene.player;
+    if (!this.redirectedToBoss && player) {
+      const dy = player.y - this.y;
+      const maxStepY = 1.45 * GAME_CONFIG.ySpeedMultiplier * frameScale;
+      this.y += Math.max(-maxStepY, Math.min(maxStepY, dy));
+    }
     this.x += this.gundosDirection * this.gundosSpeed * frameScale;
     this.facing = this.gundosDirection >= 0 ? 1 : -1;
     this.walkTimer += dt;
@@ -163,7 +169,6 @@ class ZetnikEnemy extends DogRegimeEnemy {
       this.walkFrame = (this.walkFrame + 1) % 3;
     }
 
-    const player = scene && scene.player;
     if (!this.redirectedToBoss && player && !this.gundosHitPlayer && Combat.overlap(this.getHurtbox(), player.getBodyBox())) {
       this.gundosHitPlayer = true;
       player.receiveDamage(this.damage, {
@@ -171,7 +176,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
         knockbackX: this.facing * this.crashKnockbackX,
         knockdownMs: this.knockdownMs
       });
-      this.finishGundosCrash(scene);
+      this.finishGundosCrash(scene, true);
       return;
     }
 
@@ -204,7 +209,8 @@ class ZetnikEnemy extends DogRegimeEnemy {
     AudioManager.playSfx('zetnikPreparing', 0.75, { playbackRate: 1.25, startAt: 0.01 });
   }
 
-  finishGundosCrash(scene) {
+  finishGundosCrash(scene, dropFlag = false) {
+    if (dropFlag && scene && scene.addGundosFlagDrop) scene.addGundosFlagDrop(this.x, this.y);
     this.alive = false;
     this.state = 'crash';
     this.crashTimer = 0;
@@ -327,7 +333,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
     if (!this.alive || this.state === 'crash') return enemyImages.crashed || enemyImages.dead || enemyImages.attack[0] || enemyImages.idle;
     if (this.gundosMinion) return this.redirectedToBoss
       ? (enemyImages.fly || enemyImages.preparing || enemyImages.attack[0] || enemyImages.idle)
-      : (enemyImages.walk[this.walkFrame] || enemyImages.idle || enemyImages.preparing || enemyImages.attack[0]);
+      : (enemyImages.flag || enemyImages.walk[this.walkFrame] || enemyImages.idle || enemyImages.preparing || enemyImages.attack[0]);
     if (this.state === 'prepareJump') return enemyImages.preparing || enemyImages.attack[0] || enemyImages.idle;
     if (this.state === 'jump') return enemyImages.fly || enemyImages.attack[0] || enemyImages.idle;
     if (this.hitStun > 0) return enemyImages.idle;

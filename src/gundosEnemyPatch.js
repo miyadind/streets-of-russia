@@ -2,7 +2,7 @@
   if (typeof GAME_CONFIG === 'undefined' || typeof Assets === 'undefined') return;
 
   const FOLDER = 'assets/enemies/gundos';
-  const ASSET_VERSION = 'gundos-battle-3';
+  const ASSET_VERSION = 'gundos-flag-1';
   const INTRO_DURATION_MS = 56425;
   const DEVIL_LEAD_MS = 2000;
 
@@ -485,6 +485,7 @@
       this.gundosIntroLocked = false;
       this.gundosArenaActive = false;
       this.activeGundos = null;
+      this.gundosDrops = [];
       previousSpawnInitialWave.call(this);
     };
 
@@ -530,6 +531,98 @@
       this.enemies.push(enemy);
       this.playEnemyAppearSound('zetnik');
       return enemy;
+    };
+
+    LevelScene.prototype.ensureGundosDrops = function () {
+      if (!this.gundosDrops) this.gundosDrops = [];
+      return this.gundosDrops;
+    };
+
+    LevelScene.prototype.addGundosFlagDrop = function (x, y) {
+      const drops = this.ensureGundosDrops();
+      drops.push({ type: 'flag', x, y, age: 0 });
+      if (!drops.some(drop => drop.type === 'stick' && !drop.picked)) {
+        drops.push({ type: 'stick', x: x + 42, y: y + 4, age: 0, picked: false });
+      }
+    };
+
+    LevelScene.prototype.updateGundosDrops = function (dt) {
+      const drops = this.ensureGundosDrops();
+      const player = this.player;
+      for (const drop of drops) {
+        drop.age += dt;
+        if (drop.type !== 'stick' || drop.picked || !player) continue;
+        const nearX = Math.abs(player.x - drop.x) <= 62;
+        const nearY = Math.abs(player.y - drop.y) <= 46;
+        if (!nearX || !nearY) continue;
+        drop.picked = true;
+        player.gundosStickCharges = Math.max(player.gundosStickCharges || 0, 6);
+        AudioManager.playSfx('menuSelect', 0.75, { playbackRate: 1.18, startAt: 0.01 });
+      }
+    };
+
+    LevelScene.prototype.drawGundosDrops = function (ctx) {
+      const drops = this.ensureGundosDrops();
+      for (const drop of drops) {
+        if (drop.picked) continue;
+        if (drop.type === 'flag') this.drawGundosGroundFlag(ctx, drop);
+        if (drop.type === 'stick') this.drawGundosStickPickup(ctx, drop);
+      }
+    };
+
+    LevelScene.prototype.drawGundosGroundFlag = function (ctx, drop) {
+      const img = this.images && this.images.enemies && this.images.enemies.zetnik && this.images.enemies.zetnik.flag;
+      ctx.save();
+      ctx.globalAlpha = 0.78;
+      ctx.translate(drop.x, drop.y - 8);
+      ctx.rotate(-0.34);
+      if (img) {
+        const scale = 0.045;
+        const w = img.width * scale;
+        const h = img.height * scale;
+        ctx.drawImage(img, -w / 2, -h / 2, w, h);
+      } else {
+        ctx.fillStyle = '#771111';
+        ctx.fillRect(-42, -10, 84, 20);
+      }
+      ctx.restore();
+    };
+
+    LevelScene.prototype.drawGundosStickPickup = function (ctx, drop) {
+      const pulse = 0.5 + 0.5 * Math.sin(drop.age / 150);
+      ctx.save();
+      ctx.translate(drop.x, drop.y - 18);
+      ctx.rotate(-0.55);
+      ctx.shadowColor = '#ffe66d';
+      ctx.shadowBlur = 12 + pulse * 12;
+      ctx.strokeStyle = '#ffe66d';
+      ctx.lineWidth = 8;
+      ctx.beginPath();
+      ctx.moveTo(-42, 0);
+      ctx.lineTo(42, 0);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = '#5b4a37';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(-42, 0);
+      ctx.lineTo(42, 0);
+      ctx.stroke();
+      ctx.fillStyle = '#d7c08a';
+      ctx.fillRect(-28, -5, 18, 10);
+      ctx.restore();
+    };
+
+    const previousSceneUpdate = LevelScene.prototype.update;
+    LevelScene.prototype.update = function (dt) {
+      previousSceneUpdate.call(this, dt);
+      if (this.gundosDrops && this.gundosDrops.length) this.updateGundosDrops(dt);
+    };
+
+    const previousSceneDraw = LevelScene.prototype.draw;
+    LevelScene.prototype.draw = function (ctx) {
+      previousSceneDraw.call(this, ctx);
+      if (this.gundosDrops && this.gundosDrops.length) this.drawGundosDrops(ctx);
     };
 
     LevelScene.prototype.pauseGundosVoice = function () {

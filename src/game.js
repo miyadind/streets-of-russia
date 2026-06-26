@@ -67,6 +67,7 @@ class GameApp {
       zetnikWalk0: Assets.zetnik.walk[0],
       zetnikWalk1: Assets.zetnik.walk[1],
       zetnikWalk2: Assets.zetnik.walk[2],
+      zetnikFlag: Assets.zetnik.flag,
       zetnikAttack0: Assets.zetnik.attack[0],
       zetnikAttack1: Assets.zetnik.attack[1],
       zetnikDead: Assets.zetnik.dead,
@@ -141,6 +142,7 @@ class GameApp {
           loaded.zetnikWalk2 || loaded.zetnikIdle || loaded.dogWalk0
         ],
         attack: [loaded.zetnikAttack0 || loaded.zetnikIdle || loaded.dogAttack0, loaded.zetnikAttack1 || loaded.zetnikAttack0 || loaded.dogAttack1],
+        flag: loaded.zetnikFlag || loaded.zetnikWalk0 || loaded.zetnikIdle || loaded.dogIdle,
         dead: loaded.zetnikDead || loaded.zetnikAttack0 || loaded.zetnikIdle || loaded.dogDead
       },
       sucker: {
