@@ -166,15 +166,26 @@
       const data = this.getAttackData();
       if (this.attackTimer < data.activeStart || this.attackTimer > data.activeEnd) return false;
 
-      const attack = this.getHitbox();
-      const target = enemy.getHurtbox();
-      const forgiveness = 18;
-      return boxOverlap(attack, {
+      const config = (GAME_CONFIG.enemies && GAME_CONFIG.enemies.sucker) || {};
+      const rangeX = config.counterRangeX || 150;
+      const rangeY = config.counterRangeY || GAME_CONFIG.enemyAttackRangeY || 58;
+      const counterZone = {
+        x: this.facing === 1 ? this.x : this.x - rangeX,
+        y: this.y - rangeY,
+        w: rangeX,
+        h: rangeY * 2
+      };
+      const forgiveness = 26;
+      const targets = [];
+      if (enemy.state === 'slide' && typeof enemy.getSlideHitbox === 'function') targets.push(enemy.getSlideHitbox());
+      if (typeof enemy.getHurtbox === 'function') targets.push(enemy.getHurtbox());
+
+      return targets.some(target => target && boxOverlap(counterZone, {
         x: target.x - forgiveness,
         y: target.y - forgiveness,
         w: target.w + forgiveness * 2,
         h: target.h + forgiveness * 2
-      });
+      }));
     };
 
     const originalPlayerDraw = Player.prototype.hitboxSimpleDrawOriginal || Player.prototype.draw;

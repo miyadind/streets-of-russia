@@ -213,6 +213,12 @@ class Player {
       const hitbox = this.getHitbox();
       for (const enemy of scene.enemies) {
         if (!enemy.alive) continue;
+        if (enemy.enemyType === 'sucker' && (enemy.state === 'windup' || enemy.state === 'slide') && this.canCounterSlide(enemy)) {
+          this.attackHasHit = true;
+          enemy.interruptSlide(this);
+          scene.hitStop = GAME_CONFIG.playerHitStopMs;
+          break;
+        }
         if (Combat.sameLane(this.y, enemy.y) && Combat.overlap(hitbox, enemy.getHurtbox())) {
           this.attackHasHit = true;
           this.playComboHitSound();
@@ -254,21 +260,31 @@ class Player {
   }
 
   canCounterSlide(enemy) {
-    if (this.state !== 'attack') return false;
+    if (this.state !== 'attack' || !enemy) return false;
 
     const data = this.getAttackData();
     if (this.attackTimer < data.activeStart || this.attackTimer > data.activeEnd) return false;
 
-    const attack = this.getHitbox();
-    const target = enemy.getHurtbox();
-    const forgiveness = 18;
-    const expandedTarget = {
+    const config = (GAME_CONFIG.enemies && GAME_CONFIG.enemies.sucker) || {};
+    const rangeX = config.counterRangeX || 150;
+    const rangeY = config.counterRangeY || GAME_CONFIG.enemyAttackRangeY || 58;
+    const counterZone = {
+      x: this.facing === 1 ? this.x : this.x - rangeX,
+      y: this.y - rangeY,
+      w: rangeX,
+      h: rangeY * 2
+    };
+    const forgiveness = 26;
+    const targets = [];
+    if (enemy.state === 'slide' && typeof enemy.getSlideHitbox === 'function') targets.push(enemy.getSlideHitbox());
+    if (typeof enemy.getHurtbox === 'function') targets.push(enemy.getHurtbox());
+
+    return targets.some(target => target && Combat.overlap(counterZone, {
       x: target.x - forgiveness,
       y: target.y - forgiveness,
       w: target.w + forgiveness * 2,
       h: target.h + forgiveness * 2
-    };
-    return Combat.overlap(attack, expandedTarget);
+    }));
   }
 
   knockDown(durationMs = 900) {

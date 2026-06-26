@@ -8,7 +8,7 @@
     if (window.__hitboxEditorPatchRequested) return;
     window.__hitboxEditorPatchRequested = true;
     var script = document.createElement('script');
-    script.src = 'src/hitboxEditorPatch.js';
+    script.src = 'src/hitboxEditorPatch.js?v=sucker-counter-1';
     script.defer = true;
     document.body.appendChild(script);
   }
