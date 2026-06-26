@@ -1,7 +1,7 @@
 window.Assets = {
   backgrounds:{
     main:'assets/backgrounds/Main.png',
-    level1:['assets/backgrounds/1/street01.png','assets/backgrounds/1/street02.png','assets/backgrounds/street12.png']
+    level1:['assets/backgrounds/1/street01.png','assets/backgrounds/1/street02.png','assets/backgrounds/1/street03.png']
   },
   audio:{
     music:{
