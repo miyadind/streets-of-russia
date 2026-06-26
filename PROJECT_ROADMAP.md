@@ -31,9 +31,11 @@ the final ending screen.
 ### Far East
 
 - Campaign map entry exists
-- Three prototype street screens exist
+- Three prototype street screens exist and are loaded from `assets/backgrounds/1`
+- First pass encounter flow exists: dogs, zetnik, Sucker and Gundos finale
 - Combat, enemies and screen transitions work
-- Visuals, encounters and the regional final battle still need completion
+- Gundos intro exists, but his post-intro boss attack pattern still needs completion
+- Enemy counts, walk zones, hitboxes and the regional final battle still need tuning
 
 ### Remaining Regions
 

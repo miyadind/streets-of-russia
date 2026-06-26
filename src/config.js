@@ -231,7 +231,8 @@ const GAME_CONFIG = {
 
   levels: {
     street01: {
-      name: 'Street 01',
+      name: 'Far East 01',
+      region: 'far-east',
       music: 'levelTheme',
       waves: [
         {
@@ -257,7 +258,8 @@ const GAME_CONFIG = {
       }
     },
     street02: {
-      name: 'Street 02',
+      name: 'Far East 02',
+      region: 'far-east',
       music: 'levelTheme',
       waves: [
         {
@@ -269,7 +271,8 @@ const GAME_CONFIG = {
         {
           trigger: 'afterWaveCleared',
           enemies: [
-            { type: 'dogRegime', count: 2, side: 'left' }
+            { type: 'dogRegime', count: 1, side: 'left' },
+            { type: 'zetnik', count: 1, side: 'right' }
           ]
         }
       ],
@@ -289,7 +292,8 @@ const GAME_CONFIG = {
       }
     },
     street03: {
-      name: 'Street 03',
+      name: 'Far East 03',
+      region: 'far-east',
       music: 'levelTheme',
       waves: [
         {
@@ -302,6 +306,12 @@ const GAME_CONFIG = {
           trigger: 'afterWaveCleared',
           enemies: [
             { type: 'sucker', count: 1, side: 'right' }
+          ]
+        },
+        {
+          trigger: 'afterWaveCleared',
+          enemies: [
+            { type: 'gundos', count: 1, side: 'right' }
           ]
         }
       ],
