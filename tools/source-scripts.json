@@ -33,7 +33,7 @@
   "src/campaignMapPatch.js",
   "src/introTextSourcePatch.js",
   "src/globalQualityPatch.js",
-  "src/introAudioFlowPatch.js",
+  "src/introFlow.js",
   "src/pauseMenuPatch.js",
   "src/desktopUXPatch.js",
   "src/desktopRefinementPatch.js",

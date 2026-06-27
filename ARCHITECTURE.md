@@ -78,9 +78,9 @@ but they should delegate the shared flow rules to `window.CampaignFlow`.
 own cross-state music cleanup. They prevent menu music, intro music and level
 music from overlapping when screens change.
 
-The old `introPatch.js` has been retired. Intro rendering and flow are owned by
-`campaignMapPatch.js` and `introAudioFlowPatch.js` until that block is moved
-fully into core.
+The old `introPatch.js` has been retired. Intro audio, skip timing and start
+button flow are owned by `src/introFlow.js`. Intro asset setup still lives in
+`campaignMapPatch.js` until the remaining campaign map block is moved into core.
 
 The old `devPanelAudioPatch.js` has been retired. It attempted to load
 `mobileBootstrap.js` dynamically even though mobile bootstrap is already part

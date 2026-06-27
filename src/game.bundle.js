@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.11',
+  buildVersion: '0.4.12',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -9744,7 +9744,7 @@ window.addEventListener('load', () => {
 
 
 
-/* ===== src/introAudioFlowPatch.js ===== */
+/* ===== src/introFlow.js ===== */
 (function () {
   if (typeof GameApp === 'undefined' || typeof AudioManager === 'undefined') return;
 
