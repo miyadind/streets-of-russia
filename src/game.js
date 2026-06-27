@@ -98,6 +98,10 @@ class GameApp {
     })));
 
     loaded.streets = [loaded.street0, loaded.street1, loaded.street2];
+    if (GAME_CONFIG.levelOrder && GAME_CONFIG.levels) {
+      const dynamicStreets = await this.loadLevelBackgrounds(loaded.streets);
+      if (dynamicStreets.length) loaded.streets = dynamicStreets;
+    }
 
     loaded.heroes = {
       boris: {
@@ -165,6 +169,45 @@ class GameApp {
     return loaded;
   }
 
+  async loadLevelBackgrounds(fallbackStreets = []) {
+    const order = GAME_CONFIG.levelOrder || [];
+    const result = [];
+    let previous = fallbackStreets[0] || null;
+    const cache = {};
+
+    const loadImage = (src) => new Promise((resolve) => {
+      if (!src) {
+        resolve(null);
+        return;
+      }
+      if (cache[src]) {
+        resolve(cache[src]);
+        return;
+      }
+      const img = new Image();
+      img.onload = () => {
+        cache[src] = img;
+        resolve(img);
+      };
+      img.onerror = () => {
+        console.warn('Missing level background:', src);
+        resolve(null);
+      };
+      img.src = src;
+    });
+
+    for (let i = 0; i < order.length; i++) {
+      const key = order[i];
+      const level = GAME_CONFIG.levels && GAME_CONFIG.levels[key];
+      const src = level && level.background;
+      const image = await loadImage(src);
+      previous = image || previous || fallbackStreets[i] || fallbackStreets[0] || null;
+      result.push(previous);
+    }
+
+    return result;
+  }
+
   getMenuMusicKey() {
     return (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.menu) || 'menuTheme';
   }
@@ -194,6 +237,13 @@ class GameApp {
 
   startLevel() {
     this.scene = new LevelScene(this, this.images);
+    if (this.campaignMap && Number.isFinite(this.campaignMap.activeIndex)) {
+      this.scene.screenIndex = Math.max(0, Math.min(
+        this.images.streets.length - 1,
+        this.campaignMap.activeIndex * 3
+      ));
+      if (this.scene.spawnInitialWave) this.scene.spawnInitialWave();
+    }
     this.setState('level');
     const levelKey = this.scene && this.scene.getLevelKey ? this.scene.getLevelKey() : null;
     const level = levelKey && GAME_CONFIG.levels ? GAME_CONFIG.levels[levelKey] : null;

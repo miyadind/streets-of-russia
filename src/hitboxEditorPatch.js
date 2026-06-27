@@ -70,6 +70,17 @@
     };
   }
 
+  function scaleSignature() {
+    const parts = [];
+    for (const group of Object.keys(SPRITE_METRICS)) {
+      for (const key of Object.keys(SPRITE_METRICS[group])) {
+        const data = SPRITE_METRICS[group][key];
+        parts.push(group + ':' + key + '=' + getByPath(data.scalePath, group === 'heroes' ? GAME_CONFIG.playerScale : GAME_CONFIG.enemyScale));
+      }
+    }
+    return parts.join('|');
+  }
+
   function bodyBox(size, profile) {
     const w = Math.max(profile.minBodyW || 1, size.w * profile.bodyW);
     const h = size.h * profile.bodyH;
@@ -175,9 +186,13 @@
   }
 
   function ensureHitboxes() {
-    if (!GAME_CONFIG.hitboxes || GAME_CONFIG.hitboxes.profileVersion !== ANATOMICAL_HITBOX_VERSION) {
+    const signature = scaleSignature();
+    if (!GAME_CONFIG.hitboxes ||
+        GAME_CONFIG.hitboxes.profileVersion !== ANATOMICAL_HITBOX_VERSION ||
+        GAME_CONFIG.hitboxes.scaleSignature !== signature) {
       GAME_CONFIG.hitboxes = {
         profileVersion: ANATOMICAL_HITBOX_VERSION,
+        scaleSignature: signature,
         heroes: {},
         enemies: {}
       };
@@ -185,6 +200,7 @@
     if (!GAME_CONFIG.hitboxes.heroes) GAME_CONFIG.hitboxes.heroes = {};
     if (!GAME_CONFIG.hitboxes.enemies) GAME_CONFIG.hitboxes.enemies = {};
     GAME_CONFIG.hitboxes.profileVersion = ANATOMICAL_HITBOX_VERSION;
+    GAME_CONFIG.hitboxes.scaleSignature = signature;
 
     for (const key of Object.keys(DEFAULT_HITBOXES.heroes)) {
       GAME_CONFIG.hitboxes.heroes[key] = migrateHitboxEntity(GAME_CONFIG.hitboxes.heroes[key], DEFAULT_HITBOXES.heroes[key]);

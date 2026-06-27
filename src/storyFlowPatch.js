@@ -229,6 +229,11 @@
   });
 
   GameApp.prototype.openRegionStory = function (regionId) {
+    if (regionId !== 'farEast') {
+      this.setState('campaignMap');
+      this.ensureMenuMusic();
+      return;
+    }
     this.regionStory = {
       regionId: regionId || 'farEast',
       title: '',

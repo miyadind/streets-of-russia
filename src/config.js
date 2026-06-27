@@ -229,12 +229,21 @@ const GAME_CONFIG = {
     }
   },
 
-  levelOrder: ['street01', 'street02', 'street03'],
+  levelOrder: [
+    'street01', 'street02', 'street03',
+    'siberia01', 'siberia02', 'siberia03',
+    'ural01', 'ural02', 'ural03',
+    'northwest01', 'northwest02', 'northwest03',
+    'volga01', 'volga02', 'volga03',
+    'south01', 'south02', 'south03',
+    'moscow01', 'moscow02', 'moscow03'
+  ],
 
   levels: {
     street01: {
       name: 'Far East 01',
       region: 'far-east',
+      background: 'assets/backgrounds/1/street01.png',
       music: 'levelTheme',
       waves: [
         {
@@ -262,6 +271,7 @@ const GAME_CONFIG = {
     street02: {
       name: 'Far East 02',
       region: 'far-east',
+      background: 'assets/backgrounds/1/street02.png',
       music: 'levelTheme',
       waves: [
         {
@@ -302,6 +312,7 @@ const GAME_CONFIG = {
     street03: {
       name: 'Far East 03',
       region: 'far-east',
+      background: 'assets/backgrounds/1/street03.png',
       music: 'levelTheme',
       waves: [
         {
@@ -325,6 +336,194 @@ const GAME_CONFIG = {
         x: 40,
         y: 28
       }
+    },
+    siberia01: {
+      name: 'Siberia 01',
+      region: 'siberia',
+      background: 'assets/backgrounds/2/street01.png',
+      music: 'levelTheme',
+      waves: [
+        { trigger: 'onEnter', enemies: [{ type: 'dogRegime', count: 2, side: 'right' }] }
+      ],
+      walkZone: { left: 0, right: 1280, top: 550, bottom: 710 },
+      playerStart: { x: 195, y: 615 },
+      enemySpawnMargin: { x: 40, y: 28 }
+    },
+    siberia02: {
+      name: 'Siberia 02',
+      region: 'siberia',
+      background: 'assets/backgrounds/2/street02.png',
+      music: 'levelTheme',
+      waves: [
+        { trigger: 'onEnter', enemies: [{ type: 'dogRegime', count: 2, side: 'right' }] },
+        { trigger: 'afterWaveCleared', enemies: [{ type: 'zetnik', count: 1, side: 'right' }] }
+      ],
+      walkZone: { left: 0, right: 1280, top: 550, bottom: 710 },
+      playerStart: { x: 195, y: 615 },
+      enemySpawnMargin: { x: 40, y: 28 }
+    },
+    siberia03: {
+      name: 'Siberia 03',
+      region: 'siberia',
+      background: 'assets/backgrounds/2/street03.png',
+      music: 'levelTheme',
+      waves: [
+        { trigger: 'onEnter', enemies: [{ type: 'dogRegime', count: 2, side: 'right' }] },
+        { trigger: 'afterWaveCleared', enemies: [{ type: 'sucker', count: 1, side: 'right' }] }
+      ],
+      walkZone: { left: 0, right: 1280, top: 550, bottom: 710 },
+      playerStart: { x: 195, y: 615 },
+      enemySpawnMargin: { x: 40, y: 28 }
+    },
+    ural01: {
+      name: 'Ural 01',
+      region: 'ural',
+      background: 'assets/backgrounds/3/street01.png',
+      music: 'levelTheme',
+      waves: [{ trigger: 'onEnter', enemies: [{ type: 'dogRegime', count: 2, side: 'right' }] }],
+      walkZone: { left: 0, right: 1280, top: 550, bottom: 710 },
+      playerStart: { x: 195, y: 615 },
+      enemySpawnMargin: { x: 40, y: 28 }
+    },
+    ural02: {
+      name: 'Ural 02',
+      region: 'ural',
+      background: 'assets/backgrounds/3/street02.png',
+      music: 'levelTheme',
+      waves: [{ trigger: 'onEnter', enemies: [{ type: 'dogRegime', count: 2, side: 'right' }] }],
+      walkZone: { left: 0, right: 1280, top: 550, bottom: 710 },
+      playerStart: { x: 195, y: 615 },
+      enemySpawnMargin: { x: 40, y: 28 }
+    },
+    ural03: {
+      name: 'Ural 03',
+      region: 'ural',
+      background: 'assets/backgrounds/3/street03.png',
+      music: 'levelTheme',
+      waves: [{ trigger: 'onEnter', enemies: [{ type: 'sucker', count: 1, side: 'right' }] }],
+      walkZone: { left: 0, right: 1280, top: 550, bottom: 710 },
+      playerStart: { x: 195, y: 615 },
+      enemySpawnMargin: { x: 40, y: 28 }
+    },
+    northwest01: {
+      name: 'Northwest 01',
+      region: 'northwest',
+      background: 'assets/backgrounds/4/street01.png',
+      music: 'levelTheme',
+      waves: [{ trigger: 'onEnter', enemies: [{ type: 'dogRegime', count: 2, side: 'right' }] }],
+      walkZone: { left: 0, right: 1280, top: 550, bottom: 710 },
+      playerStart: { x: 195, y: 615 },
+      enemySpawnMargin: { x: 40, y: 28 }
+    },
+    northwest02: {
+      name: 'Northwest 02',
+      region: 'northwest',
+      background: 'assets/backgrounds/4/street02.png',
+      music: 'levelTheme',
+      waves: [{ trigger: 'onEnter', enemies: [{ type: 'dogRegime', count: 2, side: 'right' }] }],
+      walkZone: { left: 0, right: 1280, top: 550, bottom: 710 },
+      playerStart: { x: 195, y: 615 },
+      enemySpawnMargin: { x: 40, y: 28 }
+    },
+    northwest03: {
+      name: 'Northwest 03',
+      region: 'northwest',
+      background: 'assets/backgrounds/4/street03.png',
+      music: 'levelTheme',
+      waves: [{ trigger: 'onEnter', enemies: [{ type: 'sucker', count: 1, side: 'right' }] }],
+      walkZone: { left: 0, right: 1280, top: 550, bottom: 710 },
+      playerStart: { x: 195, y: 615 },
+      enemySpawnMargin: { x: 40, y: 28 }
+    },
+    volga01: {
+      name: 'Volga 01',
+      region: 'volga',
+      background: 'assets/backgrounds/5/street01.png',
+      music: 'levelTheme',
+      waves: [{ trigger: 'onEnter', enemies: [{ type: 'dogRegime', count: 2, side: 'right' }] }],
+      walkZone: { left: 0, right: 1280, top: 550, bottom: 710 },
+      playerStart: { x: 195, y: 615 },
+      enemySpawnMargin: { x: 40, y: 28 }
+    },
+    volga02: {
+      name: 'Volga 02',
+      region: 'volga',
+      background: 'assets/backgrounds/5/street02.png',
+      music: 'levelTheme',
+      waves: [{ trigger: 'onEnter', enemies: [{ type: 'dogRegime', count: 2, side: 'right' }] }],
+      walkZone: { left: 0, right: 1280, top: 550, bottom: 710 },
+      playerStart: { x: 195, y: 615 },
+      enemySpawnMargin: { x: 40, y: 28 }
+    },
+    volga03: {
+      name: 'Volga 03',
+      region: 'volga',
+      background: 'assets/backgrounds/5/street03.png',
+      music: 'levelTheme',
+      waves: [{ trigger: 'onEnter', enemies: [{ type: 'sucker', count: 1, side: 'right' }] }],
+      walkZone: { left: 0, right: 1280, top: 550, bottom: 710 },
+      playerStart: { x: 195, y: 615 },
+      enemySpawnMargin: { x: 40, y: 28 }
+    },
+    south01: {
+      name: 'South 01',
+      region: 'south',
+      background: 'assets/backgrounds/6/street01.png',
+      music: 'levelTheme',
+      waves: [{ trigger: 'onEnter', enemies: [{ type: 'dogRegime', count: 2, side: 'right' }] }],
+      walkZone: { left: 0, right: 1280, top: 550, bottom: 710 },
+      playerStart: { x: 195, y: 615 },
+      enemySpawnMargin: { x: 40, y: 28 }
+    },
+    south02: {
+      name: 'South 02',
+      region: 'south',
+      background: 'assets/backgrounds/6/street02.png',
+      music: 'levelTheme',
+      waves: [{ trigger: 'onEnter', enemies: [{ type: 'dogRegime', count: 2, side: 'right' }] }],
+      walkZone: { left: 0, right: 1280, top: 550, bottom: 710 },
+      playerStart: { x: 195, y: 615 },
+      enemySpawnMargin: { x: 40, y: 28 }
+    },
+    south03: {
+      name: 'South 03',
+      region: 'south',
+      background: 'assets/backgrounds/6/street03.png',
+      music: 'levelTheme',
+      waves: [{ trigger: 'onEnter', enemies: [{ type: 'sucker', count: 1, side: 'right' }] }],
+      walkZone: { left: 0, right: 1280, top: 550, bottom: 710 },
+      playerStart: { x: 195, y: 615 },
+      enemySpawnMargin: { x: 40, y: 28 }
+    },
+    moscow01: {
+      name: 'Moscow 01',
+      region: 'moscow',
+      background: 'assets/backgrounds/7/street01.png',
+      music: 'levelTheme',
+      waves: [{ trigger: 'onEnter', enemies: [{ type: 'dogRegime', count: 2, side: 'right' }] }],
+      walkZone: { left: 0, right: 1280, top: 550, bottom: 710 },
+      playerStart: { x: 195, y: 615 },
+      enemySpawnMargin: { x: 40, y: 28 }
+    },
+    moscow02: {
+      name: 'Moscow 02',
+      region: 'moscow',
+      background: 'assets/backgrounds/7/street02.png',
+      music: 'levelTheme',
+      waves: [{ trigger: 'onEnter', enemies: [{ type: 'dogRegime', count: 2, side: 'right' }] }],
+      walkZone: { left: 0, right: 1280, top: 550, bottom: 710 },
+      playerStart: { x: 195, y: 615 },
+      enemySpawnMargin: { x: 40, y: 28 }
+    },
+    moscow03: {
+      name: 'Moscow 03',
+      region: 'moscow',
+      background: 'assets/backgrounds/7/street03.png',
+      music: 'bossTheme',
+      waves: [{ trigger: 'onEnter', enemies: [{ type: 'sucker', count: 1, side: 'right' }] }],
+      walkZone: { left: 0, right: 1280, top: 550, bottom: 710 },
+      playerStart: { x: 195, y: 615 },
+      enemySpawnMargin: { x: 40, y: 28 }
     }
   }
 };

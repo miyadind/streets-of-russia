@@ -8,7 +8,7 @@
     if (window.__hitboxEditorPatchRequested) return;
     window.__hitboxEditorPatchRequested = true;
     var script = document.createElement('script');
-    script.src = 'src/hitboxEditorPatch.js?v=lane-combat-1';
+    script.src = 'src/hitboxEditorPatch.js?v=anatomy-hitboxes-2';
     script.defer = true;
     document.body.appendChild(script);
   }
