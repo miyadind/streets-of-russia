@@ -342,6 +342,7 @@
   if (typeof Menu !== 'undefined') {
     const previousGetRuntimeItems = Menu.getRuntimeItems;
     Menu.getRuntimeItems = function (game) {
+      if (window.CampaignFlow) return window.CampaignFlow.getMenuItems(game);
       const items = previousGetRuntimeItems.call(this, game);
       if (game && game.loadCampaignSave && game.loadCampaignSave() && !items.some(item => item.key === 'continue')) {
         items.unshift({ key: 'continue', label: 'ПРОДОЛЖИТЬ' });

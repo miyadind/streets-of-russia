@@ -12,10 +12,12 @@
   }
 
   function canContinue(game) {
+    if (window.CampaignFlow) return window.CampaignFlow.canContinue(game);
     return !!(game && (game.runInProgress || game.scene || getCampaignProgress(game) > 0));
   }
 
   function getMenuItems(game) {
+    if (window.CampaignFlow) return window.CampaignFlow.getMenuItems(game);
     const items = [];
     if (canContinue(game)) items.push({ key: 'continue', label: 'ПРОДОЛЖИТЬ' });
     items.push({ key: 'newGame', label: 'НОВАЯ ИГРА' });
@@ -25,6 +27,10 @@
   }
 
   function setCharacterSelectForCampaign(game) {
+    if (window.CampaignFlow) {
+      window.CampaignFlow.openCharacterSelect(game, 'campaignStart');
+      return;
+    }
     game.runInProgress = true;
     game.resumeTarget = 'campaignMap';
     game.characterSelectMode = 'campaignStart';
@@ -49,6 +55,10 @@
   };
 
   GameApp.prototype.startNewCampaign = function () {
+    if (window.CampaignFlow) {
+      window.CampaignFlow.startNewCampaign(this);
+      return;
+    }
     this.runInProgress = true;
     this.resumeTarget = 'campaignMap';
     this.scene = null;
@@ -62,6 +72,7 @@
   };
 
   GameApp.prototype.continueCampaignRun = function () {
+    if (window.CampaignFlow) return window.CampaignFlow.continueCampaignRun(this);
     if (!canContinue(this)) return false;
 
     AudioManager.unlock();
@@ -212,6 +223,10 @@
 
   if (typeof CharacterSelect !== 'undefined') {
     function goBack(game) {
+      if (window.CampaignFlow) {
+        window.CampaignFlow.backFromCharacterSelect(game);
+        return;
+      }
       AudioManager.playSfx('menuSelect', 0.65);
       const mode = game.characterSelectMode;
       game.characterSelectMode = null;
@@ -231,6 +246,10 @@
     }
 
     CharacterSelect.confirm = function (game) {
+      if (window.CampaignFlow) {
+        window.CampaignFlow.confirmCharacterSelect(this, game);
+        return;
+      }
       const heroKey = this.heroes[this.selectedIndex];
       if (this.isHeroDisabled && this.isHeroDisabled(game, heroKey)) {
         AudioManager.playSfx('menuBack', 0.65);

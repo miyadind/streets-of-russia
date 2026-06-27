@@ -48,6 +48,19 @@ The project started as a prototype with many late-loaded patch files. The safe c
 New region, save, continue, retry and story code should use `window.CampaignRuntime`
 instead of repeating `activeIndex * 3` or custom region scans.
 
+## Campaign Flow
+
+`src/campaignFlow.js` is the central owner for player-facing campaign flow:
+
+- Continue availability and main menu campaign items
+- Opening character select from the campaign map
+- Back behavior from character select
+- Confirm behavior in character select
+- Baseline New Game and Continue behavior
+
+Save and story patches may still wrap these actions for persistence or special screens,
+but they should delegate the shared flow rules to `window.CampaignFlow`.
+
 ## High-Risk Patch Areas
 
 These are the first areas to consolidate:

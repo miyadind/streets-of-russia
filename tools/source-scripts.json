@@ -23,6 +23,7 @@
   "src/devPanelRepairPatch.js",
   "src/campaignMap.js",
   "src/campaignRuntime.js",
+  "src/campaignFlow.js",
   "src/mobileControls.js",
   "src/mobileApp.js",
   "src/mobileSafeUxPatch.js",
