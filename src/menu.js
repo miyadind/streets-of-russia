@@ -214,6 +214,14 @@ const Menu = {
     ctx.lineWidth = 5;
     ctx.strokeText('НАЖМИ ЛЮБУЮ КНОПКУ', 640, 600);
     ctx.fillText('НАЖМИ ЛЮБУЮ КНОПКУ', 640, 600);
+    ctx.font = 'bold 18px Arial';
+    ctx.textAlign = 'right';
+    ctx.fillStyle = 'rgba(255,255,255,0.82)';
+    ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+    ctx.lineWidth = 4;
+    const version = 'v' + (GAME_CONFIG.buildVersion || 'dev');
+    ctx.strokeText(version, GAME_CONFIG.width - 28, GAME_CONFIG.height - 26);
+    ctx.fillText(version, GAME_CONFIG.width - 28, GAME_CONFIG.height - 26);
     ctx.textAlign = 'left';
   }
 };

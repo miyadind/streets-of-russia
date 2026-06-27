@@ -111,7 +111,9 @@
   }
 
   function getScreenIndex(game) {
-    return game && game.scene && Number.isFinite(game.scene.screenIndex) ? game.scene.screenIndex : 0;
+    if (!game || !game.scene || !Number.isFinite(game.scene.screenIndex)) return 0;
+    const regionIndex = getRegionIndex(game);
+    return clamp(game.scene.screenIndex - regionIndex * 3, 0, 2);
   }
 
   function calculateScore(save) {
@@ -237,7 +239,9 @@
     if (!save) return false;
     applySaveToGame(game, save);
     game.scene = new LevelScene(game, game.images);
-    game.scene.screenIndex = clamp(Number(save.campaign && save.campaign.currentScreen) || 0, 0, game.scene.images.streets.length - 1);
+    const regionIndex = clamp(Number(save.campaign && save.campaign.currentRegionIndex) || 0, 0, Math.max(0, getCampaignMapOrder(game).length - 1));
+    const regionalScreen = clamp(Number(save.campaign && save.campaign.currentScreen) || 0, 0, 2);
+    game.scene.screenIndex = clamp(regionIndex * 3 + regionalScreen, 0, game.scene.images.streets.length - 1);
     game.scene.player = new Player(game.selectedHero || getFirstAliveHero(game), game.images);
     game.scene.player.x = 190;
     game.scene.player.y = 620;

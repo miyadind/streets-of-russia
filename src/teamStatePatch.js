@@ -98,6 +98,16 @@
   GameApp.prototype.startLevel = function () {
     this.resetTeamRun();
     previousStartLevel.call(this);
+    if (this.scene && this.campaignMap && Number.isFinite(this.campaignMap.activeIndex)) {
+      const targetIndex = Math.max(0, Math.min(
+        this.scene.images.streets.length - 1,
+        this.campaignMap.activeIndex * 3
+      ));
+      if (this.scene.screenIndex !== targetIndex) {
+        this.scene.screenIndex = targetIndex;
+        if (this.scene.spawnInitialWave) this.scene.spawnInitialWave();
+      }
+    }
     if (this.scene && this.scene.player) {
       this.applySavedHeroHp(this.scene.player, this.scene.player.heroKey || this.selectedHero);
     }
