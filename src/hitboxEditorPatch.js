@@ -12,52 +12,134 @@
     biteAttack: '#45ff45'
   };
 
-  const DEFAULT_HITBOXES = {
+  const ANATOMICAL_HITBOX_VERSION = 2;
+
+  const SPRITE_METRICS = {
     heroes: {
-      boris: {
-        body: { x: -34, y: -132, w: 68, h: 132 },
-        pushbox: { x: -28, y: -20, w: 56, h: 36 },
-        attack1: { x: 22, y: -118, w: 46, h: 40 },
-        attack2: { x: 22, y: -118, w: 52, h: 40 },
-        attack3: { x: 22, y: -118, w: 62, h: 40 }
-      },
-      alexey: {
-        body: { x: -34, y: -132, w: 68, h: 132 },
-        pushbox: { x: -28, y: -20, w: 56, h: 36 },
-        attack1: { x: 22, y: -118, w: 46, h: 40 },
-        attack2: { x: 22, y: -118, w: 52, h: 40 },
-        attack3: { x: 22, y: -118, w: 62, h: 40 }
-      },
-      anna: {
-        body: { x: -30, y: -124, w: 60, h: 124 },
-        pushbox: { x: -24, y: -18, w: 48, h: 34 },
-        attack1: { x: 20, y: -108, w: 42, h: 36 },
-        attack2: { x: 20, y: -108, w: 48, h: 36 },
-        attack3: { x: 20, y: -108, w: 56, h: 36 }
-      }
+      boris: { w: 1254, h: 1254, scalePath: 'heroes.boris.scale' },
+      alexey: { w: 1024, h: 1024, scalePath: 'heroes.alexey.scale' },
+      anna: { w: 1024, h: 1536, scalePath: 'heroes.anna.scale' }
     },
     enemies: {
-      dogRegime: {
-        body: { x: -38, y: -140, w: 76, h: 140 },
-        pushbox: { x: -42, y: -20, w: 84, h: 40 },
-        attack: { x: 28, y: -92, w: 58, h: 46 }
-      },
-      zetnik: {
-        body: { x: -38, y: -140, w: 76, h: 140 },
-        pushbox: { x: -42, y: -20, w: 84, h: 40 },
-        attack: { x: 28, y: -92, w: 58, h: 46 }
-      },
-      sucker: {
-        body: { x: -44, y: -150, w: 88, h: 150 },
-        pushbox: { x: -52, y: -24, w: 104, h: 48 },
-        slideAttack: { x: 8, y: -112, w: 88, h: 54 },
-        biteAttack: { x: 18, y: -112, w: 62, h: 54 }
-      },
-      bastard: {
-        body: { x: -38, y: -132, w: 76, h: 132 },
-        pushbox: { x: -44, y: -20, w: 88, h: 40 },
-        attack: { x: 26, y: -92, w: 54, h: 44 }
-      }
+      dogRegime: { w: 1122, h: 1340, scalePath: 'enemies.dogRegime.scale' },
+      zetnik: { w: 1024, h: 1536, scalePath: 'enemies.zetnik.scale' },
+      sucker: { w: 1024, h: 1536, scalePath: 'enemies.sucker.scale' },
+      bastard: { w: 1122, h: 1402, scalePath: 'enemies.bastard.scale' },
+      horse: { w: 760, h: 934, scalePath: 'enemies.horse.scale' },
+      gundos: { w: 1536, h: 1024, scalePath: 'enemies.gundos.scale' }
+    }
+  };
+
+  const ANATOMY_PROFILES = {
+    boris: { bodyW: 0.36, minBodyW: 68, bodyH: 0.78, bodyTop: 0.96, pushW: 0.34, pushH: 0.16, attackY: 0.76, attackH: 0.24, reach: [0.26, 0.3, 0.36] },
+    alexey: { bodyW: 0.34, minBodyW: 64, bodyH: 0.79, bodyTop: 0.96, pushW: 0.32, pushH: 0.16, attackY: 0.76, attackH: 0.24, reach: [0.28, 0.33, 0.39] },
+    anna: { bodyW: 0.28, minBodyW: 58, bodyH: 0.74, bodyTop: 0.95, pushW: 0.3, pushH: 0.14, attackY: 0.72, attackH: 0.22, reach: [0.27, 0.31, 0.37] },
+    humanEnemy: { bodyW: 0.42, minBodyW: 72, bodyH: 0.92, bodyTop: 0.99, pushW: 0.42, pushH: 0.18, attackY: 0.66, attackH: 0.28, attackW: 0.52 },
+    skinnyEnemy: { bodyW: 0.36, minBodyW: 64, bodyH: 0.9, bodyTop: 0.99, pushW: 0.38, pushH: 0.16, attackY: 0.66, attackH: 0.27, attackW: 0.55 },
+    sucker: { bodyW: 0.5, minBodyW: 82, bodyH: 0.88, bodyTop: 0.99, pushW: 0.46, pushH: 0.18, slideY: 0.66, slideH: 0.27, slideW: 0.62, biteY: 0.64, biteH: 0.28, biteW: 0.45 },
+    horse: { bodyW: 0.45, minBodyW: 46, bodyH: 0.86, bodyTop: 0.99, pushW: 0.5, pushH: 0.2, attackY: 0.63, attackH: 0.3, attackW: 0.58 },
+    gundos: { bodyW: 0.26, bodyH: 0.88, bodyTop: 0.98, pushW: 0.3, pushH: 0.18, attackY: 0.66, attackH: 0.3, attackW: 0.42 }
+  };
+
+  function getByPath(path, fallback) {
+    const parts = String(path || '').split('.');
+    let node = GAME_CONFIG;
+    for (const part of parts) {
+      if (!node || node[part] == null) return fallback;
+      node = node[part];
+    }
+    return Number(node) || fallback;
+  }
+
+  function roundBox(box) {
+    return {
+      x: Math.round(box.x),
+      y: Math.round(box.y),
+      w: Math.max(1, Math.round(box.w)),
+      h: Math.max(1, Math.round(box.h))
+    };
+  }
+
+  function metric(group, key) {
+    const data = SPRITE_METRICS[group] && SPRITE_METRICS[group][key];
+    const scale = data ? getByPath(data.scalePath, group === 'heroes' ? GAME_CONFIG.playerScale : GAME_CONFIG.enemyScale) :
+      (group === 'heroes' ? GAME_CONFIG.playerScale : GAME_CONFIG.enemyScale);
+    return {
+      w: (data ? data.w : 1024) * scale,
+      h: (data ? data.h : 1340) * scale
+    };
+  }
+
+  function bodyBox(size, profile) {
+    const w = Math.max(profile.minBodyW || 1, size.w * profile.bodyW);
+    const h = size.h * profile.bodyH;
+    const bottom = -size.h * (1 - profile.bodyTop);
+    return roundBox({ x: -w / 2, y: bottom - h, w, h });
+  }
+
+  function pushBox(size, profile) {
+    const w = size.w * profile.pushW;
+    const h = size.h * profile.pushH;
+    return roundBox({ x: -w / 2, y: -h, w, h });
+  }
+
+  function attackBox(size, profile, reach) {
+    const h = size.h * profile.attackH;
+    const w = size.w * reach;
+    return roundBox({
+      x: size.w * 0.14,
+      y: -size.h * profile.attackY,
+      w,
+      h
+    });
+  }
+
+  function makeHeroBoxes(key) {
+    const size = metric('heroes', key);
+    const profile = ANATOMY_PROFILES[key];
+    return {
+      body: bodyBox(size, profile),
+      pushbox: pushBox(size, profile),
+      attack1: attackBox(size, profile, profile.reach[0]),
+      attack2: attackBox(size, profile, profile.reach[1]),
+      attack3: attackBox(size, profile, profile.reach[2])
+    };
+  }
+
+  function makeEnemyBoxes(key, profileKey) {
+    const size = metric('enemies', key);
+    const profile = ANATOMY_PROFILES[profileKey || 'humanEnemy'];
+    return {
+      body: bodyBox(size, profile),
+      pushbox: pushBox(size, profile),
+      attack: attackBox(size, profile, profile.attackW || 0.5)
+    };
+  }
+
+  function makeSuckerBoxes() {
+    const size = metric('enemies', 'sucker');
+    const profile = ANATOMY_PROFILES.sucker;
+    return {
+      body: bodyBox(size, profile),
+      pushbox: pushBox(size, profile),
+      slideAttack: roundBox({ x: size.w * 0.04, y: -size.h * profile.slideY, w: size.w * profile.slideW, h: size.h * profile.slideH }),
+      biteAttack: roundBox({ x: size.w * 0.12, y: -size.h * profile.biteY, w: size.w * profile.biteW, h: size.h * profile.biteH })
+    };
+  }
+
+  const DEFAULT_HITBOXES = {
+    heroes: {
+      boris: makeHeroBoxes('boris'),
+      alexey: makeHeroBoxes('alexey'),
+      anna: makeHeroBoxes('anna')
+    },
+    enemies: {
+      dogRegime: makeEnemyBoxes('dogRegime', 'humanEnemy'),
+      zetnik: makeEnemyBoxes('zetnik', 'skinnyEnemy'),
+      sucker: makeSuckerBoxes(),
+      bastard: makeEnemyBoxes('bastard', 'humanEnemy'),
+      horse: makeEnemyBoxes('horse', 'horse'),
+      gundos: makeEnemyBoxes('gundos', 'gundos')
     }
   };
 
@@ -93,9 +175,16 @@
   }
 
   function ensureHitboxes() {
-    if (!GAME_CONFIG.hitboxes) GAME_CONFIG.hitboxes = {};
+    if (!GAME_CONFIG.hitboxes || GAME_CONFIG.hitboxes.profileVersion !== ANATOMICAL_HITBOX_VERSION) {
+      GAME_CONFIG.hitboxes = {
+        profileVersion: ANATOMICAL_HITBOX_VERSION,
+        heroes: {},
+        enemies: {}
+      };
+    }
     if (!GAME_CONFIG.hitboxes.heroes) GAME_CONFIG.hitboxes.heroes = {};
     if (!GAME_CONFIG.hitboxes.enemies) GAME_CONFIG.hitboxes.enemies = {};
+    GAME_CONFIG.hitboxes.profileVersion = ANATOMICAL_HITBOX_VERSION;
 
     for (const key of Object.keys(DEFAULT_HITBOXES.heroes)) {
       GAME_CONFIG.hitboxes.heroes[key] = migrateHitboxEntity(GAME_CONFIG.hitboxes.heroes[key], DEFAULT_HITBOXES.heroes[key]);

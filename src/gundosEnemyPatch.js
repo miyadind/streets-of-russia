@@ -540,6 +540,9 @@
     }
 
     getBodyBox() {
+      const box = GAME_CONFIG.hitboxes && GAME_CONFIG.hitboxes.enemies &&
+        GAME_CONFIG.hitboxes.enemies.gundos && GAME_CONFIG.hitboxes.enemies.gundos.body;
+      if (box) return { x: this.x + box.x, y: this.y + box.y, w: box.w, h: box.h };
       return { x: this.x - 35, y: this.y - 125, w: 70, h: 125 };
     }
 
@@ -548,6 +551,9 @@
     }
 
     getPushbox() {
+      const box = GAME_CONFIG.hitboxes && GAME_CONFIG.hitboxes.enemies &&
+        GAME_CONFIG.hitboxes.enemies.gundos && GAME_CONFIG.hitboxes.enemies.gundos.pushbox;
+      if (box) return { x: this.x + box.x, y: this.y + box.y, w: box.w, h: box.h };
       return { x: this.x - 48, y: this.y - 22, w: 96, h: 42 };
     }
 
