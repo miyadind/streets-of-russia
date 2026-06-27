@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.14',
+  buildVersion: '0.4.15',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -11375,12 +11375,15 @@ window.addEventListener('load', () => {
   };
 
   LevelScene.prototype.draw = function (ctx) {
-    const bg = this.images.streets[this.screenIndex] || this.images.streets[0];
+    const bg = this.getLevelBackgroundImage
+      ? this.getLevelBackgroundImage()
+      : this.images.streets[this.screenIndex] || this.images.streets[0];
     if (bg) ctx.drawImage(bg, 0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
     else {
       ctx.fillStyle = '#222';
       ctx.fillRect(0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
     }
+    if (this.drawLevelBackgroundEffects) this.drawLevelBackgroundEffects(ctx);
 
     ctx.fillStyle = 'rgba(255,255,255,0.025)';
     ctx.fillRect(0, GAME_CONFIG.laneTop, GAME_CONFIG.width, GAME_CONFIG.laneBottom - GAME_CONFIG.laneTop);
