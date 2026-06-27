@@ -213,10 +213,52 @@ class GameApp {
   }
 
   isMenuState(state) {
-    return state === 'splash' || state === 'mainMenu' || state === 'settings' || state === 'characterSelect';
+    return state === 'splash' ||
+      state === 'mainMenu' ||
+      state === 'settings' ||
+      state === 'characterSelect' ||
+      state === 'campaignMap' ||
+      state === 'playerNameEntry' ||
+      state === 'regionStory';
+  }
+
+  isIntroState(state) {
+    return state === 'intro';
+  }
+
+  pauseAndResetAudio(audio) {
+    if (!audio) return;
+    try {
+      audio.pause();
+      audio.currentTime = 0;
+    } catch (error) {}
+  }
+
+  stopIntroAudioForStateChange() {
+    const intro = this.intro;
+    if (!intro) return;
+
+    if (this.stopIntroVoiceOnly) this.stopIntroVoiceOnly();
+    else if (this.stopIntroVoice) this.stopIntroVoice();
+    this.pauseAndResetAudio(intro.music);
+    intro.voiceStarted = false;
+  }
+
+  stopManagedMusicForStateChange() {
+    if (!AudioManager.currentMusic) return;
+    const managedKeys = [
+      this.getMenuMusicKey(),
+      'menuTheme',
+      'levelTheme',
+      'bossTheme'
+    ];
+    if (AudioManager.currentMusicKey && !managedKeys.includes(AudioManager.currentMusicKey)) return;
+    AudioManager.stopMusic();
   }
 
   ensureMenuMusic() {
+    if (this.isIntroState(this.state) || this.state === 'level') return;
+    this.stopIntroAudioForStateChange();
     AudioManager.playMusic(this.getMenuMusicKey(), false, true);
   }
 
@@ -227,7 +269,23 @@ class GameApp {
   }
 
   updateMusicForState(previousState, nextState) {
+    if (this.isIntroState(nextState)) {
+      this.stopManagedMusicForStateChange();
+      return;
+    }
+
+    if (this.isIntroState(previousState) && !this.isIntroState(nextState)) {
+      this.stopIntroAudioForStateChange();
+    }
+
+    if (nextState === 'level') {
+      this.stopIntroAudioForStateChange();
+      if (AudioManager.currentMusicKey === this.getMenuMusicKey()) AudioManager.stopMusic();
+      return;
+    }
+
     if (this.isMenuState(nextState)) {
+      this.stopIntroAudioForStateChange();
       if (!this.isMenuState(previousState) || AudioManager.currentMusicKey !== this.getMenuMusicKey()) {
         this.ensureMenuMusic();
       }

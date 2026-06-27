@@ -69,11 +69,11 @@ the source of truth for sequential level progression.
 Save and story patches may still wrap these actions for persistence or special screens,
 but they should delegate the shared flow rules to `window.CampaignFlow`.
 
-## Audio Director
+## Audio State
 
-`src/audioDirector.js` is loaded last and owns cross-state music cleanup. It
-prevents menu music, intro music and level music from overlapping when patches
-change state.
+`GameApp.setState`, `GameApp.updateMusicForState` and `GameApp.ensureMenuMusic`
+own cross-state music cleanup. They prevent menu music, intro music and level
+music from overlapping when screens change.
 
 ## High-Risk Patch Areas
 
