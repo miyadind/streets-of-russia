@@ -3,7 +3,10 @@
 
   const STATS_KEY = 'streetsOfRussiaPlayerStatsV1';
   const DEFAULT_NAME = 'Игрок';
-  const NAME_MAX = 18;
+  const NAME_MAX = 15;
+  const VICTORY_BG_SRC = 'assets/backgrounds/1/gundos_victory.png?v=story-flow-2';
+  const victoryBg = new Image();
+  victoryBg.src = VICTORY_BG_SRC;
 
   function sanitizeName(name) {
     const clean = String(name || '').trim().replace(/\s+/g, ' ').slice(0, NAME_MAX);
@@ -38,7 +41,7 @@
   function beginCampaignAfterName(game) {
     const stats = game.profileStats || loadStats();
     stats.totalNewGames = (Number(stats.totalNewGames) || 0) + 1;
-    game.playerName = sanitizeName(game.nameEntryValue || stats.lastPlayerName || game.playerName);
+    game.playerName = sanitizeName(game.nameEntryValue);
     stats.lastPlayerName = game.playerName;
     game.profileStats = stats;
     game.currentRunId = 'run-' + Date.now();
@@ -64,7 +67,7 @@
   GameApp.prototype.startNewCampaign = function () {
     const stats = this.profileStats || loadStats();
     this.profileStats = stats;
-    this.nameEntryValue = sanitizeName(this.playerName || stats.lastPlayerName || DEFAULT_NAME);
+    this.nameEntryValue = '';
     this.nameEntryCaretVisible = true;
     this.nameEntryLastBlink = performance.now();
     this.nameEntryReturnState = this.state || 'mainMenu';
@@ -113,37 +116,46 @@
     ctx.lineWidth = 2;
     ctx.strokeRect(274, 108, 732, 406);
 
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.font = 'bold 54px Arial';
-    ctx.fillStyle = '#f2d061';
-    ctx.strokeStyle = '#2b0000';
-    ctx.lineWidth = 6;
-    ctx.strokeText('NEW FIGHTER', GAME_CONFIG.width / 2, 174);
-    ctx.fillText('NEW FIGHTER', GAME_CONFIG.width / 2, 174);
-
-    ctx.font = 'bold 22px Arial';
-    ctx.fillStyle = 'rgba(255,255,255,0.78)';
-    ctx.fillText('ВВЕДИ ИМЯ ДЛЯ СТАТИСТИКИ', GAME_CONFIG.width / 2, 238);
-
-    const input = { x: 360, y: 292, w: 560, h: 74 };
+    const input = { x: 280, y: 248, w: 720, h: 126 };
     ctx.fillStyle = 'rgba(0,0,0,0.72)';
     ctx.fillRect(input.x, input.y, input.w, input.h);
     ctx.strokeStyle = '#f04a38';
     ctx.lineWidth = 3;
     ctx.strokeRect(input.x, input.y, input.w, input.h);
 
-    const caret = Math.floor(t * 2) % 2 === 0 ? '_' : '';
-    ctx.font = 'bold 34px monospace';
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText(sanitizeName(this.nameEntryValue) + caret, GAME_CONFIG.width / 2, input.y + input.h / 2 + 2);
-
-    ctx.font = '16px Arial';
-    ctx.fillStyle = 'rgba(255,255,255,0.62)';
-    ctx.fillText('Backspace - стереть   Enter - начать', GAME_CONFIG.width / 2, 404);
+    this.drawNameSlots(ctx, this.nameEntryValue || '', input);
 
     this.drawNameEntryButton(ctx, rects.start, 'НАЧАТЬ', true);
     this.drawNameEntryButton(ctx, rects.back, 'НАЗАД', false);
+    ctx.restore();
+  };
+
+  GameApp.prototype.drawNameSlots = function (ctx, value, rect) {
+    const chars = Array.from(String(value || '')).slice(0, NAME_MAX);
+    const slotW = 38;
+    const gap = 8;
+    const totalW = NAME_MAX * slotW + (NAME_MAX - 1) * gap;
+    const startX = rect.x + rect.w / 2 - totalW / 2;
+    const baseY = rect.y + 82;
+    const blink = Math.floor(performance.now() / 360) % 2 === 0;
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = 'bold 32px Arial';
+    for (let i = 0; i < NAME_MAX; i++) {
+      const x = startX + i * (slotW + gap);
+      const active = i === chars.length;
+      ctx.strokeStyle = active && blink ? '#ffffff' : 'rgba(255,212,71,0.72)';
+      ctx.lineWidth = active && blink ? 4 : 2;
+      ctx.beginPath();
+      ctx.moveTo(x + 2, baseY);
+      ctx.lineTo(x + slotW - 2, baseY);
+      ctx.stroke();
+      if (chars[i]) {
+        ctx.fillStyle = '#fff3d0';
+        ctx.fillText(chars[i], x + slotW / 2, baseY - 27);
+      }
+    }
     ctx.restore();
   };
 
@@ -206,8 +218,8 @@
     }
     if (event.key === 'Enter' || event.key === 'Escape') return;
     if (event.key && event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
-      const next = String(game.nameEntryValue || '') + event.key;
-      game.nameEntryValue = next.replace(/\s+/g, ' ').slice(0, NAME_MAX);
+      const next = Array.from(String(game.nameEntryValue || '') + event.key).slice(0, NAME_MAX).join('');
+      game.nameEntryValue = next.replace(/\s+/g, ' ');
       event.preventDefault();
     }
   });
@@ -215,12 +227,16 @@
   GameApp.prototype.openRegionStory = function (regionId) {
     this.regionStory = {
       regionId: regionId || 'farEast',
-      title: 'ДАЛЬНИЙ ВОСТОК ОСВОБОЖДЁН',
+      title: '',
       lines: [
-        'Церковная сеть прикрывала вербовку людей.',
-        'Спецслужбы внедряли своих тварей в приходы и через страх управляли толпой.',
-        'Гундос сорвал маску и пал в облике демона.',
-        'С этим узлом покончено. Впереди новая зона.'
+        'Под золотом и молитвами скрывалась машина вербовки.',
+        '',
+        'Спецслужбы прятали своих тварей в церкви,',
+        'учили людей бояться, молчать и подчиняться.',
+        '',
+        'Тварь повержена!',
+        'Личина сорвана!',
+        'Путь открыт дальше!'
       ],
       hint: 'ENTER / SPACE - НА КАРТУ'
     };
@@ -245,55 +261,32 @@
     ctx.fillStyle = '#060505';
     ctx.fillRect(0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
 
-    const bg = this.images && this.images.streets && this.images.streets[2];
-    if (bg) {
-      ctx.globalAlpha = 0.42;
-      ctx.drawImage(bg, 0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
-      ctx.globalAlpha = 1;
-    }
-
-    const devil = this.images && this.images.enemies && this.images.enemies.gundos && this.images.enemies.gundos.devil;
-    if (devil) {
-      ctx.save();
-      ctx.translate(895, 635);
-      ctx.rotate(-0.18);
-      ctx.globalAlpha = 0.82;
-      const scale = 0.34;
-      ctx.drawImage(devil, -devil.width * scale / 2, -devil.height * scale, devil.width * scale, devil.height * scale);
-      ctx.restore();
-    } else {
-      ctx.fillStyle = 'rgba(100,0,0,0.45)';
-      ctx.fillRect(780, 560, 340, 46);
-    }
+    const bg = victoryBg && victoryBg.complete && victoryBg.naturalWidth > 0 ? victoryBg : null;
+    if (bg) this.drawCoverImage(ctx, bg, 0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
 
     const grad = ctx.createLinearGradient(0, 0, 0, GAME_CONFIG.height);
-    grad.addColorStop(0, 'rgba(0,0,0,0.25)');
-    grad.addColorStop(0.55, 'rgba(0,0,0,0.72)');
-    grad.addColorStop(1, 'rgba(0,0,0,0.9)');
+    grad.addColorStop(0, 'rgba(0,0,0,0.18)');
+    grad.addColorStop(0.52, 'rgba(0,0,0,0.2)');
+    grad.addColorStop(1, 'rgba(0,0,0,0.82)');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
 
-    ctx.strokeStyle = '#b52b22';
-    ctx.lineWidth = 4;
-    ctx.strokeRect(86, 72, 1108, 576);
-    ctx.strokeStyle = '#e8c35a';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(100, 86, 1080, 548);
-
-    ctx.textAlign = 'left';
+    ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
-    ctx.font = 'bold 42px Arial';
-    ctx.fillStyle = '#f0c94e';
-    ctx.strokeStyle = '#1b0000';
-    ctx.lineWidth = 5;
-    ctx.strokeText(story.title || 'РЕГИОН ОСВОБОЖДЁН', 148, 126);
-    ctx.fillText(story.title || 'РЕГИОН ОСВОБОЖДЁН', 148, 126);
-
-    ctx.font = '24px Arial';
-    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.font = 'bold 30px Arial';
     const lines = story.lines || [];
+    const startY = 405;
     for (let i = 0; i < lines.length; i++) {
-      ctx.fillText(lines[i], 150, 220 + i * 48);
+      const line = lines[i];
+      if (!line) continue;
+      const emph = i >= 5;
+      ctx.font = emph ? 'bold 34px Arial' : 'bold 28px Arial';
+      ctx.fillStyle = emph ? '#ffd447' : 'rgba(255,245,220,0.94)';
+      ctx.strokeStyle = 'rgba(0,0,0,0.78)';
+      ctx.lineWidth = emph ? 5 : 4;
+      const y = startY + i * 36;
+      ctx.strokeText(line, GAME_CONFIG.width / 2, y);
+      ctx.fillText(line, GAME_CONFIG.width / 2, y);
     }
 
     ctx.font = 'bold 18px Arial';
@@ -301,6 +294,15 @@
     ctx.fillStyle = 'rgba(255,232,148,0.82)';
     ctx.fillText(story.hint || 'ENTER - ПРОДОЛЖИТЬ', GAME_CONFIG.width / 2, 602);
     ctx.restore();
+  };
+
+  GameApp.prototype.drawCoverImage = function (ctx, img, x, y, w, h) {
+    const scale = Math.max(w / img.width, h / img.height);
+    const sw = w / scale;
+    const sh = h / scale;
+    const sx = (img.width - sw) / 2;
+    const sy = (img.height - sh) / 2;
+    ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
   };
 
   const previousCompleteCampaignRegion = GameApp.prototype.completeCampaignRegion;
