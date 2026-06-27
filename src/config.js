@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  buildVersion: '0.4.15',
+  buildVersion: '0.4.16',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -261,6 +261,8 @@ const GAME_CONFIG = {
           type: 'breakablePoster',
           hitsToReplace: 3,
           altBackground: 'assets/backgrounds/1/street01_1.png',
+          laneY: 620,
+          laneTolerance: 42,
           hitbox: { x: 342, y: 418, w: 128, h: 146 },
           effectRect: { x: 360, y: 322, w: 72, h: 150 }
         }

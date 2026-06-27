@@ -44,6 +44,7 @@
   function canHitPoster(scene, item, state) {
     const player = scene && scene.player;
     if (!player || state.replaced || player.attackHasHit || !isAttackActive(player)) return false;
+    if (Number.isFinite(item.laneY) && !Combat.actorsSameFootLane(player, { laneY: item.laneY }, item.laneTolerance || GAME_CONFIG.yHitTolerance)) return false;
     return Combat.overlap(player.getHitbox(), item.hitbox);
   }
 
@@ -182,6 +183,13 @@
         ctx.strokeStyle = 'rgba(255, 230, 90, 0.75)';
         ctx.lineWidth = 2;
         ctx.strokeRect(item.hitbox.x, item.hitbox.y, item.hitbox.w, item.hitbox.h);
+        if (Number.isFinite(item.laneY)) {
+          ctx.strokeStyle = 'rgba(80,255,120,0.85)';
+          ctx.beginPath();
+          ctx.moveTo(item.hitbox.x - 24, item.laneY);
+          ctx.lineTo(item.hitbox.x + item.hitbox.w + 24, item.laneY);
+          ctx.stroke();
+        }
         ctx.restore();
       }
     }

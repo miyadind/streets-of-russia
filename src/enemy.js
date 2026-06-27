@@ -378,7 +378,7 @@ class DogRegimeEnemy {
 
     if (!this.attackHasHit && this.attackTimer >= activeStart && this.attackTimer <= activeEnd) {
       const player = scene.player;
-      const sameY = Combat.sameLane(player.y, this.y, this.attackRangeY);
+      const sameY = Combat.actorsSameFootLane(this, player, this.attackRangeY);
       const inX = Math.abs(player.x - this.x) < this.attackRangeX;
       if (sameY && inX) {
         const hit = player.receiveDamage(this.damage, {
@@ -520,6 +520,11 @@ class DogRegimeEnemy {
       const gb = this.getGroundBodyBox();
       ctx.strokeStyle = 'rgba(0,180,255,0.75)';
       ctx.strokeRect(gb.x, gb.y, gb.w, gb.h);
+      ctx.strokeStyle = 'rgba(80,255,120,0.85)';
+      ctx.beginPath();
+      ctx.moveTo(this.x - 36, this.y);
+      ctx.lineTo(this.x + 36, this.y);
+      ctx.stroke();
       if (this.state === 'attack') {
         const ab = this.getAttackBox();
         ctx.strokeStyle = 'orange';

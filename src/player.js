@@ -228,7 +228,7 @@ class Player {
             w: target.w + pad * 2,
             h: target.h + pad * 2
           };
-          if (Combat.actorsSameLane(this, enemy) && Combat.overlap(hitbox, expandedTarget)) {
+          if (Combat.actorsSameFootLane(this, enemy) && Combat.overlap(hitbox, expandedTarget)) {
             this.attackHasHit = true;
             if (enemy.gundosGuarding && enemy.holdGundosGuard) {
               enemy.holdGundosGuard(this);
@@ -239,7 +239,7 @@ class Player {
             break;
           }
         }
-        if (Combat.sameLane(this.y, enemy.y) && Combat.overlap(hitbox, enemy.getHurtbox())) {
+        if (Combat.actorsSameFootLane(this, enemy) && Combat.overlap(hitbox, enemy.getHurtbox())) {
           this.attackHasHit = true;
           this.playComboHitSound();
           enemy.takeHit(data.damage, this.facing, data.knockback);
@@ -288,7 +288,7 @@ class Player {
 
   canCounterSlide(enemy) {
     if (this.state !== 'attack' || !enemy) return false;
-    if (Combat.actorsSameLane && !Combat.actorsSameLane(this, enemy)) return false;
+    if (Combat.actorsSameFootLane && !Combat.actorsSameFootLane(this, enemy)) return false;
 
     const data = this.getAttackData();
     if (this.attackTimer < data.activeStart || this.attackTimer > data.activeEnd) return false;
@@ -396,6 +396,15 @@ class Player {
       const counterRangeY = (GAME_CONFIG.enemies.sucker && GAME_CONFIG.enemies.sucker.counterRangeY) || GAME_CONFIG.enemyAttackRangeY;
       ctx.strokeStyle = 'rgba(0,255,255,0.75)';
       ctx.strokeRect(this.x + (this.facing === 1 ? 0 : -counterRangeX), this.y - counterRangeY, counterRangeX, counterRangeY * 2);
+    }
+
+    if (debug) {
+      ctx.strokeStyle = 'rgba(80,255,120,0.85)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(this.x - 36, this.y);
+      ctx.lineTo(this.x + 36, this.y);
+      ctx.stroke();
     }
   }
 }

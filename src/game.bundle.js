@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.15',
+  buildVersion: '0.4.16',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -268,6 +268,8 @@ const GAME_CONFIG = {
           type: 'breakablePoster',
           hitsToReplace: 3,
           altBackground: 'assets/backgrounds/1/street01_1.png',
+          laneY: 620,
+          laneTolerance: 42,
           hitbox: { x: 342, y: 418, w: 128, h: 146 },
           effectRect: { x: 360, y: 322, w: 72, h: 150 }
         }
@@ -971,6 +973,10 @@ const Combat = {
     return Math.abs(aY - bY) <= tolerance;
   },
 
+  sameFootLane(aY, bY, tolerance = GAME_CONFIG.yHitTolerance) {
+    return this.sameLane(aY, bY, tolerance);
+  },
+
   laneIndex(y) {
     const top = GAME_CONFIG.laneTop;
     const bottom = GAME_CONFIG.laneBottom;
@@ -991,6 +997,7 @@ const Combat = {
   actorLaneY(actor) {
     if (!actor) return GAME_CONFIG.laneTop;
     if (Number.isFinite(actor.laneY)) return actor.laneY;
+    if (Number.isFinite(actor.feetY)) return actor.feetY;
     if (Number.isFinite(actor.y)) return actor.y;
     const box = typeof actor.getPushbox === 'function' ? actor.getPushbox() :
       typeof actor.getBodyBox === 'function' ? actor.getBodyBox() :
@@ -998,8 +1005,16 @@ const Combat = {
     return box ? box.y + box.h : GAME_CONFIG.laneTop;
   },
 
+  actorFeetY(actor) {
+    return this.actorLaneY(actor);
+  },
+
   actorsSameLane(a, b, tolerance = GAME_CONFIG.yHitTolerance) {
     return this.sameLane(this.actorLaneY(a), this.actorLaneY(b), tolerance);
+  },
+
+  actorsSameFootLane(a, b, tolerance = GAME_CONFIG.yHitTolerance) {
+    return this.sameFootLane(this.actorFeetY(a), this.actorFeetY(b), tolerance);
   }
 };
 
@@ -1566,7 +1581,7 @@ class Player {
             w: target.w + pad * 2,
             h: target.h + pad * 2
           };
-          if (Combat.actorsSameLane(this, enemy) && Combat.overlap(hitbox, expandedTarget)) {
+          if (Combat.actorsSameFootLane(this, enemy) && Combat.overlap(hitbox, expandedTarget)) {
             this.attackHasHit = true;
             if (enemy.gundosGuarding && enemy.holdGundosGuard) {
               enemy.holdGundosGuard(this);
@@ -1577,7 +1592,7 @@ class Player {
             break;
           }
         }
-        if (Combat.sameLane(this.y, enemy.y) && Combat.overlap(hitbox, enemy.getHurtbox())) {
+        if (Combat.actorsSameFootLane(this, enemy) && Combat.overlap(hitbox, enemy.getHurtbox())) {
           this.attackHasHit = true;
           this.playComboHitSound();
           enemy.takeHit(data.damage, this.facing, data.knockback);
@@ -1626,7 +1641,7 @@ class Player {
 
   canCounterSlide(enemy) {
     if (this.state !== 'attack' || !enemy) return false;
-    if (Combat.actorsSameLane && !Combat.actorsSameLane(this, enemy)) return false;
+    if (Combat.actorsSameFootLane && !Combat.actorsSameFootLane(this, enemy)) return false;
 
     const data = this.getAttackData();
     if (this.attackTimer < data.activeStart || this.attackTimer > data.activeEnd) return false;
@@ -1734,6 +1749,15 @@ class Player {
       const counterRangeY = (GAME_CONFIG.enemies.sucker && GAME_CONFIG.enemies.sucker.counterRangeY) || GAME_CONFIG.enemyAttackRangeY;
       ctx.strokeStyle = 'rgba(0,255,255,0.75)';
       ctx.strokeRect(this.x + (this.facing === 1 ? 0 : -counterRangeX), this.y - counterRangeY, counterRangeX, counterRangeY * 2);
+    }
+
+    if (debug) {
+      ctx.strokeStyle = 'rgba(80,255,120,0.85)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(this.x - 36, this.y);
+      ctx.lineTo(this.x + 36, this.y);
+      ctx.stroke();
     }
   }
 }
@@ -2121,7 +2145,7 @@ class DogRegimeEnemy {
 
     if (!this.attackHasHit && this.attackTimer >= activeStart && this.attackTimer <= activeEnd) {
       const player = scene.player;
-      const sameY = Combat.sameLane(player.y, this.y, this.attackRangeY);
+      const sameY = Combat.actorsSameFootLane(this, player, this.attackRangeY);
       const inX = Math.abs(player.x - this.x) < this.attackRangeX;
       if (sameY && inX) {
         const hit = player.receiveDamage(this.damage, {
@@ -2263,6 +2287,11 @@ class DogRegimeEnemy {
       const gb = this.getGroundBodyBox();
       ctx.strokeStyle = 'rgba(0,180,255,0.75)';
       ctx.strokeRect(gb.x, gb.y, gb.w, gb.h);
+      ctx.strokeStyle = 'rgba(80,255,120,0.85)';
+      ctx.beginPath();
+      ctx.moveTo(this.x - 36, this.y);
+      ctx.lineTo(this.x + 36, this.y);
+      ctx.stroke();
       if (this.state === 'attack') {
         const ab = this.getAttackBox();
         ctx.strokeStyle = 'orange';
@@ -2271,6 +2300,7 @@ class DogRegimeEnemy {
     }
   }
 }
+
 
 
 /* ===== src/zetnikEnemy.js ===== */
@@ -8294,6 +8324,7 @@ window.addEventListener('load', () => {
   function canHitPoster(scene, item, state) {
     const player = scene && scene.player;
     if (!player || state.replaced || player.attackHasHit || !isAttackActive(player)) return false;
+    if (Number.isFinite(item.laneY) && !Combat.actorsSameFootLane(player, { laneY: item.laneY }, item.laneTolerance || GAME_CONFIG.yHitTolerance)) return false;
     return Combat.overlap(player.getHitbox(), item.hitbox);
   }
 
@@ -8432,6 +8463,13 @@ window.addEventListener('load', () => {
         ctx.strokeStyle = 'rgba(255, 230, 90, 0.75)';
         ctx.lineWidth = 2;
         ctx.strokeRect(item.hitbox.x, item.hitbox.y, item.hitbox.w, item.hitbox.h);
+        if (Number.isFinite(item.laneY)) {
+          ctx.strokeStyle = 'rgba(80,255,120,0.85)';
+          ctx.beginPath();
+          ctx.moveTo(item.hitbox.x - 24, item.laneY);
+          ctx.lineTo(item.hitbox.x + item.hitbox.w + 24, item.laneY);
+          ctx.stroke();
+        }
         ctx.restore();
       }
     }

@@ -10,6 +10,10 @@ const Combat = {
     return Math.abs(aY - bY) <= tolerance;
   },
 
+  sameFootLane(aY, bY, tolerance = GAME_CONFIG.yHitTolerance) {
+    return this.sameLane(aY, bY, tolerance);
+  },
+
   laneIndex(y) {
     const top = GAME_CONFIG.laneTop;
     const bottom = GAME_CONFIG.laneBottom;
@@ -30,6 +34,7 @@ const Combat = {
   actorLaneY(actor) {
     if (!actor) return GAME_CONFIG.laneTop;
     if (Number.isFinite(actor.laneY)) return actor.laneY;
+    if (Number.isFinite(actor.feetY)) return actor.feetY;
     if (Number.isFinite(actor.y)) return actor.y;
     const box = typeof actor.getPushbox === 'function' ? actor.getPushbox() :
       typeof actor.getBodyBox === 'function' ? actor.getBodyBox() :
@@ -37,7 +42,15 @@ const Combat = {
     return box ? box.y + box.h : GAME_CONFIG.laneTop;
   },
 
+  actorFeetY(actor) {
+    return this.actorLaneY(actor);
+  },
+
   actorsSameLane(a, b, tolerance = GAME_CONFIG.yHitTolerance) {
     return this.sameLane(this.actorLaneY(a), this.actorLaneY(b), tolerance);
+  },
+
+  actorsSameFootLane(a, b, tolerance = GAME_CONFIG.yHitTolerance) {
+    return this.sameFootLane(this.actorFeetY(a), this.actorFeetY(b), tolerance);
   }
 };
