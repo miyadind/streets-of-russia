@@ -67,6 +67,74 @@
     if (game.saveCampaignProgress) game.saveCampaignProgress();
   }
 
+  function normalizeRegionId(regionId) {
+    return String(regionId || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+  }
+
+  function getLevelRegionId(level) {
+    return level && (level.region || level.regionKey || level.area || level.chapter) || '';
+  }
+
+  function getActiveRegionStartIndex(game) {
+    const order = Array.isArray(GAME_CONFIG.levelOrder) ? GAME_CONFIG.levelOrder : [];
+    const levels = GAME_CONFIG.levels || {};
+    const map = game && game.campaignMap;
+    const activeIndex = map && Number.isFinite(map.activeIndex) ? map.activeIndex : 0;
+    const activeRegionId = map && map.order ? map.order[activeIndex] : '';
+    const wanted = normalizeRegionId(activeRegionId);
+
+    if (wanted) {
+      for (let index = 0; index < order.length; index++) {
+        const key = order[index];
+        if (normalizeRegionId(getLevelRegionId(levels[key])) === wanted) return index;
+      }
+    }
+
+    return Math.max(0, Math.min(order.length - 1, activeIndex * 3));
+  }
+
+  function placePlayerAtLevelStart(scene) {
+    if (!scene || !scene.player) return;
+    const level = scene.getLevelConfig ? scene.getLevelConfig() : null;
+    const start = level && level.playerStart || { x: 190, y: 620 };
+    scene.player.x = Number(start.x) || 190;
+    scene.player.y = Number(start.y) || 620;
+    scene.player.facing = scene.player.x > GAME_CONFIG.width / 2 ? -1 : 1;
+    if (scene.player.releaseFromPin) scene.player.releaseFromPin();
+    scene.player.state = 'idle';
+  }
+
+  function restartSceneAtActiveRegion(game) {
+    if (!game || !game.scene) return;
+    const scene = game.scene;
+    const targetIndex = getActiveRegionStartIndex(game);
+    const currentKey = GAME_CONFIG.levelOrder && GAME_CONFIG.levelOrder[scene.screenIndex];
+    const targetKey = GAME_CONFIG.levelOrder && GAME_CONFIG.levelOrder[targetIndex];
+
+    if (scene.screenIndex === targetIndex && currentKey === targetKey) return;
+
+    if (scene.stopGundosVoice) scene.stopGundosVoice();
+    scene.screenIndex = targetIndex;
+    scene.gundosIntroActive = false;
+    scene.gundosIntroLocked = false;
+    scene.gundosArenaActive = false;
+    scene.gundosVictoryPending = false;
+    scene.gundosVictoryDelayMs = 0;
+    scene.activeGundos = null;
+    scene.gundosFloatTexts = [];
+    placePlayerAtLevelStart(scene);
+    if (scene.spawnInitialWave) scene.spawnInitialWave();
+
+    const level = scene.getLevelConfig ? scene.getLevelConfig() : null;
+    AudioManager.playMusic((level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme', true);
+
+    window.__lastRegionStart = {
+      activeIndex: game.campaignMap && game.campaignMap.activeIndex,
+      targetIndex,
+      targetKey
+    };
+  }
+
   const previousStartNewCampaign = GameApp.prototype.startNewCampaign;
   GameApp.prototype.startNewCampaign = function () {
     const stats = this.profileStats || loadStats();
@@ -330,8 +398,16 @@
     this.openRegionStory(completedRegionId);
   };
 
+  const previousStartLevel = GameApp.prototype.startLevel;
+  GameApp.prototype.startLevel = function () {
+    previousStartLevel.call(this);
+    restartSceneAtActiveRegion(this);
+  };
+
   window.StoryFlowPatch = {
     beginCampaignAfterName,
+    getActiveRegionStartIndex,
+    restartSceneAtActiveRegion,
     previousStartNewCampaign,
     previousCompleteCampaignRegion
   };
