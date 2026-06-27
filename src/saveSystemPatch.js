@@ -34,6 +34,38 @@
     try { localStorage.removeItem(key); } catch (error) {}
   }
 
+  function readSessionJson(key) {
+    try {
+      const raw = sessionStorage.getItem(key);
+      if (raw) {
+        window.__streetsSessionCampaignSave = raw;
+        return parseJson(raw);
+      }
+    } catch (error) {}
+    return parseJson(window.__streetsSessionCampaignSave || null);
+  }
+
+  function writeSessionJson(key, value) {
+    const raw = JSON.stringify(value);
+    window.__streetsSessionCampaignSave = raw;
+    try {
+      sessionStorage.setItem(key, raw);
+      return true;
+    } catch (error) {
+      console.warn('Could not write session save data:', error);
+      return false;
+    }
+  }
+
+  function removeSessionJson(key) {
+    window.__streetsSessionCampaignSave = null;
+    try { sessionStorage.removeItem(key); } catch (error) {}
+  }
+
+  function clearLegacyCampaignSave() {
+    removeJson(SAVE_KEY);
+  }
+
   function sanitizeName(name) {
     const clean = String(name || '').trim().replace(/\s+/g, ' ').slice(0, 18);
     return clean || DEFAULT_NAME;
@@ -193,14 +225,15 @@
   }
 
   function readCampaignSave() {
-    const save = readJson(SAVE_KEY);
+    const save = readSessionJson(SAVE_KEY);
     if (!save || save.saveVersion !== 1) return null;
     return save;
   }
 
   function writeCampaignSave(game) {
     const save = createSaveFromGame(game);
-    writeJson(SAVE_KEY, save);
+    writeSessionJson(SAVE_KEY, save);
+    clearLegacyCampaignSave();
     if (game.profileStats) {
       game.profileStats.lastPlayerName = save.playerName;
       game.profileStats.lastScore = save.stats.score;
@@ -290,13 +323,17 @@
 
   GameApp.prototype.loadCampaignSave = readCampaignSave;
   GameApp.prototype.saveCampaignProgress = function () { return writeCampaignSave(this); };
-  GameApp.prototype.clearCampaignSave = function () { removeJson(SAVE_KEY); };
+  GameApp.prototype.clearCampaignSave = function () {
+    removeSessionJson(SAVE_KEY);
+    clearLegacyCampaignSave();
+  };
   GameApp.prototype.applyCampaignSave = function (save) { return applySaveToGame(this, save); };
   GameApp.prototype.buildSceneFromCampaignSave = function (save) { return buildSceneFromSave(this, save); };
   GameApp.prototype.getCurrentScore = function () { return calculateScore(createSaveFromGame(this)); };
 
   const previousInit = GameApp.prototype.init;
   GameApp.prototype.init = async function () {
+    clearLegacyCampaignSave();
     this.profileStats = loadProfileStats();
     this.profileStats.totalPageLoads += 1;
     this.playerName = sanitizeName(this.profileStats.lastPlayerName);

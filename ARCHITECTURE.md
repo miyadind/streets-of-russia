@@ -59,6 +59,11 @@ The official campaign route lives in `GAME_CONFIG.campaignRegions`. Each entry
 connects the map id to the level region id and the exact screen keys. This is
 the source of truth for sequential level progression.
 
+Campaign run saves are session-only. The current run may be continued while the
+same browser session is open, but the next fresh visit starts from New Game.
+Long-lived localStorage is reserved for profile stats and tuning, not campaign
+position.
+
 ## Campaign Flow
 
 `src/campaignFlow.js` is the central owner for player-facing campaign flow:
