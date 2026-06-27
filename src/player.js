@@ -228,7 +228,7 @@ class Player {
             w: target.w + pad * 2,
             h: target.h + pad * 2
           };
-          if (Combat.overlap(hitbox, expandedTarget)) {
+          if (Combat.actorsSameLane(this, enemy) && Combat.overlap(hitbox, expandedTarget)) {
             this.attackHasHit = true;
             if (enemy.gundosGuarding && enemy.holdGundosGuard) {
               enemy.holdGundosGuard(this);
@@ -288,6 +288,7 @@ class Player {
 
   canCounterSlide(enemy) {
     if (this.state !== 'attack' || !enemy) return false;
+    if (Combat.actorsSameLane && !Combat.actorsSameLane(this, enemy)) return false;
 
     const data = this.getAttackData();
     if (this.attackTimer < data.activeStart || this.attackTimer > data.activeEnd) return false;

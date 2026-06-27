@@ -126,6 +126,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
     this.facing = player.x >= this.x ? 1 : -1;
     this.lockedTargetX = player.x;
     this.lockedTargetY = player.y;
+    this.laneY = player.y;
     this.attackTimer = 0;
     this.attackHasHit = false;
     AudioManager.playSfx('zetnikPreparing', 0.9, { playbackRate: 1, startAt: 0.01 });
@@ -191,7 +192,8 @@ class ZetnikEnemy extends DogRegimeEnemy {
       this.walkFrame = (this.walkFrame + 1) % 3;
     }
 
-    if (!this.redirectedToBoss && player && !this.gundosHitPlayer && Combat.overlap(this.getHurtbox(), player.getBodyBox())) {
+    if (!this.redirectedToBoss && player && !this.gundosHitPlayer &&
+        Combat.actorsSameLane(this, player) && Combat.overlap(this.getHurtbox(), player.getBodyBox())) {
       this.gundosHitPlayer = true;
       player.receiveDamage(this.damage, {
         source: 'ranged',
@@ -305,7 +307,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
     const stayedNearLockedX = Math.abs(player.x - this.lockedTargetX) <= this.hitWindowX;
     const projectileOverlapsPlayer = Math.abs(player.x - this.x) <= this.hitWindowX;
 
-    if (!stayedNearLockedY || !stayedNearLockedX || !projectileOverlapsPlayer) return;
+    if (!stayedNearLockedY || !stayedNearLockedX || !projectileOverlapsPlayer || !Combat.actorsSameLane(this, player)) return;
 
     const hit = player.receiveDamage(this.damage, {
       source: 'ranged',
@@ -324,6 +326,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
 
   finishCrash(scene) {
     this.y = this.jumpTargetY;
+    this.laneY = this.y;
     this.state = 'crash';
     this.crashTimer = 0;
     this.alive = false;

@@ -35,6 +35,8 @@ const GAME_CONFIG = {
   enemyAttackSlotRadiusX: 46,
   enemyAttackSlotRadiusY: 24,
   yHitTolerance: 34,
+  combatLaneCount: 3,
+  discreteCombatLanes: true,
 
   enemyAttackRangeX: 76,
   enemyAttackRangeY: 36,

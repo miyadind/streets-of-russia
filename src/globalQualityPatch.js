@@ -155,6 +155,7 @@
 
     DogRegimeEnemy.prototype.canClubReachPlayer = function (player, anticipation = false) {
       if (!player) return false;
+      if (typeof Combat !== 'undefined' && Combat.actorsSameLane && !Combat.actorsSameLane(this, player)) return false;
       const forwardDistance = (player.x - this.x) * (this.facing || 1);
       const yDistance = Math.abs(player.y - this.y);
       const padX = anticipation ? 6 : 0;

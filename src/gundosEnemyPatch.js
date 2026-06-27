@@ -143,10 +143,11 @@
   }
 
   class GundosFireball {
-    constructor(x, y, boss) {
+    constructor(x, y, boss, laneY) {
       this.enemyType = 'gundosFireball';
       this.x = x;
       this.y = y;
+      this.laneY = laneY == null ? y : laneY;
       this.boss = boss || null;
       this.radius = 23;
       this.speed = 5.7;
@@ -161,7 +162,8 @@
       this.x -= this.speed * frameScale;
       this.spin += dt * 0.012;
       const player = scene && scene.player;
-      if (player && player.hp > 0 && Combat.overlap(this.getHurtbox(), player.getBodyBox())) {
+      if (player && player.hp > 0 &&
+          Combat.actorsSameLane(this, player) && Combat.overlap(this.getHurtbox(), player.getBodyBox())) {
         player.receiveDamage(8, {
           source: 'ranged',
           knockbackX: -46,
@@ -263,6 +265,7 @@
       this.arenaMoveDirection = Math.random() < 0.5 ? -1 : 1;
       this.voicePausedByGame = false;
       this.guardSpawned = false;
+      this.medicSpawnedOnce = false;
       this.medicSpawnTimer = this.getConfig().medicSpawnMs || 1200;
       this.fireballTimer = 1600;
     }
@@ -436,6 +439,7 @@
 
     updateIntroMedic(dt, scene) {
       if (!scene || !scene.spawnGundosMedicBastard) return;
+      if (this.medicSpawnedOnce) return;
       const activeMedic = (scene.enemies || []).some(enemy =>
         enemy && enemy.alive && !enemy.remove && enemy.enemyType === 'bastard' && enemy.gundosMedic
       );
@@ -443,6 +447,7 @@
       this.medicSpawnTimer -= dt;
       if (this.medicSpawnTimer > 0) return;
       scene.spawnGundosMedicBastard(this);
+      this.medicSpawnedOnce = true;
       this.medicSpawnTimer = this.getConfig().medicRespawnMs || 12500;
     }
 
@@ -715,9 +720,10 @@
 
     LevelScene.prototype.spawnGundosFireball = function (boss) {
       const lanes = this.getGundosLanes();
-      const y = lanes[Math.floor(Math.random() * lanes.length)] - 88;
+      const laneY = lanes[Math.floor(Math.random() * lanes.length)];
+      const y = laneY - 88;
       const x = (boss ? boss.x : GAME_CONFIG.width - 120) - 82;
-      const ball = new GundosFireball(x, y, boss);
+      const ball = new GundosFireball(x, y, boss, laneY);
       this.enemies.push(ball);
       AudioManager.playSfx('punch', 0.28, { playbackRate: 0.68, startAt: 0.01 });
       return ball;

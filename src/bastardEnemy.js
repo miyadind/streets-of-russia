@@ -29,6 +29,9 @@ class BastardEnemy {
     this.gundosMedicTargetX = x;
     this.gundosMedicHealGiven = 0;
     this.gundosMedicHealLimit = 20;
+    this.bastardHealExitQueued = false;
+    this.bastardHealingExit = false;
+    this.bastardHealExitDirection = -1;
   }
 
   applyTuning(resetHp = false) {
@@ -54,6 +57,16 @@ class BastardEnemy {
   }
 
   update(dt) {
+    if (this.bastardHealingExit) {
+      this.updateBastardHealingExit(dt);
+      return;
+    }
+    if (this.bastardHealExitQueued && this.state !== 'fallen') {
+      this.startBastardHealingExit();
+      this.updateBastardHealingExit(dt);
+      return;
+    }
+
     if (this.gundosMedic) {
       this.updateGundosMedic(dt);
       return;
@@ -85,6 +98,8 @@ class BastardEnemy {
     this.gundosMedicTargetX = targetX;
     this.gundosMedicHealGiven = 0;
     this.gundosMedicHealLimit = 20;
+    this.bastardHealExitQueued = false;
+    this.bastardHealingExit = false;
     this.x = -70;
     this.y = y;
     this.facing = 1;
@@ -141,12 +156,11 @@ class BastardEnemy {
   }
 
   grantGundosMedicHeal(player, scene) {
-    if (!this.gundosMedic || this.gundosMedicPhase === 'exit') return 0;
+    if (this.bastardHealingExit || this.bastardHealExitQueued || this.gundosMedicPhase === 'exit') return 0;
     const remaining = Math.max(0, this.gundosMedicHealLimit - this.gundosMedicHealGiven);
     const amount = Math.min(5, remaining);
     if (amount <= 0) {
-      this.gundosMedicPhase = 'exit';
-      this.state = 'wander';
+      this.queueBastardHealingExit();
       return 0;
     }
 
@@ -155,8 +169,44 @@ class BastardEnemy {
     if (scene && scene.addGundosFloatText) scene.addGundosFloatText('+' + amount + ' HP', this.x, this.y - 150, '#6dff8d');
     if (this.gundosMedicHealGiven >= this.gundosMedicHealLimit) {
       this.gundosMedicTimer = Math.min(this.gundosMedicTimer, 1300);
+      this.queueBastardHealingExit();
     }
     return amount;
+  }
+
+  queueBastardHealingExit() {
+    this.bastardHealExitQueued = true;
+    this.bastardHealExitDirection = this.x < GAME_CONFIG.width / 2 ? -1 : 1;
+    if (this.gundosMedic) {
+      this.gundosMedicTimer = Math.min(this.gundosMedicTimer || 1300, 1300);
+    }
+  }
+
+  startBastardHealingExit() {
+    this.bastardHealExitQueued = false;
+    this.bastardHealingExit = true;
+    this.gundosMedicPhase = 'exit';
+    this.state = 'wander';
+    this.facing = this.bastardHealExitDirection;
+    this.moveX = this.bastardHealExitDirection;
+    this.moveY = 0;
+  }
+
+  isHealingExit() {
+    return this.bastardHealingExit || this.gundosMedicPhase === 'exit';
+  }
+
+  updateBastardHealingExit(dt) {
+    this.applyTuning(false);
+    this.walkTimer += dt;
+    if (this.walkTimer >= GAME_CONFIG.enemyWalkFrameMs) {
+      this.walkTimer -= GAME_CONFIG.enemyWalkFrameMs;
+      this.walkFrame = (this.walkFrame + 1) % 3;
+    }
+    this.state = 'wander';
+    this.facing = this.bastardHealExitDirection || -1;
+    this.x += this.facing * Math.max(this.speed || 0.75, 1.55) * 2.45;
+    if (this.x < -140 || this.x > GAME_CONFIG.width + 140) this.remove = true;
   }
 
   chooseNextAction() {
@@ -222,7 +272,7 @@ class BastardEnemy {
   takeHit(_damage, direction) {
     const hitDirection = direction >= 0 ? 1 : -1;
     this.x += hitDirection * this.knockbackX;
-    if (!this.gundosMedic || this.gundosMedicPhase !== 'exit') {
+    if (!this.isHealingExit || !this.isHealingExit()) {
       this.x = Math.max(70, Math.min(GAME_CONFIG.width - 70, this.x));
     }
     this.knockdowns += 1;

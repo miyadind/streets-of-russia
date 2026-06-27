@@ -163,6 +163,7 @@
 
     Player.prototype.canCounterSlide = function (enemy) {
       if (this.state !== 'attack' || !enemy) return false;
+      if (typeof Combat !== 'undefined' && Combat.actorsSameLane && !Combat.actorsSameLane(this, enemy)) return false;
       const data = this.getAttackData();
       if (this.attackTimer < data.activeStart || this.attackTimer > data.activeEnd) return false;
 
@@ -226,6 +227,7 @@
 
     DogRegimeEnemy.prototype.canClubReachPlayer = function (player, anticipation = false) {
       if (!player || typeof player.getBodyBox !== 'function') return false;
+      if (typeof Combat !== 'undefined' && Combat.actorsSameLane && !Combat.actorsSameLane(this, player)) return false;
       const attack = this.getAttackBox();
       if (!anticipation) return boxOverlap(attack, player.getBodyBox());
       const pad = 4;

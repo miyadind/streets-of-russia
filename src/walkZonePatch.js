@@ -229,7 +229,7 @@
     BastardEnemy.prototype.update = function (dt, scene) {
       this.__scene = scene;
       oldBastardUpdate.call(this, dt, scene);
-      if (this.gundosMedic && this.gundosMedicPhase === 'exit') return;
+      if (this.isHealingExit && this.isHealingExit()) return;
       if (scene && typeof scene.clampActorPosition === 'function') scene.clampActorPosition(this, 45);
     };
 
@@ -237,7 +237,7 @@
     BastardEnemy.prototype.takeHit = function (damage, direction) {
       oldBastardTakeHit.call(this, damage, direction);
       const scene = this.__scene;
-      if (this.gundosMedic && this.gundosMedicPhase === 'exit') return;
+      if (this.isHealingExit && this.isHealingExit()) return;
       if (scene && typeof scene.clampActorPosition === 'function') scene.clampActorPosition(this, 45);
     };
   }
