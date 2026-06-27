@@ -103,6 +103,10 @@
   }
 
   function getCampaignMapOrder(game) {
+    if (window.CampaignRuntime && window.CampaignRuntime.getRegionDefinitions) {
+      const route = window.CampaignRuntime.getRegionDefinitions();
+      if (route.length) return route.map(region => region.mapId);
+    }
     return game && game.campaignMap && Array.isArray(game.campaignMap.order) ? game.campaignMap.order : [];
   }
 

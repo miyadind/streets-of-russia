@@ -13,6 +13,36 @@
     return Array.isArray(GAME_CONFIG.levelOrder) ? GAME_CONFIG.levelOrder : [];
   }
 
+  function getRegionDefinitions() {
+    if (Array.isArray(GAME_CONFIG.campaignRegions) && GAME_CONFIG.campaignRegions.length) {
+      return GAME_CONFIG.campaignRegions.filter(region => region && region.mapId && Array.isArray(region.levels));
+    }
+
+    const grouped = [];
+    const byRegion = {};
+    for (const key of getLevelOrder()) {
+      const level = GAME_CONFIG.levels && GAME_CONFIG.levels[key];
+      const regionId = getLevelRegionId(level);
+      if (!regionId) continue;
+      if (!byRegion[regionId]) {
+        byRegion[regionId] = { mapId: regionId, levelRegion: regionId, levels: [] };
+        grouped.push(byRegion[regionId]);
+      }
+      byRegion[regionId].levels.push(key);
+    }
+    return grouped;
+  }
+
+  function findRegionDefinition(regionId) {
+    const wanted = normalizeRegionId(regionId);
+    if (!wanted) return null;
+    return getRegionDefinitions().find(region => (
+      normalizeRegionId(region.mapId) === wanted ||
+      normalizeRegionId(region.levelRegion) === wanted ||
+      normalizeRegionId(region.id) === wanted
+    )) || null;
+  }
+
   function getLevelByIndex(index) {
     const key = getLevelOrder()[index];
     return key && GAME_CONFIG.levels ? GAME_CONFIG.levels[key] : null;
@@ -30,14 +60,21 @@
   function getActiveRegionId(game) {
     const map = game && game.campaignMap;
     const activeIndex = getActiveRegionIndex(game);
+    const route = getRegionDefinitions();
+    if (route[activeIndex]) return route[activeIndex].mapId;
     return map && Array.isArray(map.order) ? map.order[activeIndex] || map.order[0] || '' : '';
   }
 
   function getRegionStartIndexById(regionId) {
     const order = getLevelOrder();
+    const definition = findRegionDefinition(regionId);
+    if (definition && definition.levels && definition.levels.length) {
+      const configuredIndex = order.indexOf(definition.levels[0]);
+      if (configuredIndex >= 0) return configuredIndex;
+    }
+
     const wanted = normalizeRegionId(regionId);
     if (!wanted) return 0;
-
     for (let index = 0; index < order.length; index++) {
       if (normalizeRegionId(getLevelRegionId(getLevelByIndex(index))) === wanted) return index;
     }
@@ -49,9 +86,15 @@
     const order = getLevelOrder();
     if (!order.length) return 0;
     const currentIndex = clamp(Number(screenIndex) || 0, 0, order.length - 1);
+    const currentKey = order[currentIndex];
+    const definition = getRegionDefinitions().find(region => region.levels.includes(currentKey));
+    if (definition && definition.levels.length) {
+      const configuredIndex = order.indexOf(definition.levels[0]);
+      return configuredIndex >= 0 ? configuredIndex : currentIndex;
+    }
+
     const regionId = getLevelRegionId(getLevelByIndex(currentIndex));
     if (!regionId) return currentIndex;
-
     let startIndex = currentIndex;
     for (let index = currentIndex - 1; index >= 0; index -= 1) {
       const levelRegionId = getLevelRegionId(getLevelByIndex(index));
@@ -65,9 +108,19 @@
     const order = getLevelOrder();
     if (!order.length) return 0;
     const safeStart = clamp(Number(startIndex) || 0, 0, order.length - 1);
+    const startKey = order[safeStart];
+    const definition = getRegionDefinitions().find(region => region.levels.includes(startKey));
+    if (definition && definition.levels.length) {
+      let endIndex = safeStart;
+      for (const key of definition.levels) {
+        const index = order.indexOf(key);
+        if (index >= 0) endIndex = Math.max(endIndex, index);
+      }
+      return endIndex;
+    }
+
     const regionId = getLevelRegionId(getLevelByIndex(safeStart));
     if (!regionId) return safeStart;
-
     let endIndex = safeStart;
     for (let index = safeStart + 1; index < order.length; index += 1) {
       const levelRegionId = getLevelRegionId(getLevelByIndex(index));
@@ -96,9 +149,10 @@
   function getAbsoluteScreenIndexForSave(game, save) {
     const order = getLevelOrder();
     if (!order.length) return 0;
-    const mapOrder = game && game.campaignMap && Array.isArray(game.campaignMap.order) ? game.campaignMap.order : [];
+    const route = getRegionDefinitions();
+    const mapOrder = game && game.campaignMap && Array.isArray(game.campaignMap.order) ? game.campaignMap.order : route.map(region => region.mapId);
     const regionIndex = clamp(Number(save && save.campaign && save.campaign.currentRegionIndex) || 0, 0, Math.max(0, mapOrder.length - 1));
-    const regionId = mapOrder[regionIndex] || save && save.campaign && save.campaign.currentRegion || '';
+    const regionId = (route[regionIndex] && route[regionIndex].mapId) || mapOrder[regionIndex] || save && save.campaign && save.campaign.currentRegion || '';
     const startIndex = getRegionStartIndexById(regionId) || clamp(regionIndex * 3, 0, order.length - 1);
     const endIndex = getRegionEndIndexByStart(startIndex);
     const localIndex = clamp(Number(save && save.campaign && save.campaign.currentScreen) || 0, 0, Math.max(0, endIndex - startIndex));
@@ -155,6 +209,8 @@
     clamp,
     normalizeRegionId,
     getLevelOrder,
+    getRegionDefinitions,
+    findRegionDefinition,
     getLevelRegionId,
     getActiveRegionIndex,
     getActiveRegionId,

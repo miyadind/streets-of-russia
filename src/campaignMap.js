@@ -47,6 +47,9 @@ const CampaignMapScreen = {
   },
 
   init() {
+    if (GAME_CONFIG.campaignRegions && Array.isArray(GAME_CONFIG.campaignRegions)) {
+      this.order = GAME_CONFIG.campaignRegions.map(region => region.mapId).filter(Boolean);
+    }
     this.activeIndex = 0;
     this.clearSavedProgress();
     this.images = this.createImageSet(this.sources);

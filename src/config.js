@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  buildVersion: '0.4.6',
+  buildVersion: '0.4.7',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -238,6 +238,16 @@ const GAME_CONFIG = {
     'volga01', 'volga02', 'volga03',
     'south01', 'south02', 'south03',
     'moscow01', 'moscow02', 'moscow03'
+  ],
+
+  campaignRegions: [
+    { mapId: 'farEast', levelRegion: 'far-east', levels: ['street01', 'street02', 'street03'] },
+    { mapId: 'siberia', levelRegion: 'siberia', levels: ['siberia01', 'siberia02', 'siberia03'] },
+    { mapId: 'ural', levelRegion: 'ural', levels: ['ural01', 'ural02', 'ural03'] },
+    { mapId: 'northwestPiter', levelRegion: 'northwest', levels: ['northwest01', 'northwest02', 'northwest03'] },
+    { mapId: 'volga', levelRegion: 'volga', levels: ['volga01', 'volga02', 'volga03'] },
+    { mapId: 'southSochi', levelRegion: 'south', levels: ['south01', 'south02', 'south03'] },
+    { mapId: 'centralMoscow', levelRegion: 'moscow', levels: ['moscow01', 'moscow02', 'moscow03'] }
   ],
 
   levels: {

@@ -85,14 +85,25 @@
 
   function resetRunForNewCampaign(game) {
     if (!game) return;
+    if (game.clearCampaignSave) game.clearCampaignSave();
     game.runInProgress = true;
     game.resumeTarget = 'campaignMap';
     game.scene = null;
     game.paused = false;
     game.characterSelectMode = null;
     game.casualtyRespawn = null;
+    game.regionStory = null;
+    game.gameOverSelection = 0;
+    game.gameOverRegionStartIndex = 0;
+    game.gundosAudioPauseState = false;
     if (game.campaignMap && game.campaignMap.resetProgress) game.campaignMap.resetProgress();
     if (game.resetTeamRun) game.resetTeamRun();
+    if (typeof CharacterSelect !== 'undefined') {
+      CharacterSelect.infoOpen = false;
+      CharacterSelect.footerFocus = null;
+      CharacterSelect.selectedIndex = 0;
+      CharacterSelect.gameRef = game;
+    }
   }
 
   function startNewCampaign(game) {

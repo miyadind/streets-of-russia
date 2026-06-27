@@ -48,6 +48,10 @@ The project started as a prototype with many late-loaded patch files. The safe c
 New region, save, continue, retry and story code should use `window.CampaignRuntime`
 instead of repeating `activeIndex * 3` or custom region scans.
 
+The official campaign route lives in `GAME_CONFIG.campaignRegions`. Each entry
+connects the map id to the level region id and the exact screen keys. This is
+the source of truth for sequential level progression.
+
 ## Campaign Flow
 
 `src/campaignFlow.js` is the central owner for player-facing campaign flow:
