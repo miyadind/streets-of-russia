@@ -1,0 +1,6 @@
+{
+  "scripts": {
+    "build": "node tools/build-single.js",
+    "check": "node --check src/game.bundle.js"
+  }
+}
