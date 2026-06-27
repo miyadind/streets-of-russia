@@ -82,6 +82,10 @@ The old `introPatch.js` has been retired. Intro rendering and flow are owned by
 `campaignMapPatch.js` and `introAudioFlowPatch.js` until that block is moved
 fully into core.
 
+The old `devPanelAudioPatch.js` has been retired. It attempted to load
+`mobileBootstrap.js` dynamically even though mobile bootstrap is already part
+of the bundle, and it conflicted with speaker/music ownership.
+
 ## High-Risk Patch Areas
 
 These are the first areas to consolidate:

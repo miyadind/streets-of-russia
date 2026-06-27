@@ -18,7 +18,6 @@
   "src/scene.js",
   "src/devPanel.js",
   "src/devPanelDogAiPatch.js",
-  "src/devPanelAudioPatch.js",
   "src/walkZonePatch.js",
   "src/devPanelRepairPatch.js",
   "src/campaignMap.js",
