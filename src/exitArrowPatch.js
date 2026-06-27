@@ -120,7 +120,15 @@
   }
 
   LevelScene.prototype.nextScreen = function () {
-    if (this.screenIndex < this.images.streets.length - 1) {
+    const order = GAME_CONFIG.levelOrder || [];
+    const currentKey = order[this.screenIndex];
+    const nextKey = order[this.screenIndex + 1];
+    const currentLevel = currentKey && GAME_CONFIG.levels && GAME_CONFIG.levels[currentKey];
+    const nextLevel = nextKey && GAME_CONFIG.levels && GAME_CONFIG.levels[nextKey];
+    const currentRegion = currentLevel && (currentLevel.region || currentLevel.regionKey || currentLevel.area || currentLevel.chapter);
+    const nextRegion = nextLevel && (nextLevel.region || nextLevel.regionKey || nextLevel.area || nextLevel.chapter);
+
+    if (this.screenIndex < this.images.streets.length - 1 && currentRegion && nextRegion && currentRegion === nextRegion) {
       if (this.game && this.game.addPeopleSupport) this.game.addPeopleSupport(12);
       this.screenIndex += 1;
       this.player.x = 82;
@@ -131,7 +139,8 @@
       AudioManager.playMusic((level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme');
       this.spawnInitialWave();
     } else {
-      this.game.setState('mainMenu');
+      if (this.game && this.game.completeCampaignRegion) this.game.completeCampaignRegion();
+      else this.game.setState('mainMenu');
     }
   };
 

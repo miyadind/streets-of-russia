@@ -324,6 +324,8 @@
   GameApp.prototype.completeCampaignRegion = function () {
     const completedRegionId = this.campaignMap && this.campaignMap.getActiveRegionId ? this.campaignMap.getActiveRegionId() : 'farEast';
     if (this.campaignMap && this.campaignMap.completeActiveRegion) this.campaignMap.completeActiveRegion();
+    this.scene = null;
+    this.resumeTarget = 'campaignMap';
     if (this.saveCampaignProgress) this.saveCampaignProgress();
     this.openRegionStory(completedRegionId);
   };
