@@ -49,5 +49,6 @@
   "src/devCacheBustPatch.js",
   "src/gameReferencePatch.js",
   "src/saveSystemPatch.js",
-  "src/storyFlowPatch.js"
+  "src/storyFlowPatch.js",
+  "src/audioDirector.js"
 ]

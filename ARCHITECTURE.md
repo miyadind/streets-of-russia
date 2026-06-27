@@ -10,6 +10,10 @@ The bundle is generated from the ordered source manifest:
 
 - `tools/source-scripts.json`
 
+Only files listed in that manifest are active in the deployed game. Other
+`.js` files in `src/` are legacy or experimental candidates until they are
+added to the manifest or moved out of `src/`.
+
 Run:
 
 ```bash
@@ -64,6 +68,12 @@ the source of truth for sequential level progression.
 
 Save and story patches may still wrap these actions for persistence or special screens,
 but they should delegate the shared flow rules to `window.CampaignFlow`.
+
+## Audio Director
+
+`src/audioDirector.js` is loaded last and owns cross-state music cleanup. It
+prevents menu music, intro music and level music from overlapping when patches
+change state.
 
 ## High-Risk Patch Areas
 
