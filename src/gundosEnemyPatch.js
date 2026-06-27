@@ -2,7 +2,7 @@
   if (typeof GAME_CONFIG === 'undefined' || typeof Assets === 'undefined') return;
 
   const FOLDER = 'assets/enemies/gundos';
-  const ASSET_VERSION = 'gundos-medic-1';
+  const ASSET_VERSION = 'gundos-finale-1';
   const INTRO_DURATION_MS = 56425;
   const DEVIL_LEAD_MS = 2000;
 
@@ -37,6 +37,8 @@
     guardZetniks: 3,
     medicSpawnMs: 1200,
     medicRespawnMs: 12500,
+    fireballSpawnMinMs: 1250,
+    fireballSpawnMaxMs: 2350,
     zetnikHitDamage: 1,
     arenaMoveSpeed: 0,
     arenaTop: 540,
@@ -45,9 +47,9 @@
 
   function migrateIntroSequence() {
     const config = GAME_CONFIG.enemies.gundos;
-    if (Number(config.introSequenceVersion) >= 6) return;
+    if (Number(config.introSequenceVersion) >= 7) return;
     Object.assign(config, {
-      introSequenceVersion: 6,
+      introSequenceVersion: 7,
       speed: 1.25,
       hp: 6,
       scale: 0.266,
@@ -60,6 +62,8 @@
       guardZetniks: 3,
       medicSpawnMs: 1200,
       medicRespawnMs: 12500,
+      fireballSpawnMinMs: 1250,
+      fireballSpawnMaxMs: 2350,
       zetnikHitDamage: 1,
       arenaMoveSpeed: 0,
       arenaTop: 540,
@@ -138,6 +142,77 @@
     });
   }
 
+  class GundosFireball {
+    constructor(x, y, boss) {
+      this.enemyType = 'gundosFireball';
+      this.x = x;
+      this.y = y;
+      this.boss = boss || null;
+      this.radius = 23;
+      this.speed = 5.7;
+      this.alive = true;
+      this.remove = false;
+      this.blocksWaveClear = false;
+      this.spin = Math.random() * Math.PI * 2;
+    }
+
+    update(dt, scene) {
+      const frameScale = Math.max(0.65, Math.min(1.55, dt / 16.67));
+      this.x -= this.speed * frameScale;
+      this.spin += dt * 0.012;
+      const player = scene && scene.player;
+      if (player && player.hp > 0 && Combat.overlap(this.getHurtbox(), player.getBodyBox())) {
+        player.receiveDamage(8, {
+          source: 'ranged',
+          knockbackX: -46,
+          hitStunMs: 160,
+          invulnerableMs: 260
+        });
+        this.remove = true;
+        if (scene) scene.hitStop = Math.max(scene.hitStop || 0, 55);
+        AudioManager.playSfx('bossAppear', 0.35, { playbackRate: 1.35, startAt: 0.01 });
+      }
+      if (this.x < -80) this.remove = true;
+    }
+
+    getHurtbox() {
+      return { x: this.x - this.radius, y: this.y - this.radius, w: this.radius * 2, h: this.radius * 2 };
+    }
+
+    draw(ctx, debug) {
+      ctx.save();
+      ctx.translate(this.x, this.y);
+      ctx.rotate(this.spin);
+      const gradient = ctx.createRadialGradient(0, 0, 3, 0, 0, this.radius);
+      gradient.addColorStop(0, '#fff3a6');
+      gradient.addColorStop(0.38, '#ff9b21');
+      gradient.addColorStop(1, 'rgba(255,42,10,0.08)');
+      ctx.shadowColor = '#ff5a1f';
+      ctx.shadowBlur = 22;
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,220,90,0.9)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(0, 0, this.radius * 0.62, -0.4, Math.PI * 1.3);
+      ctx.stroke();
+      ctx.restore();
+
+      if (debug) {
+        const hb = this.getHurtbox();
+        ctx.strokeStyle = 'rgba(255,90,0,0.95)';
+        ctx.strokeRect(hb.x, hb.y, hb.w, hb.h);
+      }
+    }
+
+    takeHit() {
+      this.remove = true;
+      this.alive = false;
+    }
+  }
+
   if (typeof GameApp !== 'undefined') {
     const previousLoadImages = GameApp.prototype.loadImages;
     GameApp.prototype.loadImages = async function () {
@@ -189,6 +264,7 @@
       this.voicePausedByGame = false;
       this.guardSpawned = false;
       this.medicSpawnTimer = this.getConfig().medicSpawnMs || 1200;
+      this.fireballTimer = 1600;
     }
 
     getConfig() {
@@ -341,6 +417,7 @@
       } else {
         this.enforceFireRing(scene);
         this.updateZetnikPressure(dt, scene);
+        this.updateFireballs(dt, scene);
       }
 
       this.introElapsed += dt;
@@ -387,16 +464,27 @@
     enforceFireRing(scene) {
       if (!this.transformed || !scene || !scene.player) return;
       const player = scene.player;
-      const wallLeft = this.x - 380;
-      const wallRight = this.x - 50;
-      const wallY = this.y - 66;
-      const inY = Math.abs(player.y - wallY) <= 86;
+      const zone = scene.getWalkZone ? scene.getWalkZone() : { top: GAME_CONFIG.laneTop, bottom: GAME_CONFIG.laneBottom };
+      const wallLeft = this.getFireWallX(scene);
+      const wallRight = this.x - 34;
+      const inY = player.y >= zone.top - 16 && player.y <= zone.bottom + 18;
       if (!inY || player.x <= wallLeft || player.x >= wallRight + 38) return;
-      player.x = wallLeft - 34;
+      player.x = wallLeft - 38;
       if (player.state !== 'knockdown' && player.state !== 'pinned') {
         player.startHitStun(90, 180);
         player.flash = Math.max(player.flash || 0, 180);
       }
+    }
+
+    updateFireballs(dt, scene) {
+      if (!scene || !scene.spawnGundosFireball) return;
+      const config = this.getConfig();
+      this.fireballTimer -= dt;
+      if (this.fireballTimer > 0) return;
+      scene.spawnGundosFireball(this);
+      const min = config.fireballSpawnMinMs || 1250;
+      const max = Math.max(min, config.fireballSpawnMaxMs || 2350);
+      this.fireballTimer = min + Math.random() * (max - min);
     }
 
     updateZetnikPressure(dt, scene) {
@@ -437,6 +525,7 @@
         scene.gundosIntroLocked = false;
         scene.gundosArenaActive = false;
         scene.activeGundos = null;
+        if (scene.startGundosVictoryDelay) scene.startGundosVictoryDelay();
       }
       AudioManager.playSfx('enemyDown', 1, { playbackRate: 0.82, startAt: 0.01 });
     }
@@ -470,7 +559,6 @@
       const scale = this.getConfig().scale;
       const width = image.width * scale;
       const height = image.height * scale;
-      if (this.transformed && this.introFinished && this.alive) this.drawFireWall(ctx);
       ctx.save();
       if (!this.alive) ctx.globalAlpha = Math.max(0, 1 - this.deathTimer / 1200);
       else if (this.flash > 0) {
@@ -491,16 +579,20 @@
       }
     }
 
-    drawFireWall(ctx) {
+    drawFireWall(ctx, scene) {
       const set = this.images.enemies.gundos || {};
       const img = set.fireWall;
-      const wallX = this.x - 380;
-      const wallY = this.y - 124;
-      const wallW = 360;
-      const wallH = 96;
+      const zone = scene && scene.getWalkZone ? scene.getWalkZone() : {
+        top: GAME_CONFIG.laneTop,
+        bottom: GAME_CONFIG.laneBottom
+      };
+      const wallX = this.getFireWallX(scene);
+      const wallY = zone.top - 12;
+      const wallW = Math.max(220, this.x - wallX - 18);
+      const wallH = zone.bottom - zone.top + 36;
       ctx.save();
       if (img) {
-        ctx.globalAlpha = 0.96;
+        ctx.globalAlpha = 0.94;
         ctx.drawImage(img, wallX, wallY, wallW, wallH);
       } else {
         const gradient = ctx.createLinearGradient(wallX, wallY, wallX + wallW, wallY);
@@ -515,6 +607,11 @@
       ctx.restore();
     }
 
+    getFireWallX(scene) {
+      const zone = scene && scene.getWalkZone ? scene.getWalkZone() : { left: 0 };
+      return Math.max((zone.left || 0) + 18, this.x - 520);
+    }
+
     drawHealthBar(ctx) {
       if (!this.alive) return;
       const maxHp = Math.max(1, this.maxHp || this.getConfig().hp || 1);
@@ -522,7 +619,7 @@
       const w = 360;
       const h = 18;
       const x = GAME_CONFIG.width / 2 - w / 2;
-      const y = 22;
+      const y = 94;
       ctx.save();
       ctx.fillStyle = 'rgba(0,0,0,0.72)';
       ctx.fillRect(x - 3, y - 3, w + 6, h + 6);
@@ -567,6 +664,8 @@
       this.gundosArenaActive = false;
       this.activeGundos = null;
       this.gundosFloatTexts = [];
+      this.gundosVictoryDelayMs = 0;
+      this.gundosVictoryPending = false;
       previousSpawnInitialWave.call(this);
     };
 
@@ -612,6 +711,27 @@
       this.enemies.push(enemy);
       this.playEnemyAppearSound('zetnik');
       return enemy;
+    };
+
+    LevelScene.prototype.spawnGundosFireball = function (boss) {
+      const lanes = this.getGundosLanes();
+      const y = lanes[Math.floor(Math.random() * lanes.length)] - 88;
+      const x = (boss ? boss.x : GAME_CONFIG.width - 120) - 82;
+      const ball = new GundosFireball(x, y, boss);
+      this.enemies.push(ball);
+      AudioManager.playSfx('punch', 0.28, { playbackRate: 0.68, startAt: 0.01 });
+      return ball;
+    };
+
+    LevelScene.prototype.startGundosVictoryDelay = function () {
+      if (this.gundosVictoryPending) return;
+      this.gundosVictoryPending = true;
+      this.gundosVictoryDelayMs = 3600;
+      this.encounterActive = false;
+      this.encounterCleared = false;
+      this.nonBlockingWaveTimer = 0;
+      this.pendingWave = null;
+      this.pendingWaveTimer = 0;
     };
 
     LevelScene.prototype.spawnGundosGuardWall = function (boss) {
@@ -700,16 +820,84 @@
       }
     };
 
+    const previousNextScreen = LevelScene.prototype.nextScreen;
+    LevelScene.prototype.nextScreen = function () {
+      if (this.gundosVictoryPending) return;
+      previousNextScreen.call(this);
+    };
+
     const previousSceneUpdate = LevelScene.prototype.update;
     LevelScene.prototype.update = function (dt) {
       previousSceneUpdate.call(this, dt);
+      if (this.gundosVictoryPending) {
+        this.encounterCleared = false;
+        this.gundosVictoryDelayMs -= dt;
+        if (this.gundosVictoryDelayMs <= 0) {
+          this.gundosVictoryPending = false;
+          if (this.game && this.game.completeCampaignRegion) this.game.completeCampaignRegion();
+        }
+      }
       this.updateGundosFloatTexts(dt);
     };
 
     const previousSceneDraw = LevelScene.prototype.draw;
     LevelScene.prototype.draw = function (ctx) {
+      if (this.isGundosFinaleScene && this.isGundosFinaleScene()) {
+        this.drawGundosFinaleScene(ctx);
+        return;
+      }
       previousSceneDraw.call(this, ctx);
       this.drawGundosFloatTexts(ctx);
+    };
+
+    LevelScene.prototype.isGundosFinaleScene = function () {
+      return !!((this.enemies || []).some(enemy => enemy && (
+        enemy.enemyType === 'gundos' ||
+        enemy.enemyType === 'gundosFireball' ||
+        enemy.gundosMinion
+      )) || this.gundosArenaActive || this.gundosVictoryPending);
+    };
+
+    LevelScene.prototype.drawGundosFinaleScene = function (ctx) {
+      const bg = this.images.streets[this.screenIndex] || this.images.streets[0];
+      if (bg) ctx.drawImage(bg, 0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
+      else {
+        ctx.fillStyle = '#222';
+        ctx.fillRect(0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
+      }
+
+      ctx.fillStyle = 'rgba(255,255,255,0.025)';
+      ctx.fillRect(0, GAME_CONFIG.laneTop, GAME_CONFIG.width, GAME_CONFIG.laneBottom - GAME_CONFIG.laneTop);
+
+      const boss = this.activeGundos || (this.enemies || []).find(enemy => enemy && enemy.enemyType === 'gundos');
+      if (boss && boss.alive && boss.transformed && boss.introFinished && boss.drawFireWall) boss.drawFireWall(ctx, this);
+
+      const entities = [{ type: 'player', y: this.player.y, ref: this.player }];
+      for (const enemy of this.enemies) entities.push({ type: 'enemy', y: enemy.y, ref: enemy });
+      entities.sort((a, b) => a.y - b.y);
+      for (const entity of entities) entity.ref.draw(ctx, this.debug);
+
+      if (this.gundosVictoryPending) {
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 28px Arial';
+        ctx.fillStyle = 'rgba(255, 220, 120, 0.86)';
+        ctx.strokeStyle = 'rgba(0,0,0,0.8)';
+        ctx.lineWidth = 4;
+        const text = 'ТВАРЬ ПОВЕРЖЕНА';
+        ctx.strokeText(text, GAME_CONFIG.width / 2, 360);
+        ctx.fillText(text, GAME_CONFIG.width / 2, 360);
+        ctx.restore();
+      }
+
+      HUD.draw(ctx, this);
+      this.drawGundosFloatTexts(ctx);
+
+      if (this.debug) {
+        ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(0, GAME_CONFIG.laneTop, GAME_CONFIG.width, GAME_CONFIG.laneBottom - GAME_CONFIG.laneTop);
+      }
     };
 
     LevelScene.prototype.pauseGundosVoice = function () {

@@ -38,6 +38,10 @@
     };
   }
 
+  function regionStoryButtonRect() {
+    return { x: 490, y: 612, w: 300, h: 54 };
+  }
+
   function beginCampaignAfterName(game) {
     const stats = game.profileStats || loadStats();
     stats.totalNewGames = (Number(stats.totalNewGames) || 0) + 1;
@@ -247,7 +251,8 @@
   GameApp.prototype.updateRegionStory = function () {
     const click = Input.consumePointer();
     if (click && this.handleSpeakerClick(click)) return;
-    if (Input.consume('enter') || Input.consume('space') || click) {
+    const nextRect = regionStoryButtonRect();
+    if (Input.consume('enter') || Input.consume('space') || click && inRect(click, nextRect)) {
       AudioManager.playSfx('menuSelect', 0.85);
       if (AudioManager.currentMusic) AudioManager.currentMusic.volume = AudioManager.getMusicVolume();
       this.setState('campaignMap');
@@ -289,10 +294,17 @@
       ctx.fillText(line, GAME_CONFIG.width / 2, y);
     }
 
-    ctx.font = 'bold 18px Arial';
+    const button = regionStoryButtonRect();
+    ctx.fillStyle = '#9f1d18';
+    ctx.fillRect(button.x, button.y, button.w, button.h);
+    ctx.strokeStyle = '#ffd447';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(button.x, button.y, button.w, button.h);
+    ctx.font = 'bold 24px Arial';
     ctx.textAlign = 'center';
-    ctx.fillStyle = 'rgba(255,232,148,0.82)';
-    ctx.fillText(story.hint || 'ENTER - ПРОДОЛЖИТЬ', GAME_CONFIG.width / 2, 602);
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#fff3d0';
+    ctx.fillText('\u0414\u0410\u041b\u042c\u0428\u0415', button.x + button.w / 2, button.y + button.h / 2 + 1);
     ctx.restore();
   };
 

@@ -27,6 +27,8 @@ class BastardEnemy {
     this.gundosMedicTimer = 0;
     this.gundosMedicPhase = 'none';
     this.gundosMedicTargetX = x;
+    this.gundosMedicHealGiven = 0;
+    this.gundosMedicHealLimit = 20;
   }
 
   applyTuning(resetHp = false) {
@@ -81,6 +83,8 @@ class BastardEnemy {
     this.gundosMedicTimer = 10000;
     this.gundosMedicPhase = 'enter';
     this.gundosMedicTargetX = targetX;
+    this.gundosMedicHealGiven = 0;
+    this.gundosMedicHealLimit = 20;
     this.x = -70;
     this.y = y;
     this.facing = 1;
@@ -115,6 +119,12 @@ class BastardEnemy {
     }
 
     this.gundosMedicTimer -= dt;
+    if (this.state === 'fallen') {
+      this.fallenTimer -= dt;
+      if (this.fallenTimer > 0) return;
+      this.state = 'idle';
+    }
+
     if (this.gundosMedicTimer <= 0) {
       this.gundosMedicPhase = 'exit';
       this.state = 'wander';
@@ -128,6 +138,25 @@ class BastardEnemy {
     }
 
     this.state = this.flash > 0 ? 'fallen' : 'idle';
+  }
+
+  grantGundosMedicHeal(player, scene) {
+    if (!this.gundosMedic || this.gundosMedicPhase === 'exit') return 0;
+    const remaining = Math.max(0, this.gundosMedicHealLimit - this.gundosMedicHealGiven);
+    const amount = Math.min(5, remaining);
+    if (amount <= 0) {
+      this.gundosMedicPhase = 'exit';
+      this.state = 'wander';
+      return 0;
+    }
+
+    this.gundosMedicHealGiven += amount;
+    player.hp = Math.min(player.maxHp, player.hp + amount);
+    if (scene && scene.addGundosFloatText) scene.addGundosFloatText('+' + amount + ' HP', this.x, this.y - 150, '#6dff8d');
+    if (this.gundosMedicHealGiven >= this.gundosMedicHealLimit) {
+      this.gundosMedicTimer = Math.min(this.gundosMedicTimer, 1300);
+    }
+    return amount;
   }
 
   chooseNextAction() {
@@ -186,13 +215,16 @@ class BastardEnemy {
     this.fallFacing = fallFacing >= 0 ? 1 : -1;
     this.facing = this.fallFacing;
     this.fallenTimer = this.randomBetween(this.fallenMinMs, this.fallenMaxMs);
+    if (this.gundosMedic) this.fallenTimer = 1500;
     this.walkTimer = 0;
   }
 
   takeHit(_damage, direction) {
     const hitDirection = direction >= 0 ? 1 : -1;
     this.x += hitDirection * this.knockbackX;
-    this.x = Math.max(70, Math.min(GAME_CONFIG.width - 70, this.x));
+    if (!this.gundosMedic || this.gundosMedicPhase !== 'exit') {
+      this.x = Math.max(70, Math.min(GAME_CONFIG.width - 70, this.x));
+    }
     this.knockdowns += 1;
     this.flash = 100;
     this.fallDown(hitDirection);

@@ -183,11 +183,6 @@ class ZetnikEnemy extends DogRegimeEnemy {
     }
 
     const player = scene && scene.player;
-    if (!this.redirectedToBoss && player) {
-      const dy = player.y - this.y;
-      const maxStepY = 1.45 * GAME_CONFIG.ySpeedMultiplier * frameScale;
-      this.y += Math.max(-maxStepY, Math.min(maxStepY, dy));
-    }
     this.x += this.gundosDirection * this.gundosSpeed * frameScale;
     this.facing = this.gundosDirection >= 0 ? 1 : -1;
     this.walkTimer += dt;

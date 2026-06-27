@@ -244,8 +244,10 @@ class Player {
           this.playComboHitSound();
           enemy.takeHit(data.damage, this.facing, data.knockback);
           if (enemy.enemyType === 'bastard') {
-            const healAmount = 5;
-            if (healAmount > 0) {
+            if (enemy.grantGundosMedicHeal) {
+              enemy.grantGundosMedicHeal(this, scene);
+            } else {
+              const healAmount = 5;
               this.hp = Math.min(this.maxHp, this.hp + healAmount);
               if (scene.addGundosFloatText) scene.addGundosFloatText('+5 HP', enemy.x, enemy.y - 150, '#6dff8d');
             }
