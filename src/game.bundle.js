@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.16',
+  buildVersion: '0.4.17',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -7843,7 +7843,6 @@ class GameApp {
 
     this.images = await this.loadImages();
     this.setState('splash');
-    this.ensureMenuMusic();
   }
 
   async loadImages() {
@@ -8037,8 +8036,7 @@ class GameApp {
   }
 
   isMenuState(state) {
-    return state === 'splash' ||
-      state === 'mainMenu' ||
+    return state === 'mainMenu' ||
       state === 'settings' ||
       state === 'characterSelect' ||
       state === 'campaignMap' ||
@@ -8081,7 +8079,7 @@ class GameApp {
   }
 
   ensureMenuMusic() {
-    if (this.isIntroState(this.state) || this.state === 'level') return;
+    if (this.isIntroState(this.state) || this.state === 'level' || this.state === 'splash') return;
     this.stopIntroAudioForStateChange();
     AudioManager.playMusic(this.getMenuMusicKey(), false, true);
   }
