@@ -34,6 +34,20 @@ The project started as a prototype with many late-loaded patch files. The safe c
 4. Move enemy-specific behavior into enemy classes or small enemy modules.
 5. Retire patch files only after their behavior is covered by the core files.
 
+## Campaign Runtime
+
+`src/campaignRuntime.js` is the central owner for campaign screen math:
+
+- active region id and index
+- first and last screen of a region
+- local screen index for saves
+- absolute screen index when loading a save
+- placing the player at the current level start
+- clearing Gundos finale state when a scene changes screens
+
+New region, save, continue, retry and story code should use `window.CampaignRuntime`
+instead of repeating `activeIndex * 3` or custom region scans.
+
 ## High-Risk Patch Areas
 
 These are the first areas to consolidate:

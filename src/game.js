@@ -237,13 +237,8 @@ class GameApp {
 
   startLevel() {
     this.scene = new LevelScene(this, this.images);
-    if (this.campaignMap && Number.isFinite(this.campaignMap.activeIndex)) {
-      this.scene.screenIndex = Math.max(0, Math.min(
-        this.images.streets.length - 1,
-        this.campaignMap.activeIndex * 3
-      ));
-      if (this.scene.spawnInitialWave) this.scene.spawnInitialWave();
-    }
+    if (window.CampaignRuntime) window.CampaignRuntime.startActiveRegionScene(this);
+    else if (this.scene.spawnInitialWave) this.scene.spawnInitialWave();
     this.setState('level');
     const levelKey = this.scene && this.scene.getLevelKey ? this.scene.getLevelKey() : null;
     const level = levelKey && GAME_CONFIG.levels ? GAME_CONFIG.levels[levelKey] : null;

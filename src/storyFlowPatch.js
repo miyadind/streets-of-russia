@@ -68,14 +68,17 @@
   }
 
   function normalizeRegionId(regionId) {
+    if (window.CampaignRuntime) return window.CampaignRuntime.normalizeRegionId(regionId);
     return String(regionId || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
   }
 
   function getLevelRegionId(level) {
+    if (window.CampaignRuntime) return window.CampaignRuntime.getLevelRegionId(level);
     return level && (level.region || level.regionKey || level.area || level.chapter) || '';
   }
 
   function getActiveRegionStartIndex(game) {
+    if (window.CampaignRuntime) return window.CampaignRuntime.getActiveRegionStartIndex(game);
     const order = Array.isArray(GAME_CONFIG.levelOrder) ? GAME_CONFIG.levelOrder : [];
     const levels = GAME_CONFIG.levels || {};
     const map = game && game.campaignMap;
@@ -94,6 +97,10 @@
   }
 
   function placePlayerAtLevelStart(scene) {
+    if (window.CampaignRuntime) {
+      window.CampaignRuntime.placePlayerAtLevelStart(scene);
+      return;
+    }
     if (!scene || !scene.player) return;
     const level = scene.getLevelConfig ? scene.getLevelConfig() : null;
     const start = level && level.playerStart || { x: 190, y: 620 };
@@ -106,6 +113,20 @@
 
   function restartSceneAtActiveRegion(game) {
     if (!game || !game.scene) return;
+    if (window.CampaignRuntime) {
+      const targetIndex = window.CampaignRuntime.getActiveRegionStartIndex(game);
+      if (game.scene.screenIndex !== targetIndex) {
+        window.CampaignRuntime.setSceneScreen(game.scene, targetIndex);
+        const level = game.scene.getLevelConfig ? game.scene.getLevelConfig() : null;
+        AudioManager.playMusic((level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme', true);
+      }
+      window.__lastRegionStart = {
+        activeIndex: game.campaignMap && game.campaignMap.activeIndex,
+        targetIndex,
+        targetKey: GAME_CONFIG.levelOrder && GAME_CONFIG.levelOrder[targetIndex]
+      };
+      return;
+    }
     const scene = game.scene;
     const targetIndex = getActiveRegionStartIndex(game);
     const currentKey = GAME_CONFIG.levelOrder && GAME_CONFIG.levelOrder[scene.screenIndex];

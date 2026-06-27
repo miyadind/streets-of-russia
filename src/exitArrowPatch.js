@@ -502,6 +502,7 @@
     };
 
     GameApp.prototype.getCurrentRegionStartIndex = function (scene) {
+      if (window.CampaignRuntime && scene) return window.CampaignRuntime.getRegionStartIndexByScreen(scene.screenIndex);
       const levelOrder = Array.isArray(GAME_CONFIG.levelOrder) ? GAME_CONFIG.levelOrder : [];
       if (!scene || !levelOrder.length) return 0;
       const currentIndex = clampValue(Number(scene.screenIndex) || 0, 0, levelOrder.length - 1);
@@ -599,13 +600,18 @@
       this.scene = new LevelScene(this, this.images);
       const levelOrder = Array.isArray(GAME_CONFIG.levelOrder) ? GAME_CONFIG.levelOrder : [];
       const maxIndex = Math.max(0, levelOrder.length - 1);
-      this.scene.screenIndex = clampValue(Number(this.gameOverRegionStartIndex) || 0, 0, maxIndex);
+      const targetIndex = clampValue(Number(this.gameOverRegionStartIndex) || 0, 0, maxIndex);
       this.scene.player = new Player(heroKey, this.images);
+      if (window.CampaignRuntime) window.CampaignRuntime.setSceneScreen(this.scene, targetIndex, { spawn: false });
+      else {
+        this.scene.screenIndex = targetIndex;
+        const startLevel = this.scene.getLevelConfig ? this.scene.getLevelConfig() : null;
+        const start = (startLevel && startLevel.playerStart) || { x: 190, y: 620 };
+        this.scene.player.x = start.x;
+        this.scene.player.y = start.y;
+        if (this.scene.player.releaseFromPin) this.scene.player.releaseFromPin();
+      }
       const level = this.scene.getLevelConfig ? this.scene.getLevelConfig() : null;
-      const start = (level && level.playerStart) || { x: 190, y: 620 };
-      this.scene.player.x = start.x;
-      this.scene.player.y = start.y;
-      if (this.scene.player.releaseFromPin) this.scene.player.releaseFromPin();
       if (this.scene.spawnInitialWave) this.scene.spawnInitialWave();
       this.characterSelectMode = null;
       this.paused = false;

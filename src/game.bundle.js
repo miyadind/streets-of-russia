@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.4',
+  buildVersion: '0.4.5',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -6514,6 +6514,182 @@ const CampaignMapScreen = {
 };
 
 
+/* ===== src/campaignRuntime.js ===== */
+(function () {
+  if (typeof window === 'undefined' || typeof GAME_CONFIG === 'undefined') return;
+
+  function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+  }
+
+  function normalizeRegionId(regionId) {
+    return String(regionId || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+  }
+
+  function getLevelOrder() {
+    return Array.isArray(GAME_CONFIG.levelOrder) ? GAME_CONFIG.levelOrder : [];
+  }
+
+  function getLevelByIndex(index) {
+    const key = getLevelOrder()[index];
+    return key && GAME_CONFIG.levels ? GAME_CONFIG.levels[key] : null;
+  }
+
+  function getLevelRegionId(level) {
+    return level && (level.region || level.regionKey || level.area || level.chapter) || '';
+  }
+
+  function getActiveRegionIndex(game) {
+    const map = game && game.campaignMap;
+    return map && Number.isFinite(map.activeIndex) ? map.activeIndex : 0;
+  }
+
+  function getActiveRegionId(game) {
+    const map = game && game.campaignMap;
+    const activeIndex = getActiveRegionIndex(game);
+    return map && Array.isArray(map.order) ? map.order[activeIndex] || map.order[0] || '' : '';
+  }
+
+  function getRegionStartIndexById(regionId) {
+    const order = getLevelOrder();
+    const wanted = normalizeRegionId(regionId);
+    if (!wanted) return 0;
+
+    for (let index = 0; index < order.length; index++) {
+      if (normalizeRegionId(getLevelRegionId(getLevelByIndex(index))) === wanted) return index;
+    }
+
+    return 0;
+  }
+
+  function getRegionStartIndexByScreen(screenIndex) {
+    const order = getLevelOrder();
+    if (!order.length) return 0;
+    const currentIndex = clamp(Number(screenIndex) || 0, 0, order.length - 1);
+    const regionId = getLevelRegionId(getLevelByIndex(currentIndex));
+    if (!regionId) return currentIndex;
+
+    let startIndex = currentIndex;
+    for (let index = currentIndex - 1; index >= 0; index -= 1) {
+      const levelRegionId = getLevelRegionId(getLevelByIndex(index));
+      if (levelRegionId !== regionId) break;
+      startIndex = index;
+    }
+    return startIndex;
+  }
+
+  function getRegionEndIndexByStart(startIndex) {
+    const order = getLevelOrder();
+    if (!order.length) return 0;
+    const safeStart = clamp(Number(startIndex) || 0, 0, order.length - 1);
+    const regionId = getLevelRegionId(getLevelByIndex(safeStart));
+    if (!regionId) return safeStart;
+
+    let endIndex = safeStart;
+    for (let index = safeStart + 1; index < order.length; index += 1) {
+      const levelRegionId = getLevelRegionId(getLevelByIndex(index));
+      if (levelRegionId !== regionId) break;
+      endIndex = index;
+    }
+    return endIndex;
+  }
+
+  function getActiveRegionStartIndex(game) {
+    const order = getLevelOrder();
+    if (!order.length) return 0;
+    const byId = getRegionStartIndexById(getActiveRegionId(game));
+    if (byId || normalizeRegionId(getActiveRegionId(game))) return byId;
+    return clamp(getActiveRegionIndex(game) * 3, 0, order.length - 1);
+  }
+
+  function getLocalScreenIndex(game) {
+    const scene = game && game.scene;
+    if (!scene || !Number.isFinite(scene.screenIndex)) return 0;
+    const startIndex = getRegionStartIndexByScreen(scene.screenIndex);
+    const endIndex = getRegionEndIndexByStart(startIndex);
+    return clamp(scene.screenIndex - startIndex, 0, Math.max(0, endIndex - startIndex));
+  }
+
+  function getAbsoluteScreenIndexForSave(game, save) {
+    const order = getLevelOrder();
+    if (!order.length) return 0;
+    const mapOrder = game && game.campaignMap && Array.isArray(game.campaignMap.order) ? game.campaignMap.order : [];
+    const regionIndex = clamp(Number(save && save.campaign && save.campaign.currentRegionIndex) || 0, 0, Math.max(0, mapOrder.length - 1));
+    const regionId = mapOrder[regionIndex] || save && save.campaign && save.campaign.currentRegion || '';
+    const startIndex = getRegionStartIndexById(regionId) || clamp(regionIndex * 3, 0, order.length - 1);
+    const endIndex = getRegionEndIndexByStart(startIndex);
+    const localIndex = clamp(Number(save && save.campaign && save.campaign.currentScreen) || 0, 0, Math.max(0, endIndex - startIndex));
+    return clamp(startIndex + localIndex, 0, order.length - 1);
+  }
+
+  function resetGundosSceneState(scene) {
+    if (!scene) return;
+    if (scene.stopGundosVoice) scene.stopGundosVoice();
+    scene.gundosIntroActive = false;
+    scene.gundosIntroLocked = false;
+    scene.gundosArenaActive = false;
+    scene.gundosVictoryPending = false;
+    scene.gundosVictoryDelayMs = 0;
+    scene.activeGundos = null;
+    scene.gundosFloatTexts = [];
+  }
+
+  function placePlayerAtLevelStart(scene) {
+    if (!scene || !scene.player) return;
+    const level = scene.getLevelConfig ? scene.getLevelConfig() : null;
+    const start = level && level.playerStart || { x: 190, y: 620 };
+    scene.player.x = Number(start.x) || 190;
+    scene.player.y = Number(start.y) || 620;
+    scene.player.facing = scene.player.x > GAME_CONFIG.width / 2 ? -1 : 1;
+    scene.player.state = 'idle';
+    if (scene.player.releaseFromPin) scene.player.releaseFromPin();
+  }
+
+  function setSceneScreen(scene, screenIndex, options) {
+    if (!scene) return;
+    const order = getLevelOrder();
+    const maxIndex = Math.max(0, order.length - 1);
+    const targetIndex = clamp(Number(screenIndex) || 0, 0, maxIndex);
+    resetGundosSceneState(scene);
+    scene.screenIndex = targetIndex;
+    placePlayerAtLevelStart(scene);
+    if (!options || options.spawn !== false) {
+      if (scene.spawnInitialWave) scene.spawnInitialWave();
+    }
+  }
+
+  function startActiveRegionScene(game) {
+    if (!game || !game.scene) return;
+    const targetIndex = getActiveRegionStartIndex(game);
+    if (game.scene.screenIndex === targetIndex) {
+      placePlayerAtLevelStart(game.scene);
+      return;
+    }
+    setSceneScreen(game.scene, targetIndex);
+  }
+
+  window.CampaignRuntime = {
+    clamp,
+    normalizeRegionId,
+    getLevelOrder,
+    getLevelRegionId,
+    getActiveRegionIndex,
+    getActiveRegionId,
+    getRegionStartIndexById,
+    getRegionStartIndexByScreen,
+    getRegionEndIndexByStart,
+    getActiveRegionStartIndex,
+    getLocalScreenIndex,
+    getAbsoluteScreenIndexForSave,
+    resetGundosSceneState,
+    placePlayerAtLevelStart,
+    setSceneScreen,
+    startActiveRegionScene
+  };
+})();
+
+
+
 /* ===== src/mobileControls.js ===== */
 const MobileControls = {
   active: false,
@@ -7644,13 +7820,8 @@ class GameApp {
 
   startLevel() {
     this.scene = new LevelScene(this, this.images);
-    if (this.campaignMap && Number.isFinite(this.campaignMap.activeIndex)) {
-      this.scene.screenIndex = Math.max(0, Math.min(
-        this.images.streets.length - 1,
-        this.campaignMap.activeIndex * 3
-      ));
-      if (this.scene.spawnInitialWave) this.scene.spawnInitialWave();
-    }
+    if (window.CampaignRuntime) window.CampaignRuntime.startActiveRegionScene(this);
+    else if (this.scene.spawnInitialWave) this.scene.spawnInitialWave();
     this.setState('level');
     const levelKey = this.scene && this.scene.getLevelKey ? this.scene.getLevelKey() : null;
     const level = levelKey && GAME_CONFIG.levels ? GAME_CONFIG.levels[levelKey] : null;
@@ -11165,6 +11336,7 @@ window.addEventListener('load', () => {
     };
 
     GameApp.prototype.getCurrentRegionStartIndex = function (scene) {
+      if (window.CampaignRuntime && scene) return window.CampaignRuntime.getRegionStartIndexByScreen(scene.screenIndex);
       const levelOrder = Array.isArray(GAME_CONFIG.levelOrder) ? GAME_CONFIG.levelOrder : [];
       if (!scene || !levelOrder.length) return 0;
       const currentIndex = clampValue(Number(scene.screenIndex) || 0, 0, levelOrder.length - 1);
@@ -11262,13 +11434,18 @@ window.addEventListener('load', () => {
       this.scene = new LevelScene(this, this.images);
       const levelOrder = Array.isArray(GAME_CONFIG.levelOrder) ? GAME_CONFIG.levelOrder : [];
       const maxIndex = Math.max(0, levelOrder.length - 1);
-      this.scene.screenIndex = clampValue(Number(this.gameOverRegionStartIndex) || 0, 0, maxIndex);
+      const targetIndex = clampValue(Number(this.gameOverRegionStartIndex) || 0, 0, maxIndex);
       this.scene.player = new Player(heroKey, this.images);
+      if (window.CampaignRuntime) window.CampaignRuntime.setSceneScreen(this.scene, targetIndex, { spawn: false });
+      else {
+        this.scene.screenIndex = targetIndex;
+        const startLevel = this.scene.getLevelConfig ? this.scene.getLevelConfig() : null;
+        const start = (startLevel && startLevel.playerStart) || { x: 190, y: 620 };
+        this.scene.player.x = start.x;
+        this.scene.player.y = start.y;
+        if (this.scene.player.releaseFromPin) this.scene.player.releaseFromPin();
+      }
       const level = this.scene.getLevelConfig ? this.scene.getLevelConfig() : null;
-      const start = (level && level.playerStart) || { x: 190, y: 620 };
-      this.scene.player.x = start.x;
-      this.scene.player.y = start.y;
-      if (this.scene.player.releaseFromPin) this.scene.player.releaseFromPin();
       if (this.scene.spawnInitialWave) this.scene.spawnInitialWave();
       this.characterSelectMode = null;
       this.paused = false;
@@ -11531,13 +11708,15 @@ window.addEventListener('load', () => {
     this.resetTeamRun();
     previousStartLevel.call(this);
     if (this.scene && this.campaignMap && Number.isFinite(this.campaignMap.activeIndex)) {
-      const targetIndex = Math.max(0, Math.min(
-        this.scene.images.streets.length - 1,
-        this.campaignMap.activeIndex * 3
-      ));
+      const targetIndex = window.CampaignRuntime
+        ? window.CampaignRuntime.getActiveRegionStartIndex(this)
+        : Math.max(0, Math.min(this.scene.images.streets.length - 1, this.campaignMap.activeIndex * 3));
       if (this.scene.screenIndex !== targetIndex) {
-        this.scene.screenIndex = targetIndex;
-        if (this.scene.spawnInitialWave) this.scene.spawnInitialWave();
+        if (window.CampaignRuntime) window.CampaignRuntime.setSceneScreen(this.scene, targetIndex);
+        else {
+          this.scene.screenIndex = targetIndex;
+          if (this.scene.spawnInitialWave) this.scene.spawnInitialWave();
+        }
       }
     }
     if (this.scene && this.scene.player) {
@@ -14115,6 +14294,7 @@ window.addEventListener('load', () => {
 
   function getScreenIndex(game) {
     if (!game || !game.scene || !Number.isFinite(game.scene.screenIndex)) return 0;
+    if (window.CampaignRuntime) return window.CampaignRuntime.getLocalScreenIndex(game);
     const regionIndex = getRegionIndex(game);
     return clamp(game.scene.screenIndex - regionIndex * 3, 0, 2);
   }
@@ -14242,13 +14422,17 @@ window.addEventListener('load', () => {
     if (!save) return false;
     applySaveToGame(game, save);
     game.scene = new LevelScene(game, game.images);
-    const regionIndex = clamp(Number(save.campaign && save.campaign.currentRegionIndex) || 0, 0, Math.max(0, getCampaignMapOrder(game).length - 1));
-    const regionalScreen = clamp(Number(save.campaign && save.campaign.currentScreen) || 0, 0, 2);
-    game.scene.screenIndex = clamp(regionIndex * 3 + regionalScreen, 0, game.scene.images.streets.length - 1);
     game.scene.player = new Player(game.selectedHero || getFirstAliveHero(game), game.images);
-    game.scene.player.x = 190;
-    game.scene.player.y = 620;
-    game.scene.player.facing = 1;
+    const targetIndex = window.CampaignRuntime
+      ? window.CampaignRuntime.getAbsoluteScreenIndexForSave(game, save)
+      : clamp((Number(save.campaign && save.campaign.currentRegionIndex) || 0) * 3 + (Number(save.campaign && save.campaign.currentScreen) || 0), 0, game.scene.images.streets.length - 1);
+    if (window.CampaignRuntime) window.CampaignRuntime.setSceneScreen(game.scene, targetIndex, { spawn: false });
+    else {
+      game.scene.screenIndex = targetIndex;
+      game.scene.player.x = 190;
+      game.scene.player.y = 620;
+      game.scene.player.facing = 1;
+    }
     if (game.applySavedHeroHp) game.applySavedHeroHp(game.scene.player, game.scene.player.heroKey || game.selectedHero);
     if (game.scene.spawnInitialWave) game.scene.spawnInitialWave();
     return true;
@@ -14485,14 +14669,17 @@ window.addEventListener('load', () => {
   }
 
   function normalizeRegionId(regionId) {
+    if (window.CampaignRuntime) return window.CampaignRuntime.normalizeRegionId(regionId);
     return String(regionId || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
   }
 
   function getLevelRegionId(level) {
+    if (window.CampaignRuntime) return window.CampaignRuntime.getLevelRegionId(level);
     return level && (level.region || level.regionKey || level.area || level.chapter) || '';
   }
 
   function getActiveRegionStartIndex(game) {
+    if (window.CampaignRuntime) return window.CampaignRuntime.getActiveRegionStartIndex(game);
     const order = Array.isArray(GAME_CONFIG.levelOrder) ? GAME_CONFIG.levelOrder : [];
     const levels = GAME_CONFIG.levels || {};
     const map = game && game.campaignMap;
@@ -14511,6 +14698,10 @@ window.addEventListener('load', () => {
   }
 
   function placePlayerAtLevelStart(scene) {
+    if (window.CampaignRuntime) {
+      window.CampaignRuntime.placePlayerAtLevelStart(scene);
+      return;
+    }
     if (!scene || !scene.player) return;
     const level = scene.getLevelConfig ? scene.getLevelConfig() : null;
     const start = level && level.playerStart || { x: 190, y: 620 };
@@ -14523,6 +14714,20 @@ window.addEventListener('load', () => {
 
   function restartSceneAtActiveRegion(game) {
     if (!game || !game.scene) return;
+    if (window.CampaignRuntime) {
+      const targetIndex = window.CampaignRuntime.getActiveRegionStartIndex(game);
+      if (game.scene.screenIndex !== targetIndex) {
+        window.CampaignRuntime.setSceneScreen(game.scene, targetIndex);
+        const level = game.scene.getLevelConfig ? game.scene.getLevelConfig() : null;
+        AudioManager.playMusic((level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme', true);
+      }
+      window.__lastRegionStart = {
+        activeIndex: game.campaignMap && game.campaignMap.activeIndex,
+        targetIndex,
+        targetKey: GAME_CONFIG.levelOrder && GAME_CONFIG.levelOrder[targetIndex]
+      };
+      return;
+    }
     const scene = game.scene;
     const targetIndex = getActiveRegionStartIndex(game);
     const currentKey = GAME_CONFIG.levelOrder && GAME_CONFIG.levelOrder[scene.screenIndex];

@@ -26,6 +26,7 @@
   };
 
   GameApp.prototype.getCurrentRegionStartIndex = function getCurrentRegionStartIndex(scene) {
+    if (window.CampaignRuntime && scene) return window.CampaignRuntime.getRegionStartIndexByScreen(scene.screenIndex);
     const levelOrder = Array.isArray(GAME_CONFIG.levelOrder) ? GAME_CONFIG.levelOrder : [];
     if (!scene || !levelOrder.length) return 0;
 
@@ -72,15 +73,18 @@
     const maxIndex = Math.max(0, levelOrder.length - 1);
     const startIndex = clamp(Number(this.gameOverRegionStartIndex) || 0, 0, maxIndex);
 
-    this.scene.screenIndex = startIndex;
     this.scene.player = new Player(this.gameOverHero || this.selectedHero || 'boris', this.images);
+    if (window.CampaignRuntime) window.CampaignRuntime.setSceneScreen(this.scene, startIndex, { spawn: false });
+    else {
+      this.scene.screenIndex = startIndex;
+      const startLevel = this.scene.getLevelConfig ? this.scene.getLevelConfig() : null;
+      const start = (startLevel && startLevel.playerStart) || { x: 190, y: 620 };
+      this.scene.player.x = start.x;
+      this.scene.player.y = start.y;
+      if (this.scene.player.releaseFromPin) this.scene.player.releaseFromPin();
+    }
 
     const level = this.scene.getLevelConfig ? this.scene.getLevelConfig() : null;
-    const start = (level && level.playerStart) || { x: 190, y: 620 };
-    this.scene.player.x = start.x;
-    this.scene.player.y = start.y;
-    if (this.scene.player.releaseFromPin) this.scene.player.releaseFromPin();
-
     if (this.scene.spawnInitialWave) this.scene.spawnInitialWave();
     this.setState('level');
     AudioManager.playSfx('menuSelect', 0.8);

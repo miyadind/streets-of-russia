@@ -112,6 +112,7 @@
 
   function getScreenIndex(game) {
     if (!game || !game.scene || !Number.isFinite(game.scene.screenIndex)) return 0;
+    if (window.CampaignRuntime) return window.CampaignRuntime.getLocalScreenIndex(game);
     const regionIndex = getRegionIndex(game);
     return clamp(game.scene.screenIndex - regionIndex * 3, 0, 2);
   }
@@ -239,13 +240,17 @@
     if (!save) return false;
     applySaveToGame(game, save);
     game.scene = new LevelScene(game, game.images);
-    const regionIndex = clamp(Number(save.campaign && save.campaign.currentRegionIndex) || 0, 0, Math.max(0, getCampaignMapOrder(game).length - 1));
-    const regionalScreen = clamp(Number(save.campaign && save.campaign.currentScreen) || 0, 0, 2);
-    game.scene.screenIndex = clamp(regionIndex * 3 + regionalScreen, 0, game.scene.images.streets.length - 1);
     game.scene.player = new Player(game.selectedHero || getFirstAliveHero(game), game.images);
-    game.scene.player.x = 190;
-    game.scene.player.y = 620;
-    game.scene.player.facing = 1;
+    const targetIndex = window.CampaignRuntime
+      ? window.CampaignRuntime.getAbsoluteScreenIndexForSave(game, save)
+      : clamp((Number(save.campaign && save.campaign.currentRegionIndex) || 0) * 3 + (Number(save.campaign && save.campaign.currentScreen) || 0), 0, game.scene.images.streets.length - 1);
+    if (window.CampaignRuntime) window.CampaignRuntime.setSceneScreen(game.scene, targetIndex, { spawn: false });
+    else {
+      game.scene.screenIndex = targetIndex;
+      game.scene.player.x = 190;
+      game.scene.player.y = 620;
+      game.scene.player.facing = 1;
+    }
     if (game.applySavedHeroHp) game.applySavedHeroHp(game.scene.player, game.scene.player.heroKey || game.selectedHero);
     if (game.scene.spawnInitialWave) game.scene.spawnInitialWave();
     return true;
