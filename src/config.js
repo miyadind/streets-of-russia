@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  buildVersion: '0.4.13',
+  buildVersion: '0.4.14',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -255,6 +255,16 @@ const GAME_CONFIG = {
       name: 'Far East 01',
       region: 'far-east',
       background: 'assets/backgrounds/1/street01.png',
+      interactives: [
+        {
+          id: 'shamanPoster',
+          type: 'breakablePoster',
+          hitsToReplace: 3,
+          altBackground: 'assets/backgrounds/1/street01_1.png',
+          hitbox: { x: 342, y: 418, w: 128, h: 146 },
+          effectRect: { x: 360, y: 322, w: 72, h: 150 }
+        }
+      ],
       music: 'levelTheme',
       waves: [
         {

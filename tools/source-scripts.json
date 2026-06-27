@@ -27,6 +27,7 @@
   "src/mobileApp.js",
   "src/mobileSafeUxPatch.js",
   "src/game.js",
+  "src/levelInteractives.js",
   "src/horseEnemyPatch.js",
   "src/horseAssetsFixPatch.js",
   "src/mobileBootstrap.js",

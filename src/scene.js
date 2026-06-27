@@ -24,6 +24,16 @@ class LevelScene {
     return GAME_CONFIG.levels[this.getLevelKey()] || GAME_CONFIG.levels.street01;
   }
 
+  getLevelBackgroundImage() {
+    return this.images.streets[this.screenIndex] || this.images.streets[0];
+  }
+
+  updateLevelInteractives(dt) {
+  }
+
+  drawLevelBackgroundEffects(ctx) {
+  }
+
   spawnInitialWave() {
     this.currentWaveIndex = -1;
     this.enemies = [];
@@ -316,6 +326,7 @@ class LevelScene {
     }
 
     this.player.update(dt, this);
+    this.updateLevelInteractives(dt);
 
     if (this.pendingWave) {
       this.pendingWaveTimer -= dt;
@@ -359,12 +370,13 @@ class LevelScene {
   }
 
   draw(ctx) {
-    const bg = this.images.streets[this.screenIndex] || this.images.streets[0];
+    const bg = this.getLevelBackgroundImage();
     if (bg) ctx.drawImage(bg, 0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
     else {
       ctx.fillStyle = '#222';
       ctx.fillRect(0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
     }
+    this.drawLevelBackgroundEffects(ctx);
 
     ctx.fillStyle = 'rgba(255,255,255,0.025)';
     ctx.fillRect(0, GAME_CONFIG.laneTop, GAME_CONFIG.width, GAME_CONFIG.laneBottom - GAME_CONFIG.laneTop);
