@@ -31,7 +31,6 @@
   "src/horseEnemyPatch.js",
   "src/horseAssetsFixPatch.js",
   "src/mobileBootstrap.js",
-  "src/introPatch.js",
   "src/campaignMapPatch.js",
   "src/introTextSourcePatch.js",
   "src/globalQualityPatch.js",

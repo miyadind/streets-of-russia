@@ -14,6 +14,9 @@ Only files listed in that manifest are active in the deployed game. Other
 `.js` files in `src/` are legacy or experimental candidates until they are
 added to the manifest or moved out of `src/`.
 
+Retired patch files should be deleted after their behavior is either moved
+into the owning module or confirmed obsolete.
+
 Run:
 
 ```bash
@@ -74,6 +77,10 @@ but they should delegate the shared flow rules to `window.CampaignFlow`.
 `GameApp.setState`, `GameApp.updateMusicForState` and `GameApp.ensureMenuMusic`
 own cross-state music cleanup. They prevent menu music, intro music and level
 music from overlapping when screens change.
+
+The old `introPatch.js` has been retired. Intro rendering and flow are owned by
+`campaignMapPatch.js` and `introAudioFlowPatch.js` until that block is moved
+fully into core.
 
 ## High-Risk Patch Areas
 
