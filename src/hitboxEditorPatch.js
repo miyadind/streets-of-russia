@@ -268,7 +268,9 @@
 
     Player.prototype.canCounterSlide = function (enemy) {
       if (this.state !== 'attack' || !enemy) return false;
-      if (typeof Combat !== 'undefined' && Combat.actorsSameLane && !Combat.actorsSameLane(this, enemy)) return false;
+      if (typeof Combat !== 'undefined' && Combat.laneCanConnect && !Combat.laneCanConnect(this, enemy, {
+        laneTolerance: (GAME_CONFIG.enemies.sucker && GAME_CONFIG.enemies.sucker.counterRangeY) || GAME_CONFIG.yHitTolerance
+      })) return false;
       const data = this.getAttackData();
       if (this.attackTimer < data.activeStart || this.attackTimer > data.activeEnd) return false;
 
@@ -286,11 +288,15 @@
       if (enemy.state === 'slide' && typeof enemy.getSlideHitbox === 'function') targets.push(enemy.getSlideHitbox());
       if (typeof enemy.getHurtbox === 'function') targets.push(enemy.getHurtbox());
 
-      return targets.some(target => target && boxOverlap(counterZone, {
+      return targets.some(target => target && Combat.canMeleeHit(this, enemy, {
+        attackBox: counterZone,
+        targetBox: {
         x: target.x - forgiveness,
         y: target.y - forgiveness,
         w: target.w + forgiveness * 2,
         h: target.h + forgiveness * 2
+        },
+        laneTolerance: rangeY
       }));
     };
 
@@ -332,11 +338,16 @@
 
     DogRegimeEnemy.prototype.canClubReachPlayer = function (player, anticipation = false) {
       if (!player || typeof player.getBodyBox !== 'function') return false;
-      if (typeof Combat !== 'undefined' && Combat.actorsSameLane && !Combat.actorsSameLane(this, player)) return false;
       const attack = this.getAttackBox();
-      if (!anticipation) return boxOverlap(attack, player.getBodyBox());
       const pad = 4;
-      return boxOverlap({ x: attack.x - pad, y: attack.y - pad, w: attack.w + pad * 2, h: attack.h + pad * 2 }, player.getBodyBox());
+      const activeBox = anticipation ?
+        { x: attack.x - pad, y: attack.y - pad, w: attack.w + pad * 2, h: attack.h + pad * 2 } :
+        attack;
+      return Combat.canMeleeHit(this, player, {
+        attackBox: activeBox,
+        targetBox: player.getBodyBox(),
+        laneTolerance: anticipation ? (this.attackRangeY || GAME_CONFIG.yHitTolerance) : GAME_CONFIG.yHitTolerance
+      });
     };
 
     DogRegimeEnemy.prototype.isInAttackRange = function (player) {

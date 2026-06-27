@@ -337,8 +337,8 @@ class DogRegimeEnemy {
     const sideFromPlayer = Math.sign(this.x - player.x || 1);
     const playerFacing = player.facing || 1;
     const absX = Math.abs(this.x - player.x);
-    const absY = Math.abs(this.y - player.y);
-    return sideFromPlayer === playerFacing && absX < this.playerAttackFearDistance && absY < this.attackRangeY * 1.25;
+    return sideFromPlayer === playerFacing && absX < this.playerAttackFearDistance &&
+      Combat.laneCanConnect(player, this, { laneTolerance: this.attackRangeY * 1.25 });
   }
 
   hasClearAttackPosition(scene) {
@@ -368,7 +368,11 @@ class DogRegimeEnemy {
   }
 
   isInAttackRange(player) {
-    return Math.abs(player.x - this.x) < this.attackRangeX && Math.abs(player.y - this.y) < this.attackRangeY;
+    return Combat.canMeleeHit(this, player, {
+      attackBox: this.getAttackBox(),
+      targetBox: player.getBodyBox(),
+      laneTolerance: this.attackRangeY
+    });
   }
 
   updateAttack(dt, scene) {
@@ -378,9 +382,11 @@ class DogRegimeEnemy {
 
     if (!this.attackHasHit && this.attackTimer >= activeStart && this.attackTimer <= activeEnd) {
       const player = scene.player;
-      const sameY = Combat.actorsSameFootLane(this, player, this.attackRangeY);
-      const inX = Math.abs(player.x - this.x) < this.attackRangeX;
-      if (sameY && inX) {
+      if (Combat.canMeleeHit(this, player, {
+        attackBox: this.getAttackBox(),
+        targetBox: player.getBodyBox(),
+        laneTolerance: GAME_CONFIG.yHitTolerance
+      })) {
         const hit = player.receiveDamage(this.damage, {
           source: 'melee',
           knockbackX: this.facing * 18

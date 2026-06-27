@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  buildVersion: '0.4.17',
+  buildVersion: '0.4.18',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -35,7 +35,7 @@ const GAME_CONFIG = {
   enemySeparationIterations: 2,
   enemyAttackSlotRadiusX: 46,
   enemyAttackSlotRadiusY: 24,
-  yHitTolerance: 34,
+  yHitTolerance: 28,
   combatLaneCount: 3,
   discreteCombatLanes: true,
 

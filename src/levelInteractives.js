@@ -44,8 +44,10 @@
   function canHitPoster(scene, item, state) {
     const player = scene && scene.player;
     if (!player || state.replaced || player.attackHasHit || !isAttackActive(player)) return false;
-    if (Number.isFinite(item.laneY) && !Combat.actorsSameFootLane(player, { laneY: item.laneY }, item.laneTolerance || GAME_CONFIG.yHitTolerance)) return false;
-    return Combat.overlap(player.getHitbox(), item.hitbox);
+    return Combat.canInteractHit(player, item, {
+      attackBox: player.getHitbox(),
+      laneTolerance: item.laneTolerance || GAME_CONFIG.yHitTolerance
+    });
   }
 
   function hitPoster(scene, item, state) {

@@ -158,7 +158,11 @@ class SuckerEnemy extends DogRegimeEnemy {
     }
 
     if (player.state !== 'knockdown' && player.state !== 'pinned' &&
-        Combat.actorsSameLane(this, player) && Combat.overlap(this.getSlideHitbox(), player.getBodyBox())) {
+        Combat.canProjectileHit(this, player, {
+          attackBox: this.getSlideHitbox(),
+          laneY: this.slideY,
+          laneTolerance: this.alignToleranceY || GAME_CONFIG.yHitTolerance
+        })) {
       this.pinPlayer(scene);
       return;
     }

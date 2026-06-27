@@ -193,7 +193,11 @@ class ZetnikEnemy extends DogRegimeEnemy {
     }
 
     if (!this.redirectedToBoss && player && !this.gundosHitPlayer &&
-        Combat.actorsSameLane(this, player) && Combat.overlap(this.getHurtbox(), player.getBodyBox())) {
+        Combat.canProjectileHit(this, player, {
+          attackBox: this.getHurtbox(),
+          laneY: this.y,
+          laneTolerance: GAME_CONFIG.yHitTolerance
+        })) {
       this.gundosHitPlayer = true;
       player.receiveDamage(this.damage, {
         source: 'ranged',
@@ -303,11 +307,14 @@ class ZetnikEnemy extends DogRegimeEnemy {
     const player = scene.player;
     if (player.state === 'knockdown' || player.state === 'pinned') return;
 
-    const stayedNearLockedY = Math.abs(player.y - this.lockedTargetY) <= this.hitWindowY;
     const stayedNearLockedX = Math.abs(player.x - this.lockedTargetX) <= this.hitWindowX;
     const projectileOverlapsPlayer = Math.abs(player.x - this.x) <= this.hitWindowX;
-
-    if (!stayedNearLockedY || !stayedNearLockedX || !projectileOverlapsPlayer || !Combat.actorsSameLane(this, player)) return;
+    if (!stayedNearLockedX || !projectileOverlapsPlayer ||
+        !Combat.canProjectileHit(this, player, {
+          attackBox: this.getHurtbox(),
+          laneY: this.lockedTargetY,
+          laneTolerance: this.hitWindowY
+        })) return;
 
     const hit = player.receiveDamage(this.damage, {
       source: 'ranged',

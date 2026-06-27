@@ -163,7 +163,11 @@
       this.spin += dt * 0.012;
       const player = scene && scene.player;
       if (player && player.hp > 0 &&
-          Combat.actorsSameLane(this, player) && Combat.overlap(this.getHurtbox(), player.getBodyBox())) {
+          Combat.canProjectileHit(this, player, {
+            attackBox: this.getHurtbox(),
+            laneY: this.laneY,
+            laneTolerance: GAME_CONFIG.yHitTolerance
+          })) {
         player.receiveDamage(8, {
           source: 'ranged',
           knockbackX: -46,

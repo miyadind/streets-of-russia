@@ -1,12 +1,9 @@
 const Combat = {
   overlap(a, b) {
-    return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+    return !!a && !!b && a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
   },
 
   sameLane(aY, bY, tolerance = GAME_CONFIG.yHitTolerance) {
-    if (GAME_CONFIG.discreteCombatLanes !== false) {
-      return this.laneIndex(aY) === this.laneIndex(bY);
-    }
     return Math.abs(aY - bY) <= tolerance;
   },
 
@@ -52,5 +49,81 @@ const Combat = {
 
   actorsSameFootLane(a, b, tolerance = GAME_CONFIG.yHitTolerance) {
     return this.sameFootLane(this.actorFeetY(a), this.actorFeetY(b), tolerance);
+  },
+
+  actorFootTolerance(actor, fallback = GAME_CONFIG.yHitTolerance) {
+    if (!actor) return fallback;
+    if (Number.isFinite(actor.footTolerance)) return actor.footTolerance;
+    if (Number.isFinite(actor.hitLaneTolerance)) return actor.hitLaneTolerance;
+
+    const pushbox = typeof actor.getPushbox === 'function' ? actor.getPushbox() : null;
+    if (pushbox && Number.isFinite(pushbox.h)) {
+      return Math.max(14, Math.min(fallback, pushbox.h * 0.62));
+    }
+
+    return fallback;
+  },
+
+  actorFootBand(actor, tolerance = this.actorFootTolerance(actor)) {
+    const y = this.actorFeetY(actor);
+    const radius = Math.max(1, tolerance || GAME_CONFIG.yHitTolerance || 28);
+    return { top: y - radius, bottom: y + radius, center: y, radius };
+  },
+
+  footBandsOverlap(a, b, tolerance = GAME_CONFIG.yHitTolerance) {
+    const aBand = this.actorFootBand(a, this.actorFootTolerance(a, tolerance));
+    const bBand = this.actorFootBand(b, this.actorFootTolerance(b, tolerance));
+    return aBand.top <= bBand.bottom && aBand.bottom >= bBand.top;
+  },
+
+  actorOnLane(actor, laneY, tolerance = GAME_CONFIG.yHitTolerance) {
+    if (!Number.isFinite(laneY)) return true;
+    const band = this.actorFootBand(actor, tolerance);
+    return laneY >= band.top && laneY <= band.bottom;
+  },
+
+  laneCanConnect(attacker, target, options = {}) {
+    const tolerance = options.laneTolerance || GAME_CONFIG.yHitTolerance || 28;
+    if (Number.isFinite(options.laneY)) return this.actorOnLane(target, options.laneY, tolerance);
+    return this.footBandsOverlap(attacker, target, tolerance);
+  },
+
+  canHit(attacker, target, options = {}) {
+    if (!attacker || !target) return false;
+    const attackBox = options.attackBox ||
+      (typeof attacker.getAttackBox === 'function' ? attacker.getAttackBox() :
+        typeof attacker.getHitbox === 'function' ? attacker.getHitbox() : null);
+    const targetBox = options.targetBox ||
+      (typeof target.getBodyBox === 'function' ? target.getBodyBox() :
+        typeof target.getHurtbox === 'function' ? target.getHurtbox() : null);
+
+    return this.laneCanConnect(attacker, target, options) && this.overlap(attackBox, targetBox);
+  },
+
+  canMeleeHit(attacker, target, options = {}) {
+    return this.canHit(attacker, target, options);
+  },
+
+  canProjectileHit(projectile, target, options = {}) {
+    const attackBox = options.attackBox ||
+      (typeof projectile.getAttackBox === 'function' ? projectile.getAttackBox() :
+        typeof projectile.getHurtbox === 'function' ? projectile.getHurtbox() : null);
+    const targetBox = options.targetBox ||
+      (typeof target.getBodyBox === 'function' ? target.getBodyBox() :
+        typeof target.getHurtbox === 'function' ? target.getHurtbox() : null);
+    return this.laneCanConnect(projectile, target, {
+      laneY: Number.isFinite(options.laneY) ? options.laneY : projectile.laneY,
+      laneTolerance: options.laneTolerance || GAME_CONFIG.yHitTolerance
+    }) && this.overlap(attackBox, targetBox);
+  },
+
+  canInteractHit(attacker, item, options = {}) {
+    if (!attacker || !item) return false;
+    const attackBox = options.attackBox ||
+      (typeof attacker.getHitbox === 'function' ? attacker.getHitbox() :
+        typeof attacker.getAttackBox === 'function' ? attacker.getAttackBox() : null);
+    if (!this.overlap(attackBox, item.hitbox)) return false;
+    if (!Number.isFinite(item.laneY)) return true;
+    return this.actorOnLane(attacker, item.laneY, item.laneTolerance || GAME_CONFIG.yHitTolerance);
   }
 };

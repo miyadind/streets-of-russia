@@ -228,7 +228,11 @@ class Player {
             w: target.w + pad * 2,
             h: target.h + pad * 2
           };
-          if (Combat.actorsSameFootLane(this, enemy) && Combat.overlap(hitbox, expandedTarget)) {
+          if (Combat.canMeleeHit(this, enemy, {
+            attackBox: hitbox,
+            targetBox: expandedTarget,
+            laneTolerance: GAME_CONFIG.yHitTolerance
+          })) {
             this.attackHasHit = true;
             if (enemy.gundosGuarding && enemy.holdGundosGuard) {
               enemy.holdGundosGuard(this);
@@ -239,7 +243,11 @@ class Player {
             break;
           }
         }
-        if (Combat.actorsSameFootLane(this, enemy) && Combat.overlap(hitbox, enemy.getHurtbox())) {
+        if (Combat.canMeleeHit(this, enemy, {
+          attackBox: hitbox,
+          targetBox: enemy.getHurtbox(),
+          laneTolerance: GAME_CONFIG.yHitTolerance
+        })) {
           this.attackHasHit = true;
           this.playComboHitSound();
           enemy.takeHit(data.damage, this.facing, data.knockback);
@@ -288,7 +296,9 @@ class Player {
 
   canCounterSlide(enemy) {
     if (this.state !== 'attack' || !enemy) return false;
-    if (Combat.actorsSameFootLane && !Combat.actorsSameFootLane(this, enemy)) return false;
+    if (Combat.laneCanConnect && !Combat.laneCanConnect(this, enemy, {
+      laneTolerance: (GAME_CONFIG.enemies.sucker && GAME_CONFIG.enemies.sucker.counterRangeY) || GAME_CONFIG.yHitTolerance
+    })) return false;
 
     const data = this.getAttackData();
     if (this.attackTimer < data.activeStart || this.attackTimer > data.activeEnd) return false;
@@ -307,11 +317,15 @@ class Player {
     if (enemy.state === 'slide' && typeof enemy.getSlideHitbox === 'function') targets.push(enemy.getSlideHitbox());
     if (typeof enemy.getHurtbox === 'function') targets.push(enemy.getHurtbox());
 
-    return targets.some(target => target && Combat.overlap(counterZone, {
+    return targets.some(target => target && Combat.canMeleeHit(this, enemy, {
+      attackBox: counterZone,
+      targetBox: {
       x: target.x - forgiveness,
       y: target.y - forgiveness,
       w: target.w + forgiveness * 2,
       h: target.h + forgiveness * 2
+      },
+      laneTolerance: rangeY
     }));
   }
 

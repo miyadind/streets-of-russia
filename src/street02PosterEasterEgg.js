@@ -23,7 +23,13 @@
     if (this.getLevelKey() !== 'street02') return false;
     if (!this.encounterCleared || this.isPosterRemoved()) return false;
     if (this.player.state !== 'attack') return false;
-    return Combat.overlap(this.player.getHitbox(), this.getPosterHitbox());
+    return Combat.canInteractHit(this.player, {
+      hitbox: this.getPosterHitbox(),
+      laneY: this.player.y,
+      laneTolerance: GAME_CONFIG.yHitTolerance
+    }, {
+      attackBox: this.player.getHitbox()
+    });
   };
 
   LevelScene.prototype.update = function (dt) {

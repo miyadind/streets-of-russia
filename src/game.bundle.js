@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.17',
+  buildVersion: '0.4.18',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -42,7 +42,7 @@ const GAME_CONFIG = {
   enemySeparationIterations: 2,
   enemyAttackSlotRadiusX: 46,
   enemyAttackSlotRadiusY: 24,
-  yHitTolerance: 34,
+  yHitTolerance: 28,
   combatLaneCount: 3,
   discreteCombatLanes: true,
 
@@ -963,13 +963,10 @@ const Input = {
 /* ===== src/combat.js ===== */
 const Combat = {
   overlap(a, b) {
-    return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+    return !!a && !!b && a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
   },
 
   sameLane(aY, bY, tolerance = GAME_CONFIG.yHitTolerance) {
-    if (GAME_CONFIG.discreteCombatLanes !== false) {
-      return this.laneIndex(aY) === this.laneIndex(bY);
-    }
     return Math.abs(aY - bY) <= tolerance;
   },
 
@@ -1015,6 +1012,82 @@ const Combat = {
 
   actorsSameFootLane(a, b, tolerance = GAME_CONFIG.yHitTolerance) {
     return this.sameFootLane(this.actorFeetY(a), this.actorFeetY(b), tolerance);
+  },
+
+  actorFootTolerance(actor, fallback = GAME_CONFIG.yHitTolerance) {
+    if (!actor) return fallback;
+    if (Number.isFinite(actor.footTolerance)) return actor.footTolerance;
+    if (Number.isFinite(actor.hitLaneTolerance)) return actor.hitLaneTolerance;
+
+    const pushbox = typeof actor.getPushbox === 'function' ? actor.getPushbox() : null;
+    if (pushbox && Number.isFinite(pushbox.h)) {
+      return Math.max(14, Math.min(fallback, pushbox.h * 0.62));
+    }
+
+    return fallback;
+  },
+
+  actorFootBand(actor, tolerance = this.actorFootTolerance(actor)) {
+    const y = this.actorFeetY(actor);
+    const radius = Math.max(1, tolerance || GAME_CONFIG.yHitTolerance || 28);
+    return { top: y - radius, bottom: y + radius, center: y, radius };
+  },
+
+  footBandsOverlap(a, b, tolerance = GAME_CONFIG.yHitTolerance) {
+    const aBand = this.actorFootBand(a, this.actorFootTolerance(a, tolerance));
+    const bBand = this.actorFootBand(b, this.actorFootTolerance(b, tolerance));
+    return aBand.top <= bBand.bottom && aBand.bottom >= bBand.top;
+  },
+
+  actorOnLane(actor, laneY, tolerance = GAME_CONFIG.yHitTolerance) {
+    if (!Number.isFinite(laneY)) return true;
+    const band = this.actorFootBand(actor, tolerance);
+    return laneY >= band.top && laneY <= band.bottom;
+  },
+
+  laneCanConnect(attacker, target, options = {}) {
+    const tolerance = options.laneTolerance || GAME_CONFIG.yHitTolerance || 28;
+    if (Number.isFinite(options.laneY)) return this.actorOnLane(target, options.laneY, tolerance);
+    return this.footBandsOverlap(attacker, target, tolerance);
+  },
+
+  canHit(attacker, target, options = {}) {
+    if (!attacker || !target) return false;
+    const attackBox = options.attackBox ||
+      (typeof attacker.getAttackBox === 'function' ? attacker.getAttackBox() :
+        typeof attacker.getHitbox === 'function' ? attacker.getHitbox() : null);
+    const targetBox = options.targetBox ||
+      (typeof target.getBodyBox === 'function' ? target.getBodyBox() :
+        typeof target.getHurtbox === 'function' ? target.getHurtbox() : null);
+
+    return this.laneCanConnect(attacker, target, options) && this.overlap(attackBox, targetBox);
+  },
+
+  canMeleeHit(attacker, target, options = {}) {
+    return this.canHit(attacker, target, options);
+  },
+
+  canProjectileHit(projectile, target, options = {}) {
+    const attackBox = options.attackBox ||
+      (typeof projectile.getAttackBox === 'function' ? projectile.getAttackBox() :
+        typeof projectile.getHurtbox === 'function' ? projectile.getHurtbox() : null);
+    const targetBox = options.targetBox ||
+      (typeof target.getBodyBox === 'function' ? target.getBodyBox() :
+        typeof target.getHurtbox === 'function' ? target.getHurtbox() : null);
+    return this.laneCanConnect(projectile, target, {
+      laneY: Number.isFinite(options.laneY) ? options.laneY : projectile.laneY,
+      laneTolerance: options.laneTolerance || GAME_CONFIG.yHitTolerance
+    }) && this.overlap(attackBox, targetBox);
+  },
+
+  canInteractHit(attacker, item, options = {}) {
+    if (!attacker || !item) return false;
+    const attackBox = options.attackBox ||
+      (typeof attacker.getHitbox === 'function' ? attacker.getHitbox() :
+        typeof attacker.getAttackBox === 'function' ? attacker.getAttackBox() : null);
+    if (!this.overlap(attackBox, item.hitbox)) return false;
+    if (!Number.isFinite(item.laneY)) return true;
+    return this.actorOnLane(attacker, item.laneY, item.laneTolerance || GAME_CONFIG.yHitTolerance);
   }
 };
 
@@ -1581,7 +1654,11 @@ class Player {
             w: target.w + pad * 2,
             h: target.h + pad * 2
           };
-          if (Combat.actorsSameFootLane(this, enemy) && Combat.overlap(hitbox, expandedTarget)) {
+          if (Combat.canMeleeHit(this, enemy, {
+            attackBox: hitbox,
+            targetBox: expandedTarget,
+            laneTolerance: GAME_CONFIG.yHitTolerance
+          })) {
             this.attackHasHit = true;
             if (enemy.gundosGuarding && enemy.holdGundosGuard) {
               enemy.holdGundosGuard(this);
@@ -1592,7 +1669,11 @@ class Player {
             break;
           }
         }
-        if (Combat.actorsSameFootLane(this, enemy) && Combat.overlap(hitbox, enemy.getHurtbox())) {
+        if (Combat.canMeleeHit(this, enemy, {
+          attackBox: hitbox,
+          targetBox: enemy.getHurtbox(),
+          laneTolerance: GAME_CONFIG.yHitTolerance
+        })) {
           this.attackHasHit = true;
           this.playComboHitSound();
           enemy.takeHit(data.damage, this.facing, data.knockback);
@@ -1641,7 +1722,9 @@ class Player {
 
   canCounterSlide(enemy) {
     if (this.state !== 'attack' || !enemy) return false;
-    if (Combat.actorsSameFootLane && !Combat.actorsSameFootLane(this, enemy)) return false;
+    if (Combat.laneCanConnect && !Combat.laneCanConnect(this, enemy, {
+      laneTolerance: (GAME_CONFIG.enemies.sucker && GAME_CONFIG.enemies.sucker.counterRangeY) || GAME_CONFIG.yHitTolerance
+    })) return false;
 
     const data = this.getAttackData();
     if (this.attackTimer < data.activeStart || this.attackTimer > data.activeEnd) return false;
@@ -1660,11 +1743,15 @@ class Player {
     if (enemy.state === 'slide' && typeof enemy.getSlideHitbox === 'function') targets.push(enemy.getSlideHitbox());
     if (typeof enemy.getHurtbox === 'function') targets.push(enemy.getHurtbox());
 
-    return targets.some(target => target && Combat.overlap(counterZone, {
+    return targets.some(target => target && Combat.canMeleeHit(this, enemy, {
+      attackBox: counterZone,
+      targetBox: {
       x: target.x - forgiveness,
       y: target.y - forgiveness,
       w: target.w + forgiveness * 2,
       h: target.h + forgiveness * 2
+      },
+      laneTolerance: rangeY
     }));
   }
 
@@ -2104,8 +2191,8 @@ class DogRegimeEnemy {
     const sideFromPlayer = Math.sign(this.x - player.x || 1);
     const playerFacing = player.facing || 1;
     const absX = Math.abs(this.x - player.x);
-    const absY = Math.abs(this.y - player.y);
-    return sideFromPlayer === playerFacing && absX < this.playerAttackFearDistance && absY < this.attackRangeY * 1.25;
+    return sideFromPlayer === playerFacing && absX < this.playerAttackFearDistance &&
+      Combat.laneCanConnect(player, this, { laneTolerance: this.attackRangeY * 1.25 });
   }
 
   hasClearAttackPosition(scene) {
@@ -2135,7 +2222,11 @@ class DogRegimeEnemy {
   }
 
   isInAttackRange(player) {
-    return Math.abs(player.x - this.x) < this.attackRangeX && Math.abs(player.y - this.y) < this.attackRangeY;
+    return Combat.canMeleeHit(this, player, {
+      attackBox: this.getAttackBox(),
+      targetBox: player.getBodyBox(),
+      laneTolerance: this.attackRangeY
+    });
   }
 
   updateAttack(dt, scene) {
@@ -2145,9 +2236,11 @@ class DogRegimeEnemy {
 
     if (!this.attackHasHit && this.attackTimer >= activeStart && this.attackTimer <= activeEnd) {
       const player = scene.player;
-      const sameY = Combat.actorsSameFootLane(this, player, this.attackRangeY);
-      const inX = Math.abs(player.x - this.x) < this.attackRangeX;
-      if (sameY && inX) {
+      if (Combat.canMeleeHit(this, player, {
+        attackBox: this.getAttackBox(),
+        targetBox: player.getBodyBox(),
+        laneTolerance: GAME_CONFIG.yHitTolerance
+      })) {
         const hit = player.receiveDamage(this.damage, {
           source: 'melee',
           knockbackX: this.facing * 18
@@ -2499,7 +2592,11 @@ class ZetnikEnemy extends DogRegimeEnemy {
     }
 
     if (!this.redirectedToBoss && player && !this.gundosHitPlayer &&
-        Combat.actorsSameLane(this, player) && Combat.overlap(this.getHurtbox(), player.getBodyBox())) {
+        Combat.canProjectileHit(this, player, {
+          attackBox: this.getHurtbox(),
+          laneY: this.y,
+          laneTolerance: GAME_CONFIG.yHitTolerance
+        })) {
       this.gundosHitPlayer = true;
       player.receiveDamage(this.damage, {
         source: 'ranged',
@@ -2609,11 +2706,14 @@ class ZetnikEnemy extends DogRegimeEnemy {
     const player = scene.player;
     if (player.state === 'knockdown' || player.state === 'pinned') return;
 
-    const stayedNearLockedY = Math.abs(player.y - this.lockedTargetY) <= this.hitWindowY;
     const stayedNearLockedX = Math.abs(player.x - this.lockedTargetX) <= this.hitWindowX;
     const projectileOverlapsPlayer = Math.abs(player.x - this.x) <= this.hitWindowX;
-
-    if (!stayedNearLockedY || !stayedNearLockedX || !projectileOverlapsPlayer || !Combat.actorsSameLane(this, player)) return;
+    if (!stayedNearLockedX || !projectileOverlapsPlayer ||
+        !Combat.canProjectileHit(this, player, {
+          attackBox: this.getHurtbox(),
+          laneY: this.lockedTargetY,
+          laneTolerance: this.hitWindowY
+        })) return;
 
     const hit = player.receiveDamage(this.damage, {
       source: 'ranged',
@@ -2884,7 +2984,11 @@ class SuckerEnemy extends DogRegimeEnemy {
     }
 
     if (player.state !== 'knockdown' && player.state !== 'pinned' &&
-        Combat.actorsSameLane(this, player) && Combat.overlap(this.getSlideHitbox(), player.getBodyBox())) {
+        Combat.canProjectileHit(this, player, {
+          attackBox: this.getSlideHitbox(),
+          laneY: this.slideY,
+          laneTolerance: this.alignToleranceY || GAME_CONFIG.yHitTolerance
+        })) {
       this.pinPlayer(scene);
       return;
     }
@@ -8322,8 +8426,10 @@ window.addEventListener('load', () => {
   function canHitPoster(scene, item, state) {
     const player = scene && scene.player;
     if (!player || state.replaced || player.attackHasHit || !isAttackActive(player)) return false;
-    if (Number.isFinite(item.laneY) && !Combat.actorsSameFootLane(player, { laneY: item.laneY }, item.laneTolerance || GAME_CONFIG.yHitTolerance)) return false;
-    return Combat.overlap(player.getHitbox(), item.hitbox);
+    return Combat.canInteractHit(player, item, {
+      attackBox: player.getHitbox(),
+      laneTolerance: item.laneTolerance || GAME_CONFIG.yHitTolerance
+    });
   }
 
   function hitPoster(scene, item, state) {
@@ -13090,7 +13196,11 @@ window.addEventListener('load', () => {
       this.spin += dt * 0.012;
       const player = scene && scene.player;
       if (player && player.hp > 0 &&
-          Combat.actorsSameLane(this, player) && Combat.overlap(this.getHurtbox(), player.getBodyBox())) {
+          Combat.canProjectileHit(this, player, {
+            attackBox: this.getHurtbox(),
+            laneY: this.laneY,
+            laneTolerance: GAME_CONFIG.yHitTolerance
+          })) {
         player.receiveDamage(8, {
           source: 'ranged',
           knockbackX: -46,
@@ -14214,7 +14324,9 @@ window.addEventListener('load', () => {
 
     Player.prototype.canCounterSlide = function (enemy) {
       if (this.state !== 'attack' || !enemy) return false;
-      if (typeof Combat !== 'undefined' && Combat.actorsSameLane && !Combat.actorsSameLane(this, enemy)) return false;
+      if (typeof Combat !== 'undefined' && Combat.laneCanConnect && !Combat.laneCanConnect(this, enemy, {
+        laneTolerance: (GAME_CONFIG.enemies.sucker && GAME_CONFIG.enemies.sucker.counterRangeY) || GAME_CONFIG.yHitTolerance
+      })) return false;
       const data = this.getAttackData();
       if (this.attackTimer < data.activeStart || this.attackTimer > data.activeEnd) return false;
 
@@ -14232,11 +14344,15 @@ window.addEventListener('load', () => {
       if (enemy.state === 'slide' && typeof enemy.getSlideHitbox === 'function') targets.push(enemy.getSlideHitbox());
       if (typeof enemy.getHurtbox === 'function') targets.push(enemy.getHurtbox());
 
-      return targets.some(target => target && boxOverlap(counterZone, {
+      return targets.some(target => target && Combat.canMeleeHit(this, enemy, {
+        attackBox: counterZone,
+        targetBox: {
         x: target.x - forgiveness,
         y: target.y - forgiveness,
         w: target.w + forgiveness * 2,
         h: target.h + forgiveness * 2
+        },
+        laneTolerance: rangeY
       }));
     };
 
@@ -14278,11 +14394,16 @@ window.addEventListener('load', () => {
 
     DogRegimeEnemy.prototype.canClubReachPlayer = function (player, anticipation = false) {
       if (!player || typeof player.getBodyBox !== 'function') return false;
-      if (typeof Combat !== 'undefined' && Combat.actorsSameLane && !Combat.actorsSameLane(this, player)) return false;
       const attack = this.getAttackBox();
-      if (!anticipation) return boxOverlap(attack, player.getBodyBox());
       const pad = 4;
-      return boxOverlap({ x: attack.x - pad, y: attack.y - pad, w: attack.w + pad * 2, h: attack.h + pad * 2 }, player.getBodyBox());
+      const activeBox = anticipation ?
+        { x: attack.x - pad, y: attack.y - pad, w: attack.w + pad * 2, h: attack.h + pad * 2 } :
+        attack;
+      return Combat.canMeleeHit(this, player, {
+        attackBox: activeBox,
+        targetBox: player.getBodyBox(),
+        laneTolerance: anticipation ? (this.attackRangeY || GAME_CONFIG.yHitTolerance) : GAME_CONFIG.yHitTolerance
+      });
     };
 
     DogRegimeEnemy.prototype.isInAttackRange = function (player) {
