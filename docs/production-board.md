@@ -15,6 +15,15 @@ This is the main human-readable project board. Keep it updated after every meani
 | 🔴 Broken / Bug | Exists but needs repair |
 | ⚪ Backlog | Idea or future candidate, not required for current slice |
 
+## Core Design Rule
+
+The game is run-based and session-only.
+
+- Continue may exist only during the currently open browser/app session.
+- After closing and reopening the browser/app, Continue should not be available.
+- A fresh visit should start from New Game.
+- Persistent campaign position saving is intentionally not part of the design.
+
 ## Current Priority
 
 The project should now focus on a playable vertical slice:
@@ -23,21 +32,21 @@ The project should now focus on a playable vertical slice:
 2. Character selection.
 3. First region / Far East screens.
 4. First boss encounter.
-5. Victory / return / progress handling.
-6. Save/Continue behavior that works after leaving and reopening the game.
+5. Victory / results screen.
+6. Clear restart behavior: fresh visit starts from New Game.
 
 ## Summary
 
 | Area | Done | In Progress | Not Started | Broken / Bug |
 |---|---:|---:|---:|---:|
 | Documentation | 1 | 2 | 3 | 0 |
-| Core Game Flow | 5 | 4 | 4 | 1 |
+| Core Game Flow | 6 | 4 | 3 | 0 |
 | Heroes | 3 | 6 | 9 | 0 |
 | Enemies | 9 | 8 | 13 | 0 |
 | Bosses | 2 | 4 | 8 | 0 |
 | Levels | 7 | 7 | 7 | 0 |
-| UI / HUD | 2 | 4 | 5 | 0 |
-| Save / Progress | 1 | 2 | 1 | 1 |
+| UI / HUD | 2 | 4 | 4 | 0 |
+| Run / Progress | 2 | 2 | 1 | 0 |
 | Audio | 2 | 3 | 5 | 0 |
 | Polish | 0 | 2 | 7 | 0 |
 
@@ -48,7 +57,7 @@ The project should now focus on a playable vertical slice:
 | Architecture document | ✅ Done | Existing `ARCHITECTURE.md` explains bundle ownership, campaign runtime, campaign flow, audio ownership, and high-risk patch areas. |
 | Production board | 🟡 In Progress | This file is the master board. Needs regular updates. |
 | Current build state | 🟡 In Progress | See `docs/current-build-state.md`. |
-| Full GDD | ⬜ Not Started | Needs story, mechanics, controls, levels, enemies, UI, audio, and monetization/publishing notes if needed. |
+| Full GDD | ⬜ Not Started | Needs story, mechanics, controls, levels, enemies, UI, audio, and publishing notes if needed. |
 | Characters catalog | ⬜ Not Started | Should list playable heroes, enemies, bosses, sprite sheets, animations, and missing frames. |
 | Levels catalog | ⬜ Not Started | Should describe every region, screen, background, waves, interactives, and boss. |
 
@@ -63,12 +72,12 @@ The project should now focus on a playable vertical slice:
 | Character select exists | ✅ Done | Core file exists and campaign flow references character select. |
 | Campaign map exists | ✅ Done | Campaign map and patch files are active. |
 | Level scene exists | ✅ Done | Core `scene.js` and level config exist. |
+| Session-only run design | ✅ Done | Fresh visits should start from New Game; persistent campaign Continue is intentionally excluded. |
 | Pause menu | 🟡 In Progress | `pauseMenuPatch.js` is active. Needs mobile/desktop testing. |
-| Victory screen | ⬜ Not Started | Needs explicit completion screen after region/boss. |
+| Victory/results screen | ⬜ Not Started | Needs explicit completion/results screen after region/boss. |
 | Game Over screen | 🟡 In Progress | Retry/fallen hero flow is called out as high-risk in architecture. |
 | Credits | ⬜ Not Started | Not needed for vertical slice. |
 | Loading screen | ⬜ Not Started | Optional; useful later for polish. |
-| Continue after reopening browser/app | 🔴 Broken / Bug | Current architecture says campaign run saves are session-only; user observed only New Game after leaving. |
 
 ## Playable Heroes
 
@@ -85,7 +94,7 @@ Current configured heroes: Алексей, Анна, Борис.
 | Борис | Config/stats | ✅ Done | Tank hero with ranged immunity. |
 | Борис | Core control/combat | 🟡 In Progress | Needs full animation and balancing pass. |
 | Борис | Complete sprite animation set | ⬜ Not Started | Need confirmed idle, walk, jump, attacks, hurt, knockdown, get up, KO. |
-| Team persistence | 🟡 In Progress | `teamStatePatch.js` is active. Needs testing across screens and retry flow. |
+| Team state during current run | 🟡 In Progress | `teamStatePatch.js` is active. Needs testing across screens and retry flow. |
 | Hero selection UX | 🟡 In Progress | Character select exists; needs mobile usability check. |
 | Hero portraits/HUD identity | ⬜ Not Started | Needs final portraits and UI integration. |
 
@@ -159,20 +168,19 @@ Current campaign route has 7 regions × 3 screens = 21 configured screens.
 | Desktop UX | 🟡 In Progress | Desktop UX/refinement patches are active. |
 | Dev panel | 🟡 In Progress | `devPanel.js` and repair patches active. |
 | Boss HP bar | ⬜ Not Started | Needed for bosses. |
-| Region progress display | ⬜ Not Started | Useful for campaign readability. |
-| Statistics screen | ⬜ Not Started | User expected stats after progress. |
-| Save slot / Continue UI | ⬜ Not Started | Needs real persistent save design. |
+| Current-run results display | ⬜ Not Started | Useful at the end of a run; should not imply persistent campaign saving. |
+| Session-only run messaging | ⬜ Not Started | Menu/help text should make fresh restart behavior clear. |
 | Credits/about screen | ⬜ Not Started | Later polish. |
 
-## Save / Progress
+## Run / Progress
 
 | Task | Status | Notes |
 |---|---|---|
-| Session continue | ✅ Done | Architecture says current run can continue while same browser session is open. |
-| Run progress patch | 🟡 In Progress | `runProgressPatch.js` is active. Needs audit. |
-| Save system patch | 🟡 In Progress | `saveSystemPatch.js` is active. Needs audit. |
-| Persistent continue after app/browser close | 🔴 Broken / Bug | Must change design from session-only to localStorage profile/campaign save. |
-| Stats persistence | ⬜ Not Started | Needed if main menu should show statistics. |
+| Session continue | ✅ Done | Current run may continue while same browser/app session is open. |
+| Fresh visit starts from New Game | ✅ Done | This is intended design, not a bug. |
+| Run progress patch | 🟡 In Progress | `runProgressPatch.js` is active. Needs audit for session-only behavior. |
+| Save system patch | 🟡 In Progress | `saveSystemPatch.js` is active. Should not create long-lived campaign Continue. |
+| Current-session results | ⬜ Not Started | Optional but useful for score, completed screens, defeated enemies, time. |
 
 ## Audio
 
@@ -205,10 +213,11 @@ Current campaign route has 7 regions × 3 screens = 21 configured screens.
 
 ## Next Concrete Work Queue
 
-1. Fix persistent Continue: campaign progress must survive app/browser close.
-2. Make `street01 → street02 → street03 → Gundos → victory` a clean playable slice.
-3. Add/verify first boss victory condition.
-4. Create missing statistics screen or at least persistent profile counters.
-5. Audit asset folders and map each sprite to board items.
-6. Integrate TV-head as one real enemy with complete minimum animation set.
-7. Start patch consolidation only after the first playable slice is stable.
+1. Make `street01 → street02 → street03 → Gundos → victory/results` a clean playable slice.
+2. Verify session-only Continue: available only while the current session is open.
+3. Verify fresh visit behavior: after closing/reopening, only New Game should be available.
+4. Add/verify first boss victory condition.
+5. Add optional current-run results screen.
+6. Audit asset folders and map each sprite to board items.
+7. Integrate TV-head as one real enemy with complete minimum animation set.
+8. Start patch consolidation only after the first playable slice is stable.
