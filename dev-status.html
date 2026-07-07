@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Streets of Russia — Dev Status</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #11131a;
+      --panel: #191d27;
+      --panel-2: #202634;
+      --text: #f4f6fb;
+      --muted: #9aa4b8;
+      --line: #30384a;
+      --green: #4ade80;
+      --yellow: #facc15;
+      --red: #fb7185;
+      --gray: #94a3b8;
+      --blue: #60a5fa;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #1d2535 0, var(--bg) 45%);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    main {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 32px 0 56px;
+    }
+
+    header {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { font-size: clamp(32px, 5vw, 56px); line-height: 1; margin-bottom: 6px; }
+    h2 { font-size: 24px; margin-bottom: 14px; }
+    h3 { font-size: 18px; margin-bottom: 8px; }
+
+    .muted { color: var(--muted); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      background: linear-gradient(180deg, var(--panel), var(--panel-2));
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.24);
+    }
+
+    .big-number {
+      font-size: 38px;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 16px 0 24px;
+    }
+
+    a.button, button {
+      appearance: none;
+      border: 1px solid var(--line);
+      background: #232b3c;
+      color: var(--text);
+      padding: 10px 14px;
+      border-radius: 12px;
+      text-decoration: none;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    a.button:hover, button:hover { background: #2c354a; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: 12px;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 11px 12px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      background: rgba(255,255,255,.03);
+    }
+
+    tr:last-child td { border-bottom: 0; }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 800;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+
+    .done { color: var(--green); border-color: rgba(74,222,128,.35); background: rgba(74,222,128,.1); }
+    .progress { color: var(--yellow); border-color: rgba(250,204,21,.35); background: rgba(250,204,21,.1); }
+    .todo { color: var(--gray); border-color: rgba(148,163,184,.35); background: rgba(148,163,184,.1); }
+    .bug { color: var(--red); border-color: rgba(251,113,133,.35); background: rgba(251,113,133,.1); }
+    .info { color: var(--blue); border-color: rgba(96,165,250,.35); background: rgba(96,165,250,.1); }
+
+    ol, ul { padding-left: 22px; }
+    li + li { margin-top: 6px; }
+
+    .section { margin-top: 18px; }
+    .error { color: var(--red); font-weight: 800; }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="pill info">Developer Status</div>
+      <h1>Streets of Russia</h1>
+      <p class="muted" id="meta">Загрузка статуса...</p>
+      <p id="priority"></p>
+    </header>
+
+    <div class="toolbar">
+      <a class="button" href="index.html">Открыть игру</a>
+      <a class="button" href="docs/production-board.md">Production Board</a>
+      <a class="button" href="docs/current-build-state.md">Current Build State</a>
+      <button id="reloadBtn" type="button">Обновить статус</button>
+    </div>
+
+    <section class="grid" id="totals"></section>
+
+    <section class="card section">
+      <h2>Сводка по областям</h2>
+      <div id="summaryTable"></div>
+    </section>
+
+    <section class="card section">
+      <h2>Следующие задачи</h2>
+      <ol id="nextWork"></ol>
+    </section>
+
+    <section class="card section">
+      <h2>Открытые проблемы</h2>
+      <div id="issues"></div>
+    </section>
+
+    <section class="card section">
+      <h2>Кампания</h2>
+      <div id="campaign"></div>
+    </section>
+  </main>
+
+  <script>
+    const STATUS_CLASS = {
+      done: 'done',
+      inProgress: 'progress',
+      notStarted: 'todo',
+      broken: 'bug'
+    };
+
+    function statusLabel(key) {
+      return {
+        done: '✅ Done',
+        inProgress: '🟡 In Progress',
+        notStarted: '⬜ Not Started',
+        broken: '🔴 Broken'
+      }[key] || key;
+    }
+
+    function sum(data, field) {
+      return data.summary.reduce((acc, row) => acc + Number(row[field] || 0), 0);
+    }
+
+    function render(data) {
+      document.getElementById('meta').textContent = `Build ${data.buildVersion} · updated ${data.lastUpdated} · ${data.repository}`;
+      document.getElementById('priority').textContent = data.currentPriority;
+
+      const done = sum(data, 'done');
+      const progress = sum(data, 'inProgress');
+      const todo = sum(data, 'notStarted');
+      const broken = sum(data, 'broken');
+      const total = done + progress + todo + broken;
+      const percent = total ? Math.round(done / total * 100) : 0;
+
+      document.getElementById('totals').innerHTML = `
+        <article class="card"><div class="big-number">${percent}%</div><div class="muted">готово по закрытым пунктам</div></article>
+        <article class="card"><div class="big-number">${done}</div><div class="muted">готово</div></article>
+        <article class="card"><div class="big-number">${progress}</div><div class="muted">в работе</div></article>
+        <article class="card"><div class="big-number">${broken}</div><div class="muted">критичные/сломанные пункты</div></article>
+      `;
+
+      document.getElementById('summaryTable').innerHTML = `
+        <table>
+          <thead><tr><th>Area</th><th>Done</th><th>In Progress</th><th>Not Started</th><th>Broken</th></tr></thead>
+          <tbody>
+            ${data.summary.map(row => `
+              <tr>
+                <td>${row.area}</td>
+                <td><span class="pill done">${row.done}</span></td>
+                <td><span class="pill progress">${row.inProgress}</span></td>
+                <td><span class="pill todo">${row.notStarted}</span></td>
+                <td><span class="pill bug">${row.broken}</span></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+
+      document.getElementById('nextWork').innerHTML = data.nextWorkQueue.map(item => `<li>${item}</li>`).join('');
+
+      document.getElementById('issues').innerHTML = `
+        <table>
+          <thead><tr><th>ID</th><th>Severity</th><th>Area</th><th>Problem</th><th>Next Action</th></tr></thead>
+          <tbody>
+            ${data.knownIssues.map(issue => `
+              <tr>
+                <td>${issue.id}</td>
+                <td><span class="pill bug">${issue.severity}</span></td>
+                <td>${issue.area}</td>
+                <td>${issue.problem}</td>
+                <td>${issue.nextAction}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+
+      document.getElementById('campaign').innerHTML = `
+        <p class="muted">${data.campaign.regions} регионов × ${data.campaign.screensPerRegion} экрана = ${data.campaign.totalScreens} экран кампании.</p>
+        <table>
+          <thead><tr><th>Region</th><th>Screens</th><th>Status</th></tr></thead>
+          <tbody>
+            ${data.campaign.regionsList.map(region => `
+              <tr>
+                <td>${region.name}</td>
+                <td>${region.screens.join(', ')}</td>
+                <td><span class="pill ${STATUS_CLASS[region.status] || 'info'}">${statusLabel(region.status)}</span></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    async function loadStatus() {
+      try {
+        const response = await fetch('data/production-board.json', { cache: 'no-store' });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        render(data);
+      } catch (error) {
+        document.getElementById('meta').innerHTML = '<span class="error">Не удалось загрузить data/production-board.json</span>';
+        document.getElementById('priority').textContent = error.message;
+      }
+    }
+
+    document.getElementById('reloadBtn').addEventListener('click', loadStatus);
+    loadStatus();
+  </script>
+</body>
+</html>
