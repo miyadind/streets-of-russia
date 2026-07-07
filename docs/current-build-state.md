@@ -36,13 +36,24 @@ High-risk areas from architecture:
 - Game over, fallen hero, retry-region flow.
 - Gundos finale cleanup.
 
-## Important Save/Continue Reality
+## Save / Continue Design Decision
 
-Current campaign run saves are session-only. The current run may be continued while the same browser session is open, but a fresh visit starts from New Game.
+The game is intentionally run-based and session-only.
 
-This explains the observed mobile issue: after playing several screens, leaving, and returning to the main menu / app later, only New Game is available and there is no visible progress/statistics.
+Correct behavior:
 
-This should be treated as a real product issue, not user error.
+- The player may continue only while the current browser/app session is still open.
+- If the browser/app is closed and opened again, the run is over.
+- A fresh visit should start from New Game.
+- Long-lived campaign position saving is intentionally not part of the design.
+
+Therefore, the absence of Continue after closing and reopening the browser is not a bug. It is the intended structure.
+
+What still needs work:
+
+- The UI should make this clear enough that the player understands this is a new run, not a broken save.
+- Current-session Continue should still work correctly before the browser/app is closed.
+- End-of-run results may exist for the current session, but campaign position should not persist across fresh visits.
 
 ## Current Game Content
 
@@ -160,12 +171,12 @@ Do not expand the game sideways yet.
 
 The next milestone should be:
 
-`Main Menu → New Game → Character Select → Far East 01 → Far East 02 → Far East 03 → Gundos fight → Victory/Progress Saved → Continue works after reopening`
+`Main Menu → New Game → Character Select → Far East 01 → Far East 02 → Far East 03 → Gundos fight → Victory/Results → Fresh visit starts from New Game`
 
 ## Immediate Risks
 
-1. Progress is not persistent after leaving/reopening.
+1. First-region victory/results flow needs verification.
 2. Too many patch files are still active.
 3. Some art assets exist outside the repo workflow and need naming/integration.
 4. Boss victory and campaign completion flow need verification.
-5. Mobile experience needs testing because the user already observed save/progress confusion there.
+5. Mobile UX needs testing so the session-only run design is clear and not perceived as broken progress.
