@@ -13,6 +13,17 @@ Use this before every playable test build.
 | ⬜ Not Tested | Not tested yet |
 | 🔴 Fail | Broken or missing |
 
+## Core Run Design
+
+The game is session-only.
+
+Correct behavior:
+
+- Continue may appear only while the current browser/app session remains open.
+- After closing and reopening the browser/app, Continue should not appear.
+- New Game is the correct entry point for every fresh visit.
+- The game should not promise persistent campaign saves.
+
 ## Vertical Slice 0.5 QA
 
 | Check | Status | Notes |
@@ -23,28 +34,28 @@ Use this before every playable test build.
 | Far East 01 playable | 🟡 Needs Retest | Contains initial wave and poster interactive. |
 | Far East 02 playable | 🟡 Needs Retest | Contains multiple waves. |
 | Far East 03 / first boss playable | 🟡 Needs Retest | Contains Gundos encounter. |
-| First boss victory state | ⬜ Not Tested | Required for milestone. |
-| Return to menu after progress | ⬜ Not Tested | Needs clear flow. |
-| Continue visible after returning to menu | 🔴 Fail | Reported issue / current session-only design. |
-| Continue survives app/browser close | 🔴 Fail | Must become persistent. |
-| Statistics visible after progress | ⬜ Not Tested | Not clearly implemented. |
-| Android mobile smoke test | 🔴 Fail | Save/progress confusion reported. |
+| First boss victory/results state | ⬜ Not Tested | Required for milestone. |
+| Return to menu after run/result | ⬜ Not Tested | Needs clear flow. |
+| Continue visible during same open session | 🟡 Needs Retest | Allowed only before the browser/app is closed. |
+| Continue absent after browser/app close and reopen | ✅ Pass | This is intended design, not a bug. |
+| Current-run results visible before restart | ⬜ Not Tested | Optional, but useful for player feedback. |
+| Android mobile session-only smoke test | 🟡 Needs Retest | Confirm the run design is clear. |
 | Desktop smoke test | ⬜ Not Tested | Needs full pass after dashboard update. |
 | Music does not overlap | 🟡 Needs Retest | Architecture says ownership improved. |
 | SFX play on hits/menu | ⬜ Not Tested | Needs audio pass. |
 
-## Save / Continue Test Script
+## Session-Only Continue Test Script
 
 1. Open game.
 2. Press New Game.
 3. Select team.
 4. Complete at least one screen.
-5. Return to main menu.
-6. Confirm Continue is visible.
+5. Return to main menu without closing the browser/app.
+6. Confirm Continue behavior is correct for the still-open session.
 7. Close browser/app completely.
 8. Reopen game.
-9. Confirm Continue is still visible.
-10. Continue and verify correct region, screen, team, HP, and progress.
+9. Confirm Continue is not visible.
+10. Confirm the correct available action is New Game.
 
 ## First Region Test Script
 
@@ -58,9 +69,9 @@ Use this before every playable test build.
 8. Clear all waves.
 9. Advance to Far East 03.
 10. Defeat first boss.
-11. Reach victory/progress screen.
+11. Reach victory/results screen.
 12. Return to menu.
-13. Confirm progress is saved.
+13. Confirm the game does not imply a persistent campaign save after closing.
 
 ## Audio Test Script
 
