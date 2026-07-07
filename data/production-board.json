@@ -1,0 +1,67 @@
+{
+  "project": "Streets of Russia",
+  "lastUpdated": "2026-07-07",
+  "buildVersion": "0.4.18",
+  "repository": "miyadind/streets-of-russia",
+  "currentPriority": "Playable vertical slice: Main Menu -> New Game -> Character Select -> Far East 01 -> Far East 02 -> Far East 03 -> first boss -> victory/progress saved -> Continue works after reopening.",
+  "statusLegend": {
+    "done": "Done",
+    "inProgress": "In Progress",
+    "notStarted": "Not Started",
+    "broken": "Broken / Bug",
+    "backlog": "Backlog"
+  },
+  "summary": [
+    { "area": "Documentation", "done": 1, "inProgress": 2, "notStarted": 3, "broken": 0 },
+    { "area": "Core Game Flow", "done": 5, "inProgress": 4, "notStarted": 4, "broken": 1 },
+    { "area": "Heroes", "done": 3, "inProgress": 6, "notStarted": 9, "broken": 0 },
+    { "area": "Enemies", "done": 9, "inProgress": 8, "notStarted": 13, "broken": 0 },
+    { "area": "Bosses", "done": 2, "inProgress": 4, "notStarted": 8, "broken": 0 },
+    { "area": "Levels", "done": 7, "inProgress": 7, "notStarted": 7, "broken": 0 },
+    { "area": "UI / HUD", "done": 2, "inProgress": 4, "notStarted": 5, "broken": 0 },
+    { "area": "Save / Progress", "done": 1, "inProgress": 2, "notStarted": 1, "broken": 1 },
+    { "area": "Audio", "done": 2, "inProgress": 3, "notStarted": 5, "broken": 0 },
+    { "area": "Polish", "done": 0, "inProgress": 2, "notStarted": 7, "broken": 0 }
+  ],
+  "knownIssues": [
+    {
+      "id": "ISSUE-001",
+      "severity": "Critical",
+      "area": "Save / Continue",
+      "status": "Open",
+      "problem": "After leaving and reopening, Continue and progress/statistics are not clearly available.",
+      "nextAction": "Implement persistent localStorage campaign/profile save."
+    },
+    {
+      "id": "ISSUE-002",
+      "severity": "High",
+      "area": "First Vertical Slice",
+      "status": "Open",
+      "problem": "Need verify full first-region flow from menu through first boss and saved completion.",
+      "nextAction": "Test and repair first region progression and victory state."
+    }
+  ],
+  "nextWorkQueue": [
+    "Fix persistent Continue after reopening.",
+    "Make first region playable from first screen to first boss and victory.",
+    "Add or verify first boss completion state.",
+    "Add visible progress/statistics on main menu.",
+    "Audit asset folders and map sprites to board items.",
+    "Integrate TV-head as a real enemy after completing minimum animation set.",
+    "Consolidate high-risk patches after the vertical slice is stable."
+  ],
+  "campaign": {
+    "regions": 7,
+    "screensPerRegion": 3,
+    "totalScreens": 21,
+    "regionsList": [
+      { "name": "Far East", "screens": ["street01", "street02", "street03"], "status": "inProgress" },
+      { "name": "Siberia", "screens": ["siberia01", "siberia02", "siberia03"], "status": "inProgress" },
+      { "name": "Ural", "screens": ["ural01", "ural02", "ural03"], "status": "inProgress" },
+      { "name": "Northwest / Petersburg", "screens": ["northwest01", "northwest02", "northwest03"], "status": "inProgress" },
+      { "name": "Volga", "screens": ["volga01", "volga02", "volga03"], "status": "inProgress" },
+      { "name": "South / Sochi", "screens": ["south01", "south02", "south03"], "status": "inProgress" },
+      { "name": "Moscow", "screens": ["moscow01", "moscow02", "moscow03"], "status": "inProgress" }
+    ]
+  }
+}
