@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Streets of Russia — Dev Status</title>
+  <title>Streets of Russia — Dev Dashboard</title>
   <style>
     :root {
       color-scheme: dark;
@@ -19,9 +19,7 @@
       --gray: #94a3b8;
       --blue: #60a5fa;
     }
-
     * { box-sizing: border-box; }
-
     body {
       margin: 0;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -29,32 +27,15 @@
       color: var(--text);
       line-height: 1.5;
     }
-
-    main {
-      width: min(1180px, calc(100% - 32px));
-      margin: 0 auto;
-      padding: 32px 0 56px;
-    }
-
-    header {
-      display: grid;
-      gap: 10px;
-      margin-bottom: 24px;
-    }
-
+    main { width: min(1220px, calc(100% - 32px)); margin: 0 auto; padding: 32px 0 56px; }
+    header { display: grid; gap: 10px; margin-bottom: 24px; }
     h1, h2, h3, p { margin-top: 0; }
     h1 { font-size: clamp(32px, 5vw, 56px); line-height: 1; margin-bottom: 6px; }
     h2 { font-size: 24px; margin-bottom: 14px; }
     h3 { font-size: 18px; margin-bottom: 8px; }
-
     .muted { color: var(--muted); }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 16px;
-    }
-
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(245px, 1fr)); gap: 16px; }
+    .two { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
     .card {
       background: linear-gradient(180deg, var(--panel), var(--panel-2));
       border: 1px solid var(--line);
@@ -62,87 +43,44 @@
       padding: 18px;
       box-shadow: 0 20px 60px rgba(0,0,0,.24);
     }
-
-    .big-number {
-      font-size: 38px;
-      font-weight: 800;
-      margin-bottom: 4px;
-    }
-
-    .toolbar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin: 16px 0 24px;
-    }
-
+    .big-number { font-size: 42px; font-weight: 900; margin-bottom: 4px; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0 24px; }
     a.button, button {
-      appearance: none;
-      border: 1px solid var(--line);
-      background: #232b3c;
-      color: var(--text);
-      padding: 10px 14px;
-      border-radius: 12px;
-      text-decoration: none;
-      font-weight: 700;
-      cursor: pointer;
+      appearance: none; border: 1px solid var(--line); background: #232b3c; color: var(--text);
+      padding: 10px 14px; border-radius: 12px; text-decoration: none; font-weight: 800; cursor: pointer;
     }
-
     a.button:hover, button:hover { background: #2c354a; }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      overflow: hidden;
-      border-radius: 12px;
-    }
-
-    th, td {
-      text-align: left;
-      padding: 11px 12px;
-      border-bottom: 1px solid var(--line);
-      vertical-align: top;
-    }
-
-    th {
-      color: var(--muted);
-      font-size: 13px;
-      text-transform: uppercase;
-      letter-spacing: .04em;
-      background: rgba(255,255,255,.03);
-    }
-
+    table { width: 100%; border-collapse: collapse; overflow: hidden; border-radius: 12px; }
+    th, td { text-align: left; padding: 11px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: .04em; background: rgba(255,255,255,.03); }
     tr:last-child td { border-bottom: 0; }
-
     .pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 8px;
-      border-radius: 999px;
-      font-size: 13px;
-      font-weight: 800;
-      border: 1px solid transparent;
-      white-space: nowrap;
+      display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 999px;
+      font-size: 13px; font-weight: 900; border: 1px solid transparent; white-space: nowrap;
     }
-
     .done { color: var(--green); border-color: rgba(74,222,128,.35); background: rgba(74,222,128,.1); }
     .progress { color: var(--yellow); border-color: rgba(250,204,21,.35); background: rgba(250,204,21,.1); }
     .todo { color: var(--gray); border-color: rgba(148,163,184,.35); background: rgba(148,163,184,.1); }
     .bug { color: var(--red); border-color: rgba(251,113,133,.35); background: rgba(251,113,133,.1); }
     .info { color: var(--blue); border-color: rgba(96,165,250,.35); background: rgba(96,165,250,.1); }
-
+    .section { margin-top: 18px; }
+    .error { color: var(--red); font-weight: 900; }
     ol, ul { padding-left: 22px; }
     li + li { margin-top: 6px; }
-
-    .section { margin-top: 18px; }
-    .error { color: var(--red); font-weight: 800; }
+    .bar { height: 12px; border-radius: 999px; background: #0f1420; border: 1px solid var(--line); overflow: hidden; margin-top: 10px; }
+    .bar > span { display: block; height: 100%; width: 0%; background: linear-gradient(90deg, var(--green), var(--blue)); border-radius: inherit; }
+    .mini { font-size: 13px; }
+    .stack { display: grid; gap: 10px; }
+    .task-row { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
+    .task-row:last-child { border-bottom: 0; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    code { color: #d8b4fe; }
   </style>
 </head>
 <body>
   <main>
     <header>
-      <div class="pill info">Developer Status</div>
+      <div class="pill info">Developer Dashboard 2.0</div>
       <h1>Streets of Russia</h1>
       <p class="muted" id="meta">Загрузка статуса...</p>
       <p id="priority"></p>
@@ -157,47 +95,61 @@
 
     <section class="grid" id="totals"></section>
 
+    <section class="two section">
+      <article class="card">
+        <h2>Текущий milestone</h2>
+        <div id="milestone"></div>
+      </article>
+      <article class="card">
+        <h2>Следующие задачи</h2>
+        <ol id="nextWork"></ol>
+      </article>
+    </section>
+
+    <section class="card section">
+      <h2>Прогресс кампании</h2>
+      <div id="campaign"></div>
+    </section>
+
+    <section class="two section">
+      <article class="card">
+        <h2>QA Checklist</h2>
+        <div id="qaChecklist"></div>
+      </article>
+      <article class="card">
+        <h2>Открытые проблемы</h2>
+        <div id="issues"></div>
+      </article>
+    </section>
+
+    <section class="card section">
+      <h2>Персонажи и боссы</h2>
+      <div id="characters"></div>
+    </section>
+
+    <section class="card section">
+      <h2>Asset Tracker</h2>
+      <div id="assets"></div>
+    </section>
+
     <section class="card section">
       <h2>Сводка по областям</h2>
       <div id="summaryTable"></div>
     </section>
-
-    <section class="card section">
-      <h2>Следующие задачи</h2>
-      <ol id="nextWork"></ol>
-    </section>
-
-    <section class="card section">
-      <h2>Открытые проблемы</h2>
-      <div id="issues"></div>
-    </section>
-
-    <section class="card section">
-      <h2>Кампания</h2>
-      <div id="campaign"></div>
-    </section>
   </main>
 
   <script>
-    const STATUS_CLASS = {
-      done: 'done',
-      inProgress: 'progress',
-      notStarted: 'todo',
-      broken: 'bug'
-    };
+    const STATUS_CLASS = { done: 'done', inProgress: 'progress', notStarted: 'todo', broken: 'bug', backlog: 'info' };
+    const STATUS_LABEL = { done: '✅ Done', inProgress: '🟡 In Progress', notStarted: '⬜ Not Started', broken: '🔴 Broken', backlog: '⚪ Backlog' };
+    const RU_STATUS = { done: 'готово', inProgress: 'в работе', notStarted: 'не начато', broken: 'проблема', backlog: 'потом' };
 
-    function statusLabel(key) {
-      return {
-        done: '✅ Done',
-        inProgress: '🟡 In Progress',
-        notStarted: '⬜ Not Started',
-        broken: '🔴 Broken'
-      }[key] || key;
+    function esc(value) {
+      return String(value ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     }
-
-    function sum(data, field) {
-      return data.summary.reduce((acc, row) => acc + Number(row[field] || 0), 0);
-    }
+    function statusPill(key) { return `<span class="pill ${STATUS_CLASS[key] || 'info'}">${STATUS_LABEL[key] || esc(key)}</span>`; }
+    function sum(data, field) { return data.summary.reduce((acc, row) => acc + Number(row[field] || 0), 0); }
+    function percent(done, total) { return total ? Math.round((done / total) * 100) : 0; }
+    function bar(value) { return `<div class="bar"><span style="width:${Math.max(0, Math.min(100, value))}%"></span></div>`; }
 
     function render(data) {
       document.getElementById('meta').textContent = `Build ${data.buildVersion} · updated ${data.lastUpdated} · ${data.repository}`;
@@ -208,64 +160,91 @@
       const todo = sum(data, 'notStarted');
       const broken = sum(data, 'broken');
       const total = done + progress + todo + broken;
-      const percent = total ? Math.round(done / total * 100) : 0;
+      const ready = percent(done, total);
+      const active = percent(done + progress, total);
 
       document.getElementById('totals').innerHTML = `
-        <article class="card"><div class="big-number">${percent}%</div><div class="muted">готово по закрытым пунктам</div></article>
+        <article class="card"><div class="big-number">${ready}%</div><div class="muted">закрыто полностью</div>${bar(ready)}</article>
+        <article class="card"><div class="big-number">${active}%</div><div class="muted">готово + в работе</div>${bar(active)}</article>
         <article class="card"><div class="big-number">${done}</div><div class="muted">готово</div></article>
-        <article class="card"><div class="big-number">${progress}</div><div class="muted">в работе</div></article>
-        <article class="card"><div class="big-number">${broken}</div><div class="muted">критичные/сломанные пункты</div></article>
+        <article class="card"><div class="big-number">${broken}</div><div class="muted">критичные проблемы</div></article>
+      `;
+
+      document.getElementById('milestone').innerHTML = `
+        <h3>${esc(data.milestone.name)}</h3>
+        <p>${esc(data.milestone.goal)}</p>
+        <p>${statusPill(data.milestone.status)}</p>
+        <div class="chips">${data.milestone.targetFlow.map(step => `<span class="pill info">${esc(step)}</span>`).join('')}</div>
+      `;
+
+      document.getElementById('nextWork').innerHTML = data.nextWorkQueue.map(item => `<li>${esc(item)}</li>`).join('');
+
+      document.getElementById('campaign').innerHTML = `
+        <p class="muted">${data.campaign.regions} регионов × ${data.campaign.screensPerRegion} экрана = ${data.campaign.totalScreens} экран кампании.</p>
+        <div class="stack">
+          ${data.campaign.regionsList.map(region => {
+            const p = percent(region.doneScreens, region.totalScreens);
+            return `<div>
+              <div class="task-row"><strong>${esc(region.name)}</strong><span class="mini muted">${region.doneScreens}/${region.totalScreens} · ${p}%</span></div>
+              ${bar(p)}
+              <p class="mini muted">${esc(region.screens.join(', '))} — ${esc(region.notes || '')}</p>
+            </div>`;
+          }).join('')}
+        </div>
+      `;
+
+      document.getElementById('qaChecklist').innerHTML = data.qaChecklist.map(item => `
+        <div class="task-row"><span>${esc(item.item)}</span>${statusPill(item.status)}</div>
+      `).join('');
+
+      document.getElementById('issues').innerHTML = `
+        <table>
+          <thead><tr><th>ID</th><th>Severity</th><th>Area</th><th>Next Action</th></tr></thead>
+          <tbody>${data.knownIssues.map(issue => `
+            <tr><td>${esc(issue.id)}</td><td><span class="pill bug">${esc(issue.severity)}</span></td><td>${esc(issue.area)}</td><td>${esc(issue.nextAction)}</td></tr>
+          `).join('')}</tbody>
+        </table>
+      `;
+
+      document.getElementById('characters').innerHTML = `
+        <div class="grid">
+          ${data.characters.map(ch => {
+            const chDone = ch.tasks.filter(t => t.status === 'done').length;
+            const chPercent = percent(chDone, ch.tasks.length);
+            return `<article class="card">
+              <h3>${esc(ch.name)}</h3>
+              <p class="muted">${esc(ch.type)} · ${RU_STATUS[ch.status] || ch.status}</p>
+              ${bar(chPercent)}
+              <div class="stack">${ch.tasks.map(t => `<div class="task-row"><span>${esc(t.name)}</span>${statusPill(t.status)}</div>`).join('')}</div>
+            </article>`;
+          }).join('')}
+        </div>
+      `;
+
+      document.getElementById('assets').innerHTML = `
+        <div class="grid">
+          ${data.assetTracker.map(asset => `<article class="card">
+            <h3>${esc(asset.asset)}</h3>
+            <p>${statusPill(asset.status)}</p>
+            <p class="mini muted">Done</p>
+            <div class="chips">${asset.done.map(x => `<span class="pill done">${esc(x)}</span>`).join('')}</div>
+            <p class="mini muted" style="margin-top:12px">Missing</p>
+            <div class="chips">${asset.missing.map(x => `<span class="pill todo">${esc(x)}</span>`).join('')}</div>
+          </article>`).join('')}
+        </div>
       `;
 
       document.getElementById('summaryTable').innerHTML = `
         <table>
           <thead><tr><th>Area</th><th>Done</th><th>In Progress</th><th>Not Started</th><th>Broken</th></tr></thead>
-          <tbody>
-            ${data.summary.map(row => `
-              <tr>
-                <td>${row.area}</td>
-                <td><span class="pill done">${row.done}</span></td>
-                <td><span class="pill progress">${row.inProgress}</span></td>
-                <td><span class="pill todo">${row.notStarted}</span></td>
-                <td><span class="pill bug">${row.broken}</span></td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      `;
-
-      document.getElementById('nextWork').innerHTML = data.nextWorkQueue.map(item => `<li>${item}</li>`).join('');
-
-      document.getElementById('issues').innerHTML = `
-        <table>
-          <thead><tr><th>ID</th><th>Severity</th><th>Area</th><th>Problem</th><th>Next Action</th></tr></thead>
-          <tbody>
-            ${data.knownIssues.map(issue => `
-              <tr>
-                <td>${issue.id}</td>
-                <td><span class="pill bug">${issue.severity}</span></td>
-                <td>${issue.area}</td>
-                <td>${issue.problem}</td>
-                <td>${issue.nextAction}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      `;
-
-      document.getElementById('campaign').innerHTML = `
-        <p class="muted">${data.campaign.regions} регионов × ${data.campaign.screensPerRegion} экрана = ${data.campaign.totalScreens} экран кампании.</p>
-        <table>
-          <thead><tr><th>Region</th><th>Screens</th><th>Status</th></tr></thead>
-          <tbody>
-            ${data.campaign.regionsList.map(region => `
-              <tr>
-                <td>${region.name}</td>
-                <td>${region.screens.join(', ')}</td>
-                <td><span class="pill ${STATUS_CLASS[region.status] || 'info'}">${statusLabel(region.status)}</span></td>
-              </tr>
-            `).join('')}
-          </tbody>
+          <tbody>${data.summary.map(row => `
+            <tr>
+              <td>${esc(row.area)}</td>
+              <td><span class="pill done">${row.done}</span></td>
+              <td><span class="pill progress">${row.inProgress}</span></td>
+              <td><span class="pill todo">${row.notStarted}</span></td>
+              <td><span class="pill bug">${row.broken}</span></td>
+            </tr>`).join('')}</tbody>
         </table>
       `;
     }
@@ -274,14 +253,12 @@
       try {
         const response = await fetch('data/production-board.json', { cache: 'no-store' });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
-        render(data);
+        render(await response.json());
       } catch (error) {
         document.getElementById('meta').innerHTML = '<span class="error">Не удалось загрузить data/production-board.json</span>';
         document.getElementById('priority').textContent = error.message;
       }
     }
-
     document.getElementById('reloadBtn').addEventListener('click', loadStatus);
     loadStatus();
   </script>
