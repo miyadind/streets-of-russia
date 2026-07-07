@@ -4,6 +4,22 @@
   "buildVersion": "0.4.18",
   "repository": "miyadind/streets-of-russia",
   "currentPriority": "Playable vertical slice: Main Menu -> New Game -> Character Select -> Far East 01 -> Far East 02 -> Far East 03 -> first boss -> victory/progress saved -> Continue works after reopening.",
+  "milestone": {
+    "name": "Vertical Slice 0.5",
+    "goal": "First fully playable region with persistent progress.",
+    "status": "inProgress",
+    "targetFlow": [
+      "Main Menu",
+      "New Game",
+      "Character Select",
+      "Far East 01",
+      "Far East 02",
+      "Far East 03",
+      "First Boss",
+      "Victory / Progress Saved",
+      "Continue after reopening"
+    ]
+  },
   "statusLegend": {
     "done": "Done",
     "inProgress": "In Progress",
@@ -50,18 +66,119 @@
     "Integrate TV-head as a real enemy after completing minimum animation set.",
     "Consolidate high-risk patches after the vertical slice is stable."
   ],
+  "qaChecklist": [
+    { "item": "Main menu loads", "status": "done" },
+    { "item": "New Game opens character select", "status": "done" },
+    { "item": "Character select confirms team", "status": "inProgress" },
+    { "item": "Far East 01 playable", "status": "inProgress" },
+    { "item": "Far East 02 playable", "status": "inProgress" },
+    { "item": "Far East 03 / first boss playable", "status": "inProgress" },
+    { "item": "Victory state after first boss", "status": "notStarted" },
+    { "item": "Continue survives browser/app close", "status": "broken" },
+    { "item": "Statistics visible after progress", "status": "notStarted" },
+    { "item": "Mobile Android smoke test", "status": "broken" },
+    { "item": "Audio does not overlap", "status": "inProgress" }
+  ],
+  "characters": [
+    {
+      "name": "Алексей",
+      "type": "Hero",
+      "status": "inProgress",
+      "tasks": [
+        { "name": "Config/stats", "status": "done" },
+        { "name": "Ability: revive once", "status": "done" },
+        { "name": "Animation audit", "status": "notStarted" },
+        { "name": "Balancing", "status": "inProgress" }
+      ]
+    },
+    {
+      "name": "Анна",
+      "type": "Hero",
+      "status": "inProgress",
+      "tasks": [
+        { "name": "Config/stats", "status": "done" },
+        { "name": "Ability: no knockdown", "status": "done" },
+        { "name": "Animation audit", "status": "notStarted" },
+        { "name": "Balancing", "status": "inProgress" }
+      ]
+    },
+    {
+      "name": "Борис",
+      "type": "Hero",
+      "status": "inProgress",
+      "tasks": [
+        { "name": "Config/stats", "status": "done" },
+        { "name": "Ability: ranged immunity", "status": "done" },
+        { "name": "Animation audit", "status": "notStarted" },
+        { "name": "Balancing", "status": "inProgress" }
+      ]
+    },
+    {
+      "name": "TV-head citizen",
+      "type": "Enemy",
+      "status": "inProgress",
+      "tasks": [
+        { "name": "Visual design", "status": "done" },
+        { "name": "Walk/jump/fall art", "status": "done" },
+        { "name": "Attack/hurt/get-up art", "status": "notStarted" },
+        { "name": "Gameplay integration", "status": "notStarted" }
+      ]
+    },
+    {
+      "name": "Sobchak",
+      "type": "Enemy/Boss",
+      "status": "inProgress",
+      "tasks": [
+        { "name": "Visual design", "status": "done" },
+        { "name": "Walk art", "status": "inProgress" },
+        { "name": "Whip attack gameplay", "status": "notStarted" },
+        { "name": "Hurt/KO art", "status": "notStarted" }
+      ]
+    },
+    {
+      "name": "Patriarch / Demon",
+      "type": "Boss",
+      "status": "inProgress",
+      "tasks": [
+        { "name": "Normal form art", "status": "done" },
+        { "name": "Demon form art", "status": "done" },
+        { "name": "Demon cross asset", "status": "done" },
+        { "name": "Boss gameplay/phases", "status": "notStarted" }
+      ]
+    }
+  ],
+  "assetTracker": [
+    {
+      "asset": "TV-head citizen",
+      "status": "inProgress",
+      "done": ["design", "walk concept", "jump concept", "knockdown concept"],
+      "missing": ["attack", "hurt", "get-up", "final file names", "repo integration"]
+    },
+    {
+      "asset": "Sobchak microphone whip",
+      "status": "inProgress",
+      "done": ["design", "avatar concept", "walk correction concept"],
+      "missing": ["final approved walk sheet", "attack frames", "hitbox plan", "repo integration"]
+    },
+    {
+      "asset": "Patriarch demon boss",
+      "status": "inProgress",
+      "done": ["normal form", "demon form", "demon cross", "lying frame concept"],
+      "missing": ["attack frames", "phase effects", "boss class", "repo integration"]
+    }
+  ],
   "campaign": {
     "regions": 7,
     "screensPerRegion": 3,
     "totalScreens": 21,
     "regionsList": [
-      { "name": "Far East", "screens": ["street01", "street02", "street03"], "status": "inProgress" },
-      { "name": "Siberia", "screens": ["siberia01", "siberia02", "siberia03"], "status": "inProgress" },
-      { "name": "Ural", "screens": ["ural01", "ural02", "ural03"], "status": "inProgress" },
-      { "name": "Northwest / Petersburg", "screens": ["northwest01", "northwest02", "northwest03"], "status": "inProgress" },
-      { "name": "Volga", "screens": ["volga01", "volga02", "volga03"], "status": "inProgress" },
-      { "name": "South / Sochi", "screens": ["south01", "south02", "south03"], "status": "inProgress" },
-      { "name": "Moscow", "screens": ["moscow01", "moscow02", "moscow03"], "status": "inProgress" }
+      { "name": "Far East", "screens": ["street01", "street02", "street03"], "status": "inProgress", "doneScreens": 1, "totalScreens": 3, "notes": "Most important vertical-slice region. street01 has poster interactive; street03 has first boss candidate." },
+      { "name": "Siberia", "screens": ["siberia01", "siberia02", "siberia03"], "status": "inProgress", "doneScreens": 0, "totalScreens": 3, "notes": "Configured backgrounds/waves; needs unique content pass." },
+      { "name": "Ural", "screens": ["ural01", "ural02", "ural03"], "status": "inProgress", "doneScreens": 0, "totalScreens": 3, "notes": "Configured backgrounds/waves; needs unique content pass." },
+      { "name": "Northwest / Petersburg", "screens": ["northwest01", "northwest02", "northwest03"], "status": "inProgress", "doneScreens": 0, "totalScreens": 3, "notes": "Configured backgrounds/waves; needs unique content pass." },
+      { "name": "Volga", "screens": ["volga01", "volga02", "volga03"], "status": "inProgress", "doneScreens": 0, "totalScreens": 3, "notes": "Configured backgrounds/waves; needs unique content pass." },
+      { "name": "South / Sochi", "screens": ["south01", "south02", "south03"], "status": "inProgress", "doneScreens": 0, "totalScreens": 3, "notes": "Configured backgrounds/waves; needs unique content pass." },
+      { "name": "Moscow", "screens": ["moscow01", "moscow02", "moscow03"], "status": "inProgress", "doneScreens": 0, "totalScreens": 3, "notes": "Configured; Moscow03 uses boss music. Needs final boss design." }
     ]
   }
 }
