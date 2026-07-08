@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.19',
+  buildVersion: '0.4.20',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -15670,6 +15670,11 @@ window.addEventListener('load', () => {
     try { sessionStorage.removeItem(SAVE_KEY); } catch (error) {}
   }
 
+  function clearTabRun() {
+    window.__streetsSessionCampaignSave = null;
+    removeStorageSave();
+  }
+
   function readMemorySave() {
     const save = parseJson(window.__streetsSessionCampaignSave || null);
     if (!save || save.saveVersion !== 1) return null;
@@ -15691,8 +15696,7 @@ window.addEventListener('load', () => {
       return true;
     }
 
-    removeStorageSave();
-    window.__streetsSessionCampaignSave = null;
+    clearTabRun();
 
     const previousSaveCampaignProgress = GameApp.prototype.saveCampaignProgress;
     const previousClearCampaignSave = GameApp.prototype.clearCampaignSave;
@@ -15748,27 +15752,26 @@ window.addEventListener('load', () => {
     };
 
     GameApp.prototype.clearCampaignSave = function () {
-      window.__streetsSessionCampaignSave = null;
-      removeStorageSave();
+      clearTabRun();
       if (previousClearCampaignSave) previousClearCampaignSave.call(this);
       removeStorageSave();
     };
 
     const previousInit = GameApp.prototype.init;
     GameApp.prototype.init = async function () {
-      window.__streetsSessionCampaignSave = null;
-      removeStorageSave();
+      clearTabRun();
       await previousInit.call(this);
       removeStorageSave();
     };
 
-    window.addEventListener('beforeunload', removeStorageSave);
-    window.addEventListener('pagehide', removeStorageSave);
+    window.addEventListener('beforeunload', clearTabRun);
+    window.addEventListener('pagehide', clearTabRun);
 
     window.SessionOnlyRunPatch = {
       installed: true,
       saveKey: SAVE_KEY,
       removeStorageSave,
+      clearTabRun,
       readMemorySave
     };
 

@@ -1,7 +1,7 @@
 # Streets of Russia — Production Board
 
 Last updated: 2026-07-07
-Build tracked: `0.4.19`
+Build tracked: `0.4.20`
 
 This is the main human-readable project board. Keep it updated after every meaningful game, art, audio, or documentation change.
 
@@ -17,12 +17,12 @@ This is the main human-readable project board. Keep it updated after every meani
 
 ## Core Design Rule
 
-The game is run-based and session-only.
+The game is run-based and tab-only.
 
-- Continue may exist only during the currently open browser/app session.
-- After closing and reopening the browser/app, Continue should not be available.
+- Continue may exist only during the currently open tab.
+- After closing the tab, refreshing the page, or reopening the game, Continue should not be available.
 - A fresh visit should start from New Game.
-- Persistent campaign position saving is intentionally not part of the design.
+- Persistent campaign position saving is intentionally not part of the design. Closing or refreshing the tab ends the run.
 
 ## Current Priority
 
@@ -72,7 +72,7 @@ The project should now focus on a playable vertical slice:
 | Character select exists | ✅ Done | Core file exists and campaign flow references character select. |
 | Campaign map exists | ✅ Done | Campaign map and patch files are active. |
 | Level scene exists | ✅ Done | Core `scene.js` and level config exist. |
-| Session-only run design | ✅ Done | Fresh visits should start from New Game; persistent campaign Continue is intentionally excluded. |
+| Tab-only run design | ✅ Done | Fresh page loads should start from New Game; persistent campaign Continue is intentionally excluded. |
 | Pause menu | 🟡 In Progress | `pauseMenuPatch.js` is active. Needs mobile/desktop testing. |
 | Victory/results screen | ⬜ Not Started | Needs explicit completion/results screen after region/boss. |
 | Game Over screen | 🟡 In Progress | Retry/fallen hero flow is called out as high-risk in architecture. |
@@ -169,16 +169,16 @@ Current campaign route has 7 regions × 3 screens = 21 configured screens.
 | Dev panel | 🟡 In Progress | `devPanel.js` and repair patches active. |
 | Boss HP bar | ⬜ Not Started | Needed for bosses. |
 | Current-run results display | ⬜ Not Started | Useful at the end of a run; should not imply persistent campaign saving. |
-| Session-only run messaging | ⬜ Not Started | Menu/help text should make fresh restart behavior clear. |
+| Tab-only run messaging | ⬜ Not Started | Menu/help text should make fresh restart behavior clear. |
 | Credits/about screen | ⬜ Not Started | Later polish. |
 
 ## Run / Progress
 
 | Task | Status | Notes |
 |---|---|---|
-| Session continue | ✅ Done | Current run may continue while same browser/app session is open. |
+| Session continue | ✅ Done | Current run may continue while same open tab is open. |
 | Fresh visit starts from New Game | ✅ Done | This is intended design, not a bug. |
-| Run progress patch | 🟡 In Progress | `runProgressPatch.js` is active. Needs audit for session-only behavior. |
+| Run progress patch | 🟡 In Progress | `runProgressPatch.js` is active. Needs audit for tab-only behavior. |
 | Save system patch | 🟡 In Progress | `saveSystemPatch.js` is active. Should not create long-lived campaign Continue. |
 | Current-session results | ⬜ Not Started | Optional but useful for score, completed screens, defeated enemies, time. |
 
@@ -214,8 +214,8 @@ Current campaign route has 7 regions × 3 screens = 21 configured screens.
 ## Next Concrete Work Queue
 
 1. Make `street01 → street02 → street03 → Gundos → victory/results` a clean playable slice.
-2. Verify session-only Continue: available only while the current session is open.
-3. Verify fresh visit behavior: after closing/reopening, only New Game should be available.
+2. Verify tab-only Continue: available only while the current tab is open and loaded.
+3. Verify fresh visit behavior: after tab close, page refresh, or reopening, only New Game should be available.
 4. Add/verify first boss victory condition.
 5. Add optional current-run results screen.
 6. Audit asset folders and map each sprite to board items.

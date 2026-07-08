@@ -1,7 +1,7 @@
 # Streets of Russia — Current Build State
 
 Last updated: 2026-07-07
-Build version: `0.4.19`
+Build version: `0.4.20`
 
 ## Purpose
 
@@ -12,9 +12,9 @@ This file describes what the current build appears to contain right now. It is n
 - Repository: `miyadind/streets-of-russia`
 - Default branch: `main`
 - Public repo: yes
-- Current build version in config: `0.4.19`
+- Current build version in config: `0.4.20`
 - Browser entry point: `index.html`
-- Runtime bundle loaded by browser: `src/game.bundle.js?v=0.4.19`
+- Runtime bundle loaded by browser: `src/game.bundle.js?v=0.4.20`
 - Source manifest: `tools/source-scripts.json`
 - Rule: do not edit `src/game.bundle.js` directly. Edit source files from the manifest and rebuild.
 
@@ -38,22 +38,22 @@ High-risk areas from architecture:
 
 ## Save / Continue Design Decision
 
-The game is intentionally run-based and session-only.
+The game is intentionally run-based and tab-only.
 
 Correct behavior:
 
-- The player may continue only while the current browser/app session is still open.
-- If the browser/app is closed and opened again, the run is over.
-- A fresh visit should start from New Game.
+- The player may continue only while the current open tab is still open.
+- If the tab is closed, refreshed, or the game is opened again, the run is over.
+- Every fresh page load should start from New Game.
 - Long-lived campaign position saving is intentionally not part of the design.
 
-Therefore, the absence of Continue after closing and reopening the browser is not a bug. It is the intended structure.
+Therefore, the absence of Continue after closing the tab, refreshing the page, or reopening the game is not a bug. It is the intended structure.
 
 What still needs work:
 
 - The UI should make this clear enough that the player understands this is a new run, not a broken save.
-- Current-session Continue should still work correctly before the browser/app is closed.
-- End-of-run results may exist for the current session, but campaign position should not persist across fresh visits.
+- Current-tab Continue should still work correctly before the page is closed or refreshed.
+- End-of-run results may exist for the current tab run, but campaign position should not persist across fresh page loads.
 
 ## Current Game Content
 
@@ -179,4 +179,4 @@ The next milestone should be:
 2. Too many patch files are still active.
 3. Some art assets exist outside the repo workflow and need naming/integration.
 4. Boss victory and campaign completion flow need verification.
-5. Mobile UX needs testing so the session-only run design is clear and not perceived as broken progress.
+5. Mobile UX needs testing so the tab-only run design is clear and not perceived as broken progress.

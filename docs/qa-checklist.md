@@ -15,12 +15,12 @@ Use this before every playable test build.
 
 ## Core Run Design
 
-The game is session-only.
+The game is tab-only.
 
 Correct behavior:
 
-- Continue may appear only while the current browser/app session remains open.
-- After closing and reopening the browser/app, Continue should not appear.
+- Continue may appear only while the current open tab remains open.
+- After closing the tab, refreshing the page, or reopening the game, Continue should not appear.
 - New Game is the correct entry point for every fresh visit.
 - The game should not promise persistent campaign saves.
 
@@ -36,23 +36,23 @@ Correct behavior:
 | Far East 03 / first boss playable | 🟡 Needs Retest | Contains Gundos encounter. |
 | First boss victory/results state | ⬜ Not Tested | Required for milestone. |
 | Return to menu after run/result | ⬜ Not Tested | Needs clear flow. |
-| Continue visible during same open session | 🟡 Needs Retest | Allowed only before the browser/app is closed. |
-| Continue absent after browser/app close and reopen | ✅ Pass | This is intended design, not a bug. |
+| Continue visible during same open tab | 🟡 Needs Retest | Allowed only while the tab stays open and loaded. |
+| Continue absent after tab close, refresh, or reopen | ✅ Pass | This is intended design, not a bug. |
 | Current-run results visible before restart | ⬜ Not Tested | Optional, but useful for player feedback. |
-| Android mobile session-only smoke test | 🟡 Needs Retest | Confirm the run design is clear. |
+| Android mobile tab-only smoke test | 🟡 Needs Retest | Confirm the run design is clear. |
 | Desktop smoke test | ⬜ Not Tested | Needs full pass after dashboard update. |
 | Music does not overlap | 🟡 Needs Retest | Architecture says ownership improved. |
 | SFX play on hits/menu | ⬜ Not Tested | Needs audio pass. |
 
-## Session-Only Continue Test Script
+## Tab-Only Continue Test Script
 
 1. Open game.
 2. Press New Game.
 3. Select team.
 4. Complete at least one screen.
-5. Return to main menu without closing the browser/app.
-6. Confirm Continue behavior is correct for the still-open session.
-7. Close browser/app completely.
+5. Return to main menu without closing or refreshing the tab.
+6. Confirm Continue behavior is correct for the still-open tab.
+7. Close the tab or refresh the page.
 8. Reopen game.
 9. Confirm Continue is not visible.
 10. Confirm the correct available action is New Game.
@@ -71,7 +71,7 @@ Correct behavior:
 10. Defeat first boss.
 11. Reach victory/results screen.
 12. Return to menu.
-13. Confirm the game does not imply a persistent campaign save after closing.
+13. Confirm the game does not imply a persistent campaign save after closing or refreshing the tab.
 
 ## Audio Test Script
 

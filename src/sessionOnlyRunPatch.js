@@ -13,6 +13,11 @@
     try { sessionStorage.removeItem(SAVE_KEY); } catch (error) {}
   }
 
+  function clearTabRun() {
+    window.__streetsSessionCampaignSave = null;
+    removeStorageSave();
+  }
+
   function readMemorySave() {
     const save = parseJson(window.__streetsSessionCampaignSave || null);
     if (!save || save.saveVersion !== 1) return null;
@@ -34,8 +39,7 @@
       return true;
     }
 
-    removeStorageSave();
-    window.__streetsSessionCampaignSave = null;
+    clearTabRun();
 
     const previousSaveCampaignProgress = GameApp.prototype.saveCampaignProgress;
     const previousClearCampaignSave = GameApp.prototype.clearCampaignSave;
@@ -91,27 +95,26 @@
     };
 
     GameApp.prototype.clearCampaignSave = function () {
-      window.__streetsSessionCampaignSave = null;
-      removeStorageSave();
+      clearTabRun();
       if (previousClearCampaignSave) previousClearCampaignSave.call(this);
       removeStorageSave();
     };
 
     const previousInit = GameApp.prototype.init;
     GameApp.prototype.init = async function () {
-      window.__streetsSessionCampaignSave = null;
-      removeStorageSave();
+      clearTabRun();
       await previousInit.call(this);
       removeStorageSave();
     };
 
-    window.addEventListener('beforeunload', removeStorageSave);
-    window.addEventListener('pagehide', removeStorageSave);
+    window.addEventListener('beforeunload', clearTabRun);
+    window.addEventListener('pagehide', clearTabRun);
 
     window.SessionOnlyRunPatch = {
       installed: true,
       saveKey: SAVE_KEY,
       removeStorageSave,
+      clearTabRun,
       readMemorySave
     };
 
