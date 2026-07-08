@@ -1,7 +1,7 @@
 # Streets of Russia — Production Board
 
 Last updated: 2026-07-07
-Build tracked: `0.4.18`
+Build tracked: `0.4.19`
 
 This is the main human-readable project board. Keep it updated after every meaningful game, art, audio, or documentation change.
 

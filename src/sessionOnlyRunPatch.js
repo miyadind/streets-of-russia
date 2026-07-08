@@ -29,6 +29,10 @@
 
   function install() {
     if (typeof GameApp === 'undefined') return false;
+    if (window.SessionOnlyRunPatch && window.SessionOnlyRunPatch.installed) {
+      removeStorageSave();
+      return true;
+    }
 
     removeStorageSave();
     window.__streetsSessionCampaignSave = null;
