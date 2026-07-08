@@ -9,6 +9,14 @@
 <body>
   <canvas id="game" width="1280" height="720"></canvas>
 
-  <script src="src/game.bundle.js?v=0.4.20"></script>
+  <script>
+    (() => {
+      const version = '0.4.21';
+      const script = document.createElement('script');
+      script.src = `src/game.bundle.js?v=${version}&t=${Date.now()}`;
+      script.async = false;
+      document.body.appendChild(script);
+    })();
+  </script>
 </body>
 </html>

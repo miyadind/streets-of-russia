@@ -601,12 +601,36 @@ const DevPanel = {
     try {
       const data = JSON.parse(saved);
       this.deepMerge(GAME_CONFIG, data);
+      this.migrateBuildDefaults(data);
       this.migrateConfig();
       this.ensureLevels();
       this.setStatus('Loaded saved tuning');
     } catch (error) {
       console.warn('Failed to load tuning', error);
       this.setStatus('Failed to load saved tuning');
+    }
+  },
+
+  migrateBuildDefaults(savedConfig) {
+    if (!savedConfig || savedConfig.buildVersion === DEFAULT_GAME_CONFIG.buildVersion) return;
+
+    const defaults = {
+      buildVersion: DEFAULT_GAME_CONFIG.buildVersion,
+      'heroes.alexey.speed': DEFAULT_GAME_CONFIG.heroes.alexey.speed,
+      'heroes.anna.speed': DEFAULT_GAME_CONFIG.heroes.anna.speed,
+      'heroes.boris.speed': DEFAULT_GAME_CONFIG.heroes.boris.speed,
+      'enemies.dogRegime.speed': DEFAULT_GAME_CONFIG.enemies.dogRegime.speed,
+      'enemies.zetnik.speed': DEFAULT_GAME_CONFIG.enemies.zetnik.speed,
+      'enemies.sucker.speed': DEFAULT_GAME_CONFIG.enemies.sucker.speed,
+      'enemies.sucker.slideSpeed': DEFAULT_GAME_CONFIG.enemies.sucker.slideSpeed,
+      'enemies.bastard.speed': DEFAULT_GAME_CONFIG.enemies.bastard.speed,
+      'enemies.horse.speed': 2.025,
+      'enemies.gundos.speed': 1.875
+    };
+
+    for (const path of Object.keys(defaults)) {
+      const value = defaults[path];
+      if (value !== undefined) this.setValue(path, value);
     }
   },
 

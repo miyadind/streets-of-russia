@@ -20,7 +20,7 @@
   GAME_CONFIG.enemies.horse = Object.assign({
     name: 'Horse',
     hp: 125,
-    speed: 1.35,
+    speed: 2.025,
     damage: 14,
     scale: 0.12,
     bossMusic: false,

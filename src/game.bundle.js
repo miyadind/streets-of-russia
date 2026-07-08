@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.20',
+  buildVersion: '0.4.21',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -59,7 +59,7 @@ const GAME_CONFIG = {
       name: 'Алексей',
       role: 'balanced',
       hp: 120,
-      speed: 2.6,
+      speed: 3.9,
       damage: 16,
       scale: 0.185,
       strength: 5,
@@ -75,7 +75,7 @@ const GAME_CONFIG = {
       name: 'Анна',
       role: 'fast',
       hp: 85,
-      speed: 3.15,
+      speed: 4.725,
       damage: 12,
       scale: 0.11,
       strength: 3,
@@ -91,7 +91,7 @@ const GAME_CONFIG = {
       name: 'Борис',
       role: 'tank',
       hp: 160,
-      speed: 2.25,
+      speed: 3.375,
       damage: 22,
       scale: 0.16,
       strength: 7,
@@ -131,7 +131,7 @@ const GAME_CONFIG = {
     dogRegime: {
       name: 'Пёс режима',
       hp: 90,
-      speed: 1.35,
+      speed: 2.025,
       damage: 10,
       scale: 0.105,
       attackScale: 1.11,
@@ -165,7 +165,7 @@ const GAME_CONFIG = {
     zetnik: {
       name: 'Зетник',
       hp: 110,
-      speed: 1.55,
+      speed: 2.325,
       damage: 12,
       scale: 0.105,
       bossMusic: false,
@@ -189,7 +189,7 @@ const GAME_CONFIG = {
     sucker: {
       name: 'Sucker',
       hp: 180,
-      speed: 1.15,
+      speed: 1.725,
       damage: 12,
       scale: 0.13,
       bossMusic: true,
@@ -197,7 +197,7 @@ const GAME_CONFIG = {
       attackStartDistance: 420,
       minDistance: 220,
       alignToleranceY: 30,
-      slideSpeed: 7.25,
+      slideSpeed: 10.875,
       slideRange: 520,
       windupMs: 560,
       slideRecoveryMs: 650,
@@ -214,7 +214,7 @@ const GAME_CONFIG = {
     bastard: {
       name: 'Bastard',
       hp: 9999,
-      speed: 0.75,
+      speed: 1.125,
       damage: 0,
       scale: 0.12,
       bossMusic: false,
@@ -2416,7 +2416,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
     this.gundosBoss = null;
     this.redirectedToBoss = false;
     this.gundosDirection = -1;
-    this.gundosSpeed = 5.8;
+    this.gundosSpeed = 8.7;
     this.gundosHitPlayer = false;
     this.gundosGuarding = false;
     this.gundosGuardX = x;
@@ -2536,7 +2536,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
     this.gundosBoss = boss || null;
     this.redirectedToBoss = false;
     this.gundosDirection = -1;
-    this.gundosSpeed = 4.8 + Math.random() * 0.9;
+    this.gundosSpeed = 7.2 + Math.random() * 1.35;
     this.gundosHitPlayer = false;
     this.gundosGuarding = false;
     this.blocksWaveClear = false;
@@ -2629,7 +2629,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
     this.redirectedToBoss = true;
     this.gundosGuarding = false;
     this.gundosDirection = boss && boss.x < this.x ? -1 : 1;
-    this.gundosSpeed = Math.max(this.gundosSpeed, 8.2);
+    this.gundosSpeed = Math.max(this.gundosSpeed, 12.3);
     this.facing = this.gundosDirection >= 0 ? 1 : -1;
     this.flash = 260;
     this.state = 'gundosRedirected';
@@ -2645,7 +2645,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
   releaseGundosGuard() {
     if (!this.gundosGuarding) return;
     this.gundosGuarding = false;
-    this.gundosSpeed = 4.8 + Math.random() * 0.9;
+    this.gundosSpeed = 7.2 + Math.random() * 1.35;
     this.state = 'gundosCharge';
     this.intent = 'gundosCharge';
   }
@@ -5573,12 +5573,36 @@ const DevPanel = {
     try {
       const data = JSON.parse(saved);
       this.deepMerge(GAME_CONFIG, data);
+      this.migrateBuildDefaults(data);
       this.migrateConfig();
       this.ensureLevels();
       this.setStatus('Loaded saved tuning');
     } catch (error) {
       console.warn('Failed to load tuning', error);
       this.setStatus('Failed to load saved tuning');
+    }
+  },
+
+  migrateBuildDefaults(savedConfig) {
+    if (!savedConfig || savedConfig.buildVersion === DEFAULT_GAME_CONFIG.buildVersion) return;
+
+    const defaults = {
+      buildVersion: DEFAULT_GAME_CONFIG.buildVersion,
+      'heroes.alexey.speed': DEFAULT_GAME_CONFIG.heroes.alexey.speed,
+      'heroes.anna.speed': DEFAULT_GAME_CONFIG.heroes.anna.speed,
+      'heroes.boris.speed': DEFAULT_GAME_CONFIG.heroes.boris.speed,
+      'enemies.dogRegime.speed': DEFAULT_GAME_CONFIG.enemies.dogRegime.speed,
+      'enemies.zetnik.speed': DEFAULT_GAME_CONFIG.enemies.zetnik.speed,
+      'enemies.sucker.speed': DEFAULT_GAME_CONFIG.enemies.sucker.speed,
+      'enemies.sucker.slideSpeed': DEFAULT_GAME_CONFIG.enemies.sucker.slideSpeed,
+      'enemies.bastard.speed': DEFAULT_GAME_CONFIG.enemies.bastard.speed,
+      'enemies.horse.speed': 2.025,
+      'enemies.gundos.speed': 1.875
+    };
+
+    for (const path of Object.keys(defaults)) {
+      const value = defaults[path];
+      if (value !== undefined) this.setValue(path, value);
     }
   },
 
@@ -5645,6 +5669,7 @@ const DevPanel = {
     }
   }
 };
+
 
 
 /* ===== src/devPanelDogAiPatch.js ===== */
@@ -8605,7 +8630,7 @@ window.addEventListener('load', () => {
   GAME_CONFIG.enemies.horse = Object.assign({
     name: 'Horse',
     hp: 125,
-    speed: 1.35,
+    speed: 2.025,
     damage: 14,
     scale: 0.12,
     bossMusic: false,
@@ -8711,6 +8736,7 @@ window.addEventListener('load', () => {
     GameApp.prototype.horseEnemyPatchApplied = true;
   }
 })();
+
 
 
 /* ===== src/horseAssetsFixPatch.js ===== */
@@ -13054,7 +13080,7 @@ window.addEventListener('load', () => {
   GAME_CONFIG.enemies.gundos = Object.assign({
     name: 'gundos',
     hp: 6,
-    speed: 1.25,
+    speed: 1.875,
     scale: 0.266,
     damage: 0,
     blocksWaveClear: true,
@@ -13083,7 +13109,7 @@ window.addEventListener('load', () => {
     if (Number(config.introSequenceVersion) >= 7) return;
     Object.assign(config, {
       introSequenceVersion: 7,
-      speed: 1.25,
+      speed: 1.875,
       hp: 6,
       scale: 0.266,
       devilLeadMs: DEVIL_LEAD_MS,

@@ -1,7 +1,7 @@
 # Streets of Russia — Current Build State
 
 Last updated: 2026-07-07
-Build version: `0.4.20`
+Build version: `0.4.21`
 
 ## Purpose
 
@@ -12,9 +12,9 @@ This file describes what the current build appears to contain right now. It is n
 - Repository: `miyadind/streets-of-russia`
 - Default branch: `main`
 - Public repo: yes
-- Current build version in config: `0.4.20`
+- Current build version in config: `0.4.21`
 - Browser entry point: `index.html`
-- Runtime bundle loaded by browser: `src/game.bundle.js?v=0.4.20`
+- Runtime bundle loaded by browser: `src/game.bundle.js?v=0.4.21&t=<timestamp>`
 - Source manifest: `tools/source-scripts.json`
 - Rule: do not edit `src/game.bundle.js` directly. Edit source files from the manifest and rebuild.
 

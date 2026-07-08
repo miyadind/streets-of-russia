@@ -17,7 +17,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
     this.gundosBoss = null;
     this.redirectedToBoss = false;
     this.gundosDirection = -1;
-    this.gundosSpeed = 5.8;
+    this.gundosSpeed = 8.7;
     this.gundosHitPlayer = false;
     this.gundosGuarding = false;
     this.gundosGuardX = x;
@@ -137,7 +137,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
     this.gundosBoss = boss || null;
     this.redirectedToBoss = false;
     this.gundosDirection = -1;
-    this.gundosSpeed = 4.8 + Math.random() * 0.9;
+    this.gundosSpeed = 7.2 + Math.random() * 1.35;
     this.gundosHitPlayer = false;
     this.gundosGuarding = false;
     this.blocksWaveClear = false;
@@ -230,7 +230,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
     this.redirectedToBoss = true;
     this.gundosGuarding = false;
     this.gundosDirection = boss && boss.x < this.x ? -1 : 1;
-    this.gundosSpeed = Math.max(this.gundosSpeed, 8.2);
+    this.gundosSpeed = Math.max(this.gundosSpeed, 12.3);
     this.facing = this.gundosDirection >= 0 ? 1 : -1;
     this.flash = 260;
     this.state = 'gundosRedirected';
@@ -246,7 +246,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
   releaseGundosGuard() {
     if (!this.gundosGuarding) return;
     this.gundosGuarding = false;
-    this.gundosSpeed = 4.8 + Math.random() * 0.9;
+    this.gundosSpeed = 7.2 + Math.random() * 1.35;
     this.state = 'gundosCharge';
     this.intent = 'gundosCharge';
   }

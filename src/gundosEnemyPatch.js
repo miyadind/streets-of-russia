@@ -21,7 +21,7 @@
   GAME_CONFIG.enemies.gundos = Object.assign({
     name: 'gundos',
     hp: 6,
-    speed: 1.25,
+    speed: 1.875,
     scale: 0.266,
     damage: 0,
     blocksWaveClear: true,
@@ -50,7 +50,7 @@
     if (Number(config.introSequenceVersion) >= 7) return;
     Object.assign(config, {
       introSequenceVersion: 7,
-      speed: 1.25,
+      speed: 1.875,
       hp: 6,
       scale: 0.266,
       devilLeadMs: DEVIL_LEAD_MS,
