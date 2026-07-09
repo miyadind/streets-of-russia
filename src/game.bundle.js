@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.21',
+  buildVersion: '0.4.22',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -42,6 +42,7 @@ const GAME_CONFIG = {
   enemySeparationIterations: 2,
   enemyAttackSlotRadiusX: 46,
   enemyAttackSlotRadiusY: 24,
+  enemyOffscreenMargin: 180,
   yHitTolerance: 28,
   combatLaneCount: 3,
   discreteCombatLanes: true,
@@ -202,6 +203,9 @@ const GAME_CONFIG = {
       windupMs: 560,
       slideRecoveryMs: 650,
       interruptedRecoveryMs: 1100,
+      fastRetreatSpeed: 14.5,
+      fastRetreatMs: 620,
+      hitsBeforeFastRetreat: 2,
       counterRangeX: 150,
       counterRangeY: 58,
       pinDurationMs: 1700,
@@ -1924,8 +1928,13 @@ class DogRegimeEnemy {
   }
 
   clampToScreen() {
-    this.x = Math.max(45, Math.min(GAME_CONFIG.width - 45, this.x));
+    const margin = this.alive ? (GAME_CONFIG.enemyOffscreenMargin || 180) : 45;
+    this.x = Math.max(-margin, Math.min(GAME_CONFIG.width + margin, this.x));
     this.y = Math.max(GAME_CONFIG.laneTop, Math.min(GAME_CONFIG.laneBottom, this.y));
+  }
+
+  isOffscreenX(padding = 45) {
+    return this.x < padding || this.x > GAME_CONFIG.width - padding;
   }
 
   update(dt, scene) {
@@ -1968,6 +1977,12 @@ class DogRegimeEnemy {
     const absX = Math.abs(dx);
     const absY = Math.abs(player.y - this.y);
     this.facing = dx >= 0 ? 1 : -1;
+
+    if (this.isOffscreenX()) {
+      this.intent = 'approach';
+      this.retreatTimer = 0;
+      this.decisionTimer = Math.min(this.decisionTimer, 80);
+    }
 
     if (this.state === 'attack') {
       this.updateAttack(dt, scene);
@@ -2043,6 +2058,13 @@ class DogRegimeEnemy {
 
   moveWithSpacing(dt, scene, canAttackNow) {
     const player = scene.player;
+    if (this.isOffscreenX()) {
+      const returnX = this.x < 45 ? 1 : -1;
+      const returnY = Math.abs(player.y - this.y) > 10 ? Math.sign(player.y - this.y) : 0;
+      this.applyMovement(returnX, returnY, dt);
+      return;
+    }
+
     const slot = this.getCombatSlot(scene, player);
     const target = this.getSlotTarget(player, slot, canAttackNow);
     const dxToPlayer = player.x - this.x;
@@ -2143,6 +2165,7 @@ class DogRegimeEnemy {
 
   applyMovement(moveX, moveY, dt) {
     if (moveX === 0 && moveY === 0) return;
+    if (this.isOffscreenX()) moveX = this.x < 45 ? 1 : -1;
     const len = Math.hypot(moveX, moveY);
     moveX /= len;
     moveY /= len;
@@ -2458,16 +2481,6 @@ class ZetnikEnemy extends DogRegimeEnemy {
 
     if (this.flash > 0) this.flash -= dt;
 
-    if (this.state === 'prepareJump') {
-      this.updatePrepareJump(dt, scene);
-      return;
-    }
-
-    if (this.state === 'jump') {
-      this.updateJump(dt, scene);
-      return;
-    }
-
     if (this.state === 'crash') {
       this.updateCrash(dt);
       return;
@@ -2487,13 +2500,34 @@ class ZetnikEnemy extends DogRegimeEnemy {
     const absY = Math.abs(dy);
     this.facing = dx >= 0 ? 1 : -1;
 
-    if (this.shouldStartJump(player, absX, absY)) {
-      this.startPrepareJump(player);
-      return;
-    }
-
-    this.approachCarefully(dt, player, dx, dy, absX, absY);
+    this.updateCharge(dt, scene, player, dx, dy, absX, absY);
     this.clampToScreen();
+  }
+
+  updateCharge(dt, scene, player, dx, dy, absX, absY) {
+    this.state = 'charge';
+    this.intent = 'attack';
+
+    let moveX = Math.sign(dx || this.facing || 1);
+    let moveY = absY > 10 ? Math.sign(dy) : 0;
+    this.applyMovement(moveX, moveY, dt);
+
+    if (player.state === 'knockdown' || player.state === 'pinned') return;
+    if (!Combat.canProjectileHit(this, player, {
+      attackBox: this.getHurtbox(),
+      laneY: this.y,
+      laneTolerance: GAME_CONFIG.yHitTolerance
+    })) return;
+
+    const hit = player.receiveDamage(this.damage, {
+      source: 'ranged',
+      knockbackX: this.facing * this.crashKnockbackX,
+      knockdownMs: this.knockdownMs
+    });
+    if (hit) {
+      this.jumpTargetY = this.y;
+      this.finishCrash(scene);
+    }
   }
 
   shouldStartJump(player, absX, absY) {
@@ -2758,7 +2792,6 @@ class ZetnikEnemy extends DogRegimeEnemy {
       }
       return;
     }
-    if (this.state === 'jump' || this.state === 'prepareJump') return;
     super.takeHit(damage, direction, knockback);
   }
 
@@ -2783,8 +2816,6 @@ class ZetnikEnemy extends DogRegimeEnemy {
     if (this.gundosMinion) return this.redirectedToBoss
       ? (enemyImages.fly || enemyImages.preparing || enemyImages.attack[0] || enemyImages.idle)
       : (enemyImages.walk[this.walkFrame] || enemyImages.idle || enemyImages.preparing || enemyImages.attack[0]);
-    if (this.state === 'prepareJump') return enemyImages.preparing || enemyImages.attack[0] || enemyImages.idle;
-    if (this.state === 'jump') return enemyImages.fly || enemyImages.attack[0] || enemyImages.idle;
     if (this.hitStun > 0) return enemyImages.idle;
     return enemyImages.walk[this.walkFrame] || enemyImages.idle;
   }
@@ -2837,6 +2868,9 @@ class SuckerEnemy extends DogRegimeEnemy {
     this.biteTimer = 0;
     this.biteFrame = 0;
     this.hasPinnedPlayer = false;
+    this.hitsSinceFastRetreat = 0;
+    this.fastRetreatTimer = 0;
+    this.fastRetreatDirection = -1;
   }
 
   applyTuning(resetHp = false) {
@@ -2853,6 +2887,9 @@ class SuckerEnemy extends DogRegimeEnemy {
     this.windupMs = config.windupMs;
     this.slideRecoveryMs = config.slideRecoveryMs;
     this.interruptedRecoveryMs = config.interruptedRecoveryMs || config.slideRecoveryMs || 900;
+    this.fastRetreatSpeed = config.fastRetreatSpeed || Math.max(this.slideSpeed * 1.15, 12);
+    this.fastRetreatMs = config.fastRetreatMs || 620;
+    this.hitsBeforeFastRetreat = config.hitsBeforeFastRetreat || 2;
     this.pinDurationMs = config.pinDurationMs;
     this.biteTickMs = config.biteTickMs;
     this.biteDamage = config.biteDamage;
@@ -2900,6 +2937,11 @@ class SuckerEnemy extends DogRegimeEnemy {
       return;
     }
 
+    if (this.state === 'fastRetreat') {
+      this.updateFastRetreat(dt, scene);
+      return;
+    }
+
     if (this.state === 'pinBite') {
       this.updatePinBite(dt, scene);
       return;
@@ -2922,6 +2964,7 @@ class SuckerEnemy extends DogRegimeEnemy {
       const len = Math.hypot(moveX, moveY);
       moveX /= len;
       moveY /= len;
+      if (this.isOffscreenX && this.isOffscreenX()) moveX = this.x < 45 ? 1 : -1;
       this.x += moveX * this.speed;
       this.y += moveY * this.speed * GAME_CONFIG.ySpeedMultiplier;
       this.updateWalkFrame(dt);
@@ -3013,7 +3056,9 @@ class SuckerEnemy extends DogRegimeEnemy {
       this.alive = false;
       this.state = 'dead';
       this.deadTimer = 0;
+      return;
     }
+    this.registerFastRetreatHit(player.facing);
   }
 
   updateInterrupted(dt) {
@@ -3021,6 +3066,44 @@ class SuckerEnemy extends DogRegimeEnemy {
     if (this.recoveryTimer <= 0 && this.alive) {
       this.state = 'reposition';
       this.hitStun = 0;
+    }
+  }
+
+  registerFastRetreatHit(direction) {
+    this.hitsSinceFastRetreat += 1;
+    if (this.hitsSinceFastRetreat < this.hitsBeforeFastRetreat) return;
+    this.startFastRetreat(direction);
+  }
+
+  startFastRetreat(direction) {
+    this.hitsSinceFastRetreat = 0;
+    this.fastRetreatDirection = direction || -this.facing || 1;
+    this.fastRetreatTimer = this.fastRetreatMs;
+    this.hitStun = 0;
+    this.recoveryTimer = 0;
+    this.state = 'fastRetreat';
+    this.intent = 'retreat';
+    this.attackTimer = 0;
+    this.attackHasHit = false;
+    this.facing = -this.fastRetreatDirection;
+  }
+
+  updateFastRetreat(dt, scene) {
+    this.fastRetreatTimer -= dt;
+    const player = scene && scene.player;
+    const frameScale = Math.max(0.65, Math.min(1.75, dt / 16.67));
+    this.x += this.fastRetreatDirection * this.fastRetreatSpeed * frameScale;
+    if (player && Math.abs(player.y - this.y) > this.alignToleranceY * 0.6) {
+      this.y += Math.sign(player.y - this.y) * this.speed * GAME_CONFIG.ySpeedMultiplier;
+    }
+    this.y = Math.max(GAME_CONFIG.laneTop, Math.min(GAME_CONFIG.laneBottom, this.y));
+    this.updateWalkFrame(dt);
+
+    const margin = GAME_CONFIG.enemyOffscreenMargin || 180;
+    if (this.fastRetreatTimer <= 0 || this.x < -margin || this.x > GAME_CONFIG.width + margin) {
+      this.state = 'reposition';
+      this.intent = 'approach';
+      this.fastRetreatTimer = 0;
     }
   }
 
@@ -3094,8 +3177,11 @@ class SuckerEnemy extends DogRegimeEnemy {
     if (!this.alive) return;
     super.takeHit(damage, direction, knockback);
     if (this.alive) {
-      this.state = 'recovery';
-      this.recoveryTimer = this.slideRecoveryMs;
+      this.registerFastRetreatHit(direction);
+      if (this.state !== 'fastRetreat') {
+        this.state = 'recovery';
+        this.recoveryTimer = this.slideRecoveryMs;
+      }
     }
   }
 
@@ -3118,6 +3204,7 @@ class SuckerEnemy extends DogRegimeEnemy {
     if (this.state === 'slide') return enemyImages.slide || enemyImages.attack[0];
     if (this.state === 'pinBite') return enemyImages.bite[this.biteFrame] || enemyImages.attack[0];
     if (this.state === 'windup') return enemyImages.idle;
+    if (this.state === 'fastRetreat') return enemyImages.walk[this.walkFrame] || enemyImages.idle;
     if (this.state === 'interrupted') return enemyImages.dead || enemyImages.idle;
     if (this.hitStun > 0) return enemyImages.idle;
     return enemyImages.walk[this.walkFrame] || enemyImages.idle;
@@ -5595,7 +5682,11 @@ const DevPanel = {
       'enemies.zetnik.speed': DEFAULT_GAME_CONFIG.enemies.zetnik.speed,
       'enemies.sucker.speed': DEFAULT_GAME_CONFIG.enemies.sucker.speed,
       'enemies.sucker.slideSpeed': DEFAULT_GAME_CONFIG.enemies.sucker.slideSpeed,
+      'enemies.sucker.fastRetreatSpeed': DEFAULT_GAME_CONFIG.enemies.sucker.fastRetreatSpeed,
+      'enemies.sucker.fastRetreatMs': DEFAULT_GAME_CONFIG.enemies.sucker.fastRetreatMs,
+      'enemies.sucker.hitsBeforeFastRetreat': DEFAULT_GAME_CONFIG.enemies.sucker.hitsBeforeFastRetreat,
       'enemies.bastard.speed': DEFAULT_GAME_CONFIG.enemies.bastard.speed,
+      enemyOffscreenMargin: DEFAULT_GAME_CONFIG.enemyOffscreenMargin,
       'enemies.horse.speed': 2.025,
       'enemies.gundos.speed': 1.875
     };
@@ -5910,9 +6001,9 @@ const DevPanel = {
       };
     };
 
-    LevelScene.prototype.clampActorPosition = function (actor, marginX = 0) {
+    LevelScene.prototype.clampActorPosition = function (actor, marginX = 0, offscreenMargin = 0) {
       const zone = this.getWalkZone();
-      actor.x = clamp(actor.x, zone.left + marginX, zone.right - marginX);
+      actor.x = clamp(actor.x, zone.left + marginX - offscreenMargin, zone.right - marginX + offscreenMargin);
       actor.y = clamp(actor.y, zone.top, zone.bottom);
     };
 
@@ -6012,16 +6103,18 @@ const DevPanel = {
     DogRegimeEnemy.prototype.update = function (dt, scene) {
       this.__scene = scene;
       oldDogUpdate.call(this, dt, scene);
-      if (scene && typeof scene.clampActorPosition === 'function') scene.clampActorPosition(this, 45);
+      const offscreen = this.alive ? (GAME_CONFIG.enemyOffscreenMargin || 180) : 0;
+      if (scene && typeof scene.clampActorPosition === 'function') scene.clampActorPosition(this, 45, offscreen);
     };
 
     DogRegimeEnemy.prototype.clampToScreen = function () {
       const scene = this.__scene;
+      const offscreen = this.alive ? (GAME_CONFIG.enemyOffscreenMargin || 180) : 0;
       if (scene && typeof scene.clampActorPosition === 'function') {
-        scene.clampActorPosition(this, 45);
+        scene.clampActorPosition(this, 45, offscreen);
         return;
       }
-      this.x = clamp(this.x, 45, GAME_CONFIG.width - 45);
+      this.x = clamp(this.x, 45 - offscreen, GAME_CONFIG.width - 45 + offscreen);
       this.y = clamp(this.y, GAME_CONFIG.laneTop, GAME_CONFIG.laneBottom);
     };
   }
@@ -6031,7 +6124,8 @@ const DevPanel = {
     SuckerEnemy.prototype.update = function (dt, scene) {
       this.__scene = scene;
       oldSuckerUpdate.call(this, dt, scene);
-      if (scene && typeof scene.clampActorPosition === 'function') scene.clampActorPosition(this, 45);
+      const offscreen = this.alive ? (GAME_CONFIG.enemyOffscreenMargin || 180) : 0;
+      if (scene && typeof scene.clampActorPosition === 'function') scene.clampActorPosition(this, 45, offscreen);
     };
   }
 

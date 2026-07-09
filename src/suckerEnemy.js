@@ -11,6 +11,9 @@ class SuckerEnemy extends DogRegimeEnemy {
     this.biteTimer = 0;
     this.biteFrame = 0;
     this.hasPinnedPlayer = false;
+    this.hitsSinceFastRetreat = 0;
+    this.fastRetreatTimer = 0;
+    this.fastRetreatDirection = -1;
   }
 
   applyTuning(resetHp = false) {
@@ -27,6 +30,9 @@ class SuckerEnemy extends DogRegimeEnemy {
     this.windupMs = config.windupMs;
     this.slideRecoveryMs = config.slideRecoveryMs;
     this.interruptedRecoveryMs = config.interruptedRecoveryMs || config.slideRecoveryMs || 900;
+    this.fastRetreatSpeed = config.fastRetreatSpeed || Math.max(this.slideSpeed * 1.15, 12);
+    this.fastRetreatMs = config.fastRetreatMs || 620;
+    this.hitsBeforeFastRetreat = config.hitsBeforeFastRetreat || 2;
     this.pinDurationMs = config.pinDurationMs;
     this.biteTickMs = config.biteTickMs;
     this.biteDamage = config.biteDamage;
@@ -74,6 +80,11 @@ class SuckerEnemy extends DogRegimeEnemy {
       return;
     }
 
+    if (this.state === 'fastRetreat') {
+      this.updateFastRetreat(dt, scene);
+      return;
+    }
+
     if (this.state === 'pinBite') {
       this.updatePinBite(dt, scene);
       return;
@@ -96,6 +107,7 @@ class SuckerEnemy extends DogRegimeEnemy {
       const len = Math.hypot(moveX, moveY);
       moveX /= len;
       moveY /= len;
+      if (this.isOffscreenX && this.isOffscreenX()) moveX = this.x < 45 ? 1 : -1;
       this.x += moveX * this.speed;
       this.y += moveY * this.speed * GAME_CONFIG.ySpeedMultiplier;
       this.updateWalkFrame(dt);
@@ -187,7 +199,9 @@ class SuckerEnemy extends DogRegimeEnemy {
       this.alive = false;
       this.state = 'dead';
       this.deadTimer = 0;
+      return;
     }
+    this.registerFastRetreatHit(player.facing);
   }
 
   updateInterrupted(dt) {
@@ -195,6 +209,44 @@ class SuckerEnemy extends DogRegimeEnemy {
     if (this.recoveryTimer <= 0 && this.alive) {
       this.state = 'reposition';
       this.hitStun = 0;
+    }
+  }
+
+  registerFastRetreatHit(direction) {
+    this.hitsSinceFastRetreat += 1;
+    if (this.hitsSinceFastRetreat < this.hitsBeforeFastRetreat) return;
+    this.startFastRetreat(direction);
+  }
+
+  startFastRetreat(direction) {
+    this.hitsSinceFastRetreat = 0;
+    this.fastRetreatDirection = direction || -this.facing || 1;
+    this.fastRetreatTimer = this.fastRetreatMs;
+    this.hitStun = 0;
+    this.recoveryTimer = 0;
+    this.state = 'fastRetreat';
+    this.intent = 'retreat';
+    this.attackTimer = 0;
+    this.attackHasHit = false;
+    this.facing = -this.fastRetreatDirection;
+  }
+
+  updateFastRetreat(dt, scene) {
+    this.fastRetreatTimer -= dt;
+    const player = scene && scene.player;
+    const frameScale = Math.max(0.65, Math.min(1.75, dt / 16.67));
+    this.x += this.fastRetreatDirection * this.fastRetreatSpeed * frameScale;
+    if (player && Math.abs(player.y - this.y) > this.alignToleranceY * 0.6) {
+      this.y += Math.sign(player.y - this.y) * this.speed * GAME_CONFIG.ySpeedMultiplier;
+    }
+    this.y = Math.max(GAME_CONFIG.laneTop, Math.min(GAME_CONFIG.laneBottom, this.y));
+    this.updateWalkFrame(dt);
+
+    const margin = GAME_CONFIG.enemyOffscreenMargin || 180;
+    if (this.fastRetreatTimer <= 0 || this.x < -margin || this.x > GAME_CONFIG.width + margin) {
+      this.state = 'reposition';
+      this.intent = 'approach';
+      this.fastRetreatTimer = 0;
     }
   }
 
@@ -268,8 +320,11 @@ class SuckerEnemy extends DogRegimeEnemy {
     if (!this.alive) return;
     super.takeHit(damage, direction, knockback);
     if (this.alive) {
-      this.state = 'recovery';
-      this.recoveryTimer = this.slideRecoveryMs;
+      this.registerFastRetreatHit(direction);
+      if (this.state !== 'fastRetreat') {
+        this.state = 'recovery';
+        this.recoveryTimer = this.slideRecoveryMs;
+      }
     }
   }
 
@@ -292,6 +347,7 @@ class SuckerEnemy extends DogRegimeEnemy {
     if (this.state === 'slide') return enemyImages.slide || enemyImages.attack[0];
     if (this.state === 'pinBite') return enemyImages.bite[this.biteFrame] || enemyImages.attack[0];
     if (this.state === 'windup') return enemyImages.idle;
+    if (this.state === 'fastRetreat') return enemyImages.walk[this.walkFrame] || enemyImages.idle;
     if (this.state === 'interrupted') return enemyImages.dead || enemyImages.idle;
     if (this.hitStun > 0) return enemyImages.idle;
     return enemyImages.walk[this.walkFrame] || enemyImages.idle;

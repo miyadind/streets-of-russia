@@ -70,8 +70,13 @@ class DogRegimeEnemy {
   }
 
   clampToScreen() {
-    this.x = Math.max(45, Math.min(GAME_CONFIG.width - 45, this.x));
+    const margin = this.alive ? (GAME_CONFIG.enemyOffscreenMargin || 180) : 45;
+    this.x = Math.max(-margin, Math.min(GAME_CONFIG.width + margin, this.x));
     this.y = Math.max(GAME_CONFIG.laneTop, Math.min(GAME_CONFIG.laneBottom, this.y));
+  }
+
+  isOffscreenX(padding = 45) {
+    return this.x < padding || this.x > GAME_CONFIG.width - padding;
   }
 
   update(dt, scene) {
@@ -114,6 +119,12 @@ class DogRegimeEnemy {
     const absX = Math.abs(dx);
     const absY = Math.abs(player.y - this.y);
     this.facing = dx >= 0 ? 1 : -1;
+
+    if (this.isOffscreenX()) {
+      this.intent = 'approach';
+      this.retreatTimer = 0;
+      this.decisionTimer = Math.min(this.decisionTimer, 80);
+    }
 
     if (this.state === 'attack') {
       this.updateAttack(dt, scene);
@@ -189,6 +200,13 @@ class DogRegimeEnemy {
 
   moveWithSpacing(dt, scene, canAttackNow) {
     const player = scene.player;
+    if (this.isOffscreenX()) {
+      const returnX = this.x < 45 ? 1 : -1;
+      const returnY = Math.abs(player.y - this.y) > 10 ? Math.sign(player.y - this.y) : 0;
+      this.applyMovement(returnX, returnY, dt);
+      return;
+    }
+
     const slot = this.getCombatSlot(scene, player);
     const target = this.getSlotTarget(player, slot, canAttackNow);
     const dxToPlayer = player.x - this.x;
@@ -289,6 +307,7 @@ class DogRegimeEnemy {
 
   applyMovement(moveX, moveY, dt) {
     if (moveX === 0 && moveY === 0) return;
+    if (this.isOffscreenX()) moveX = this.x < 45 ? 1 : -1;
     const len = Math.hypot(moveX, moveY);
     moveX /= len;
     moveY /= len;

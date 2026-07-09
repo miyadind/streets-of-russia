@@ -99,9 +99,9 @@
       };
     };
 
-    LevelScene.prototype.clampActorPosition = function (actor, marginX = 0) {
+    LevelScene.prototype.clampActorPosition = function (actor, marginX = 0, offscreenMargin = 0) {
       const zone = this.getWalkZone();
-      actor.x = clamp(actor.x, zone.left + marginX, zone.right - marginX);
+      actor.x = clamp(actor.x, zone.left + marginX - offscreenMargin, zone.right - marginX + offscreenMargin);
       actor.y = clamp(actor.y, zone.top, zone.bottom);
     };
 
@@ -201,16 +201,18 @@
     DogRegimeEnemy.prototype.update = function (dt, scene) {
       this.__scene = scene;
       oldDogUpdate.call(this, dt, scene);
-      if (scene && typeof scene.clampActorPosition === 'function') scene.clampActorPosition(this, 45);
+      const offscreen = this.alive ? (GAME_CONFIG.enemyOffscreenMargin || 180) : 0;
+      if (scene && typeof scene.clampActorPosition === 'function') scene.clampActorPosition(this, 45, offscreen);
     };
 
     DogRegimeEnemy.prototype.clampToScreen = function () {
       const scene = this.__scene;
+      const offscreen = this.alive ? (GAME_CONFIG.enemyOffscreenMargin || 180) : 0;
       if (scene && typeof scene.clampActorPosition === 'function') {
-        scene.clampActorPosition(this, 45);
+        scene.clampActorPosition(this, 45, offscreen);
         return;
       }
-      this.x = clamp(this.x, 45, GAME_CONFIG.width - 45);
+      this.x = clamp(this.x, 45 - offscreen, GAME_CONFIG.width - 45 + offscreen);
       this.y = clamp(this.y, GAME_CONFIG.laneTop, GAME_CONFIG.laneBottom);
     };
   }
@@ -220,7 +222,8 @@
     SuckerEnemy.prototype.update = function (dt, scene) {
       this.__scene = scene;
       oldSuckerUpdate.call(this, dt, scene);
-      if (scene && typeof scene.clampActorPosition === 'function') scene.clampActorPosition(this, 45);
+      const offscreen = this.alive ? (GAME_CONFIG.enemyOffscreenMargin || 180) : 0;
+      if (scene && typeof scene.clampActorPosition === 'function') scene.clampActorPosition(this, 45, offscreen);
     };
   }
 

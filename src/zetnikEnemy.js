@@ -59,16 +59,6 @@ class ZetnikEnemy extends DogRegimeEnemy {
 
     if (this.flash > 0) this.flash -= dt;
 
-    if (this.state === 'prepareJump') {
-      this.updatePrepareJump(dt, scene);
-      return;
-    }
-
-    if (this.state === 'jump') {
-      this.updateJump(dt, scene);
-      return;
-    }
-
     if (this.state === 'crash') {
       this.updateCrash(dt);
       return;
@@ -88,13 +78,34 @@ class ZetnikEnemy extends DogRegimeEnemy {
     const absY = Math.abs(dy);
     this.facing = dx >= 0 ? 1 : -1;
 
-    if (this.shouldStartJump(player, absX, absY)) {
-      this.startPrepareJump(player);
-      return;
-    }
-
-    this.approachCarefully(dt, player, dx, dy, absX, absY);
+    this.updateCharge(dt, scene, player, dx, dy, absX, absY);
     this.clampToScreen();
+  }
+
+  updateCharge(dt, scene, player, dx, dy, absX, absY) {
+    this.state = 'charge';
+    this.intent = 'attack';
+
+    let moveX = Math.sign(dx || this.facing || 1);
+    let moveY = absY > 10 ? Math.sign(dy) : 0;
+    this.applyMovement(moveX, moveY, dt);
+
+    if (player.state === 'knockdown' || player.state === 'pinned') return;
+    if (!Combat.canProjectileHit(this, player, {
+      attackBox: this.getHurtbox(),
+      laneY: this.y,
+      laneTolerance: GAME_CONFIG.yHitTolerance
+    })) return;
+
+    const hit = player.receiveDamage(this.damage, {
+      source: 'ranged',
+      knockbackX: this.facing * this.crashKnockbackX,
+      knockdownMs: this.knockdownMs
+    });
+    if (hit) {
+      this.jumpTargetY = this.y;
+      this.finishCrash(scene);
+    }
   }
 
   shouldStartJump(player, absX, absY) {
@@ -359,7 +370,6 @@ class ZetnikEnemy extends DogRegimeEnemy {
       }
       return;
     }
-    if (this.state === 'jump' || this.state === 'prepareJump') return;
     super.takeHit(damage, direction, knockback);
   }
 
@@ -384,8 +394,6 @@ class ZetnikEnemy extends DogRegimeEnemy {
     if (this.gundosMinion) return this.redirectedToBoss
       ? (enemyImages.fly || enemyImages.preparing || enemyImages.attack[0] || enemyImages.idle)
       : (enemyImages.walk[this.walkFrame] || enemyImages.idle || enemyImages.preparing || enemyImages.attack[0]);
-    if (this.state === 'prepareJump') return enemyImages.preparing || enemyImages.attack[0] || enemyImages.idle;
-    if (this.state === 'jump') return enemyImages.fly || enemyImages.attack[0] || enemyImages.idle;
     if (this.hitStun > 0) return enemyImages.idle;
     return enemyImages.walk[this.walkFrame] || enemyImages.idle;
   }

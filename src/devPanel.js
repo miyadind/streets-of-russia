@@ -623,7 +623,11 @@ const DevPanel = {
       'enemies.zetnik.speed': DEFAULT_GAME_CONFIG.enemies.zetnik.speed,
       'enemies.sucker.speed': DEFAULT_GAME_CONFIG.enemies.sucker.speed,
       'enemies.sucker.slideSpeed': DEFAULT_GAME_CONFIG.enemies.sucker.slideSpeed,
+      'enemies.sucker.fastRetreatSpeed': DEFAULT_GAME_CONFIG.enemies.sucker.fastRetreatSpeed,
+      'enemies.sucker.fastRetreatMs': DEFAULT_GAME_CONFIG.enemies.sucker.fastRetreatMs,
+      'enemies.sucker.hitsBeforeFastRetreat': DEFAULT_GAME_CONFIG.enemies.sucker.hitsBeforeFastRetreat,
       'enemies.bastard.speed': DEFAULT_GAME_CONFIG.enemies.bastard.speed,
+      enemyOffscreenMargin: DEFAULT_GAME_CONFIG.enemyOffscreenMargin,
       'enemies.horse.speed': 2.025,
       'enemies.gundos.speed': 1.875
     };
