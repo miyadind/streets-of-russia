@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.30',
+  buildVersion: '0.4.31',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -103,10 +103,10 @@ const GAME_CONFIG = {
       speedStat: 3,
       health: 8,
       color: '#5fd65f',
-      abilities: { rangedImmune: true },
+      abilities: { rangedDamageMultiplier: 0.5 },
       tagline: 'Тяжёлый боец с большим запасом здоровья',
       bio: 'Политик старой школы, который не отступает, когда улица становится опасной. В игре Борис медленнее остальных, но зато выдерживает больше ударов и бьёт тяжелее.',
-      ability: 'Стальная выдержка: Борис не получает урон от дальних атак. Прыжковые и разгонные атаки врагов по нему не проходят.'
+      ability: 'Стальная выдержка: Борис получает только половину урона от дальних атак. Прыжковые и разгонные атаки врагов по нему проходят слабее.'
     }
   },
 
@@ -1578,12 +1578,15 @@ class Player {
     if (this.invulnerableTimer > 0 && !options.ignoreInvulnerability) return false;
 
     const source = options.source || 'melee';
-    if (source === 'ranged' && this.abilities.rangedImmune) {
+    let damageAmount = Math.max(0, amount || 0);
+    if (source === 'ranged' && Number.isFinite(this.abilities.rangedDamageMultiplier)) {
+      damageAmount *= Math.max(0, this.abilities.rangedDamageMultiplier);
+    } else if (source === 'ranged' && this.abilities.rangedImmune) {
       AudioManager.playSfx('menuMove', 0.45, { playbackRate: 0.72 });
       return false;
     }
 
-    this.hp = Math.max(0, this.hp - Math.max(0, amount || 0));
+    this.hp = Math.max(0, this.hp - damageAmount);
 
     if (options.knockbackX) {
       const knockbackMultiplier = source === 'melee' ? 2.1 : 1;
@@ -3098,7 +3101,10 @@ class SuckerEnemy extends DogRegimeEnemy {
       return;
     }
 
-    if (this.slideDistance >= this.slideRange || this.x < 40 || this.x > GAME_CONFIG.width - 40) {
+    const margin = GAME_CONFIG.enemyOffscreenMargin || 180;
+    const leftExit = this.slideDirection < 0 && this.x < -margin;
+    const rightExit = this.slideDirection > 0 && this.x > GAME_CONFIG.width + margin;
+    if (this.slideDistance >= this.slideRange || leftExit || rightExit) {
       this.state = 'recovery';
       this.recoveryTimer = this.slideRecoveryMs;
     }

@@ -122,12 +122,15 @@ class Player {
     if (this.invulnerableTimer > 0 && !options.ignoreInvulnerability) return false;
 
     const source = options.source || 'melee';
-    if (source === 'ranged' && this.abilities.rangedImmune) {
+    let damageAmount = Math.max(0, amount || 0);
+    if (source === 'ranged' && Number.isFinite(this.abilities.rangedDamageMultiplier)) {
+      damageAmount *= Math.max(0, this.abilities.rangedDamageMultiplier);
+    } else if (source === 'ranged' && this.abilities.rangedImmune) {
       AudioManager.playSfx('menuMove', 0.45, { playbackRate: 0.72 });
       return false;
     }
 
-    this.hp = Math.max(0, this.hp - Math.max(0, amount || 0));
+    this.hp = Math.max(0, this.hp - damageAmount);
 
     if (options.knockbackX) {
       const knockbackMultiplier = source === 'melee' ? 2.1 : 1;

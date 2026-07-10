@@ -182,7 +182,10 @@ class SuckerEnemy extends DogRegimeEnemy {
       return;
     }
 
-    if (this.slideDistance >= this.slideRange || this.x < 40 || this.x > GAME_CONFIG.width - 40) {
+    const margin = GAME_CONFIG.enemyOffscreenMargin || 180;
+    const leftExit = this.slideDirection < 0 && this.x < -margin;
+    const rightExit = this.slideDirection > 0 && this.x > GAME_CONFIG.width + margin;
+    if (this.slideDistance >= this.slideRange || leftExit || rightExit) {
       this.state = 'recovery';
       this.recoveryTimer = this.slideRecoveryMs;
     }
