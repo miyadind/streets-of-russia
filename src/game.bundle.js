@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.22',
+  buildVersion: '0.4.23',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -43,6 +43,7 @@ const GAME_CONFIG = {
   enemyAttackSlotRadiusX: 46,
   enemyAttackSlotRadiusY: 24,
   enemyOffscreenMargin: 180,
+  pushboxLaneTolerance: 12,
   yHitTolerance: 28,
   combatLaneCount: 3,
   discreteCombatLanes: true,
@@ -1043,6 +1044,23 @@ const Combat = {
     return aBand.top <= bBand.bottom && aBand.bottom >= bBand.top;
   },
 
+  verticalBandsOverlap(aTop, aBottom, bTop, bBottom, tolerance = 0) {
+    return aTop <= bBottom + tolerance && aBottom >= bTop - tolerance;
+  },
+
+  pushboxLaneCanConnect(attacker, target, tolerance = GAME_CONFIG.pushboxLaneTolerance || 12) {
+    const attackerPush = attacker && typeof attacker.getPushbox === 'function' ? attacker.getPushbox() : null;
+    const targetPush = target && typeof target.getPushbox === 'function' ? target.getPushbox() : null;
+    if (!attackerPush || !targetPush) return null;
+    return this.verticalBandsOverlap(
+      attackerPush.y,
+      attackerPush.y + attackerPush.h,
+      targetPush.y,
+      targetPush.y + targetPush.h,
+      tolerance
+    );
+  },
+
   actorOnLane(actor, laneY, tolerance = GAME_CONFIG.yHitTolerance) {
     if (!Number.isFinite(laneY)) return true;
     const band = this.actorFootBand(actor, tolerance);
@@ -1050,6 +1068,9 @@ const Combat = {
   },
 
   laneCanConnect(attacker, target, options = {}) {
+    const pushboxResult = this.pushboxLaneCanConnect(attacker, target, options.pushboxLaneTolerance);
+    if (pushboxResult !== null) return pushboxResult;
+
     const tolerance = options.laneTolerance || GAME_CONFIG.yHitTolerance || 28;
     if (Number.isFinite(options.laneY)) return this.actorOnLane(target, options.laneY, tolerance);
     return this.footBandsOverlap(attacker, target, tolerance);
@@ -2833,10 +2854,6 @@ class ZetnikEnemy extends DogRegimeEnemy {
 
     ctx.save();
     ctx.globalAlpha = alpha;
-    if (this.redirectedToBoss && this.flash > 0) {
-      ctx.shadowColor = '#66ff66';
-      ctx.shadowBlur = 22;
-    }
     ctx.translate(this.x, this.y);
     if (this.facing === -1) ctx.scale(-1, 1);
     ctx.drawImage(img, -w / 2, -h, w, h);
@@ -5984,6 +6001,48 @@ const DevPanel = {
     return zone;
   }
 
+  function buildLevelAreaExport() {
+    ensureAllLevelAreas();
+    const levels = {};
+    for (const key of levelKeys()) {
+      const level = GAME_CONFIG.levels[key];
+      ensureLevelArea(level);
+      levels[key] = {
+        walkZone: {
+          left: level.walkZone.left,
+          right: level.walkZone.right,
+          top: level.walkZone.top,
+          bottom: level.walkZone.bottom
+        },
+        playerStart: {
+          x: level.playerStart.x,
+          y: level.playerStart.y
+        },
+        enemySpawnMargin: {
+          x: level.enemySpawnMargin.x,
+          y: level.enemySpawnMargin.y
+        }
+      };
+    }
+    return {
+      buildVersion: GAME_CONFIG.buildVersion,
+      exportedAt: new Date().toISOString(),
+      levels
+    };
+  }
+
+  function exportLevelAreas() {
+    const data = buildLevelAreaExport();
+    const text = JSON.stringify(data, null, 2);
+    localStorage.setItem('streetsOfRussia.levelAreas.export', text);
+    console.log('STREETS_OF_RUSSIA_LEVEL_AREAS_EXPORT');
+    console.log(text);
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).catch(() => {});
+    }
+    return data;
+  }
+
   ensureAllLevelAreas();
 
   if (typeof LevelScene !== 'undefined') {
@@ -6342,6 +6401,7 @@ const DevPanel = {
     const oldExportConfig = DevPanel.exportConfig;
     DevPanel.exportConfig = function () {
       ensureAllLevelAreas();
+      exportLevelAreas();
       oldExportConfig.call(this);
     };
   }
@@ -6350,6 +6410,8 @@ const DevPanel = {
     ensureAllLevelAreas,
     ensureLevelArea,
     getWalkZone,
+    buildLevelAreaExport,
+    exportLevelAreas,
     syncLegacyLane
   };
 })();

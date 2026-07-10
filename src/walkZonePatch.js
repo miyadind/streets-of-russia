@@ -82,6 +82,48 @@
     return zone;
   }
 
+  function buildLevelAreaExport() {
+    ensureAllLevelAreas();
+    const levels = {};
+    for (const key of levelKeys()) {
+      const level = GAME_CONFIG.levels[key];
+      ensureLevelArea(level);
+      levels[key] = {
+        walkZone: {
+          left: level.walkZone.left,
+          right: level.walkZone.right,
+          top: level.walkZone.top,
+          bottom: level.walkZone.bottom
+        },
+        playerStart: {
+          x: level.playerStart.x,
+          y: level.playerStart.y
+        },
+        enemySpawnMargin: {
+          x: level.enemySpawnMargin.x,
+          y: level.enemySpawnMargin.y
+        }
+      };
+    }
+    return {
+      buildVersion: GAME_CONFIG.buildVersion,
+      exportedAt: new Date().toISOString(),
+      levels
+    };
+  }
+
+  function exportLevelAreas() {
+    const data = buildLevelAreaExport();
+    const text = JSON.stringify(data, null, 2);
+    localStorage.setItem('streetsOfRussia.levelAreas.export', text);
+    console.log('STREETS_OF_RUSSIA_LEVEL_AREAS_EXPORT');
+    console.log(text);
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).catch(() => {});
+    }
+    return data;
+  }
+
   ensureAllLevelAreas();
 
   if (typeof LevelScene !== 'undefined') {
@@ -440,6 +482,7 @@
     const oldExportConfig = DevPanel.exportConfig;
     DevPanel.exportConfig = function () {
       ensureAllLevelAreas();
+      exportLevelAreas();
       oldExportConfig.call(this);
     };
   }
@@ -448,6 +491,8 @@
     ensureAllLevelAreas,
     ensureLevelArea,
     getWalkZone,
+    buildLevelAreaExport,
+    exportLevelAreas,
     syncLegacyLane
   };
 })();

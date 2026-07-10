@@ -76,6 +76,23 @@ const Combat = {
     return aBand.top <= bBand.bottom && aBand.bottom >= bBand.top;
   },
 
+  verticalBandsOverlap(aTop, aBottom, bTop, bBottom, tolerance = 0) {
+    return aTop <= bBottom + tolerance && aBottom >= bTop - tolerance;
+  },
+
+  pushboxLaneCanConnect(attacker, target, tolerance = GAME_CONFIG.pushboxLaneTolerance || 12) {
+    const attackerPush = attacker && typeof attacker.getPushbox === 'function' ? attacker.getPushbox() : null;
+    const targetPush = target && typeof target.getPushbox === 'function' ? target.getPushbox() : null;
+    if (!attackerPush || !targetPush) return null;
+    return this.verticalBandsOverlap(
+      attackerPush.y,
+      attackerPush.y + attackerPush.h,
+      targetPush.y,
+      targetPush.y + targetPush.h,
+      tolerance
+    );
+  },
+
   actorOnLane(actor, laneY, tolerance = GAME_CONFIG.yHitTolerance) {
     if (!Number.isFinite(laneY)) return true;
     const band = this.actorFootBand(actor, tolerance);
@@ -83,6 +100,9 @@ const Combat = {
   },
 
   laneCanConnect(attacker, target, options = {}) {
+    const pushboxResult = this.pushboxLaneCanConnect(attacker, target, options.pushboxLaneTolerance);
+    if (pushboxResult !== null) return pushboxResult;
+
     const tolerance = options.laneTolerance || GAME_CONFIG.yHitTolerance || 28;
     if (Number.isFinite(options.laneY)) return this.actorOnLane(target, options.laneY, tolerance);
     return this.footBandsOverlap(attacker, target, tolerance);

@@ -411,10 +411,6 @@ class ZetnikEnemy extends DogRegimeEnemy {
 
     ctx.save();
     ctx.globalAlpha = alpha;
-    if (this.redirectedToBoss && this.flash > 0) {
-      ctx.shadowColor = '#66ff66';
-      ctx.shadowBlur = 22;
-    }
     ctx.translate(this.x, this.y);
     if (this.facing === -1) ctx.scale(-1, 1);
     ctx.drawImage(img, -w / 2, -h, w, h);
