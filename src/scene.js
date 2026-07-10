@@ -399,7 +399,8 @@ class LevelScene {
     }
 
     if (this.player.hp <= 0) {
-      this.game.setState('characterSelect');
+      if (this.game && this.game.handleHeroDefeat) this.game.handleHeroDefeat(this);
+      else this.game.setState('characterSelect');
     }
   }
 
