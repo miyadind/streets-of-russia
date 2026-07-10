@@ -207,7 +207,11 @@
       const tab = this.getClickedTab(point);
       if (tab) { this.tab = tab; this.setStatus('Tab: ' + tab); return; }
       if (this.handleFooterClick(point, game)) return;
-      this.handleFieldsClick(point, game);
+      if (typeof this.handleLevelAreaClick === 'function') {
+        this.handleLevelAreaClick(point, game);
+      } else {
+        this.handleFieldsClick(point, game);
+      }
       return;
     }
     oldHandleClick.call(this, point, game);

@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.23',
+  buildVersion: '0.4.24',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -36,6 +36,8 @@ const GAME_CONFIG = {
   playerHitStopMs: 55,
   playerHitStunMs: 380,
   playerInvulnerableMs: 520,
+  playerReviveKnockdownMs: 950,
+  playerReviveTextMs: 1250,
   enemyBodyRadiusX: 42,
   enemyBodyRadiusY: 20,
   enemySeparationStrength: 0.55,
@@ -1482,9 +1484,12 @@ class Player {
     this.flash = 0;
     this.knockdownTimer = 0;
     this.pinnedBy = null;
+    this.reviveTextTimer = 0;
+    this.reviveText = '';
   }
 
   update(dt, scene) {
+    if (this.reviveTextTimer > 0) this.reviveTextTimer = Math.max(0, this.reviveTextTimer - dt);
     if (this.invulnerableTimer > 0) this.invulnerableTimer = Math.max(0, this.invulnerableTimer - dt);
     if (this.flash > 0) this.flash = Math.max(0, this.flash - dt);
 
@@ -1612,16 +1617,20 @@ class Player {
   tryRevive() {
     if (!this.abilities.reviveOnce || this.reviveUsed) return false;
     this.reviveUsed = true;
-    this.hp = Math.max(1, Math.round(this.maxHp * 0.5));
-    this.state = 'idle';
+    const restoredHp = Math.max(1, Math.round(this.maxHp * 0.5));
+    this.hp = restoredHp;
+    this.state = 'knockdown';
     this.hitStunTimer = 0;
-    this.invulnerableTimer = GAME_CONFIG.playerInvulnerableMs;
-    this.flash = GAME_CONFIG.playerInvulnerableMs;
-    this.knockdownTimer = 0;
+    this.invulnerableTimer = Math.max(GAME_CONFIG.playerInvulnerableMs, GAME_CONFIG.playerReviveKnockdownMs || 950);
+    this.flash = this.invulnerableTimer;
+    this.knockdownTimer = GAME_CONFIG.playerReviveKnockdownMs || 950;
     this.pinnedBy = null;
     this.attackTimer = 0;
     this.attackHasHit = false;
     this.comboStep = 0;
+    this.comboTimer = 0;
+    this.reviveText = '+' + restoredHp + ' HP';
+    this.reviveTextTimer = GAME_CONFIG.playerReviveTextMs || 1250;
     AudioManager.playSfx('waveClear', 0.75, { playbackRate: 1.12 });
     return true;
   }
@@ -1850,6 +1859,21 @@ class Player {
     if (this.flash > 0 && Math.floor(this.flash / 55) % 2 === 0) ctx.globalAlpha = 0.48;
     ctx.drawImage(img, -w / 2, -h, w, h);
     ctx.restore();
+
+    if (this.reviveTextTimer > 0) {
+      const ratio = Math.max(0, Math.min(1, this.reviveTextTimer / (GAME_CONFIG.playerReviveTextMs || 1250)));
+      const rise = (1 - ratio) * 32;
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, ratio * 1.5);
+      ctx.font = 'bold 24px Arial';
+      ctx.textAlign = 'center';
+      ctx.lineWidth = 5;
+      ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+      ctx.fillStyle = '#76ff8f';
+      ctx.strokeText(this.reviveText, this.x, this.y - h - 22 - rise);
+      ctx.fillText(this.reviveText, this.x, this.y - h - 22 - rise);
+      ctx.restore();
+    }
 
     if (debug && this.state === 'attack') {
       const hb = this.getHitbox();
@@ -6628,12 +6652,17 @@ const DevPanel = {
       const tab = this.getClickedTab(point);
       if (tab) { this.tab = tab; this.setStatus('Tab: ' + tab); return; }
       if (this.handleFooterClick(point, game)) return;
-      this.handleFieldsClick(point, game);
+      if (typeof this.handleLevelAreaClick === 'function') {
+        this.handleLevelAreaClick(point, game);
+      } else {
+        this.handleFieldsClick(point, game);
+      }
       return;
     }
     oldHandleClick.call(this, point, game);
   };
 })();
+
 
 
 /* ===== src/campaignMap.js ===== */

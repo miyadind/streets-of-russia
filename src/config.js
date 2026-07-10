@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  buildVersion: '0.4.23',
+  buildVersion: '0.4.24',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -29,6 +29,8 @@ const GAME_CONFIG = {
   playerHitStopMs: 55,
   playerHitStunMs: 380,
   playerInvulnerableMs: 520,
+  playerReviveKnockdownMs: 950,
+  playerReviveTextMs: 1250,
   enemyBodyRadiusX: 42,
   enemyBodyRadiusY: 20,
   enemySeparationStrength: 0.55,
