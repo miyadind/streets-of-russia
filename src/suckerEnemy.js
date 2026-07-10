@@ -9,6 +9,7 @@ class SuckerEnemy extends DogRegimeEnemy {
     this.recoveryTimer = 0;
     this.pinTimer = 0;
     this.biteTimer = 0;
+    this.biteCount = 0;
     this.biteFrame = 0;
     this.hasPinnedPlayer = false;
     this.hitsSinceFastRetreat = 0;
@@ -34,6 +35,8 @@ class SuckerEnemy extends DogRegimeEnemy {
     this.fastRetreatMs = config.fastRetreatMs || 620;
     this.hitsBeforeFastRetreat = config.hitsBeforeFastRetreat || 2;
     this.pinDurationMs = config.pinDurationMs;
+    this.pinEscapeMinBites = config.pinEscapeMinBites || 3;
+    this.pinHoldMs = config.pinHoldMs || 120000;
     this.biteTickMs = config.biteTickMs;
     this.biteDamage = config.biteDamage;
     this.otherEnemyScatterDistance = config.otherEnemyScatterDistance;
@@ -265,7 +268,7 @@ class SuckerEnemy extends DogRegimeEnemy {
     }
 
     player.knockDown(180);
-    if (!player.pinBy(this, this.pinDurationMs)) {
+    if (!player.pinBy(this, this.pinHoldMs)) {
       this.state = 'recovery';
       this.recoveryTimer = this.slideRecoveryMs;
       this.hasPinnedPlayer = false;
@@ -276,6 +279,7 @@ class SuckerEnemy extends DogRegimeEnemy {
     this.state = 'pinBite';
     this.pinTimer = 0;
     this.biteTimer = 0;
+    this.biteCount = 0;
     this.biteFrame = 0;
     this.hasPinnedPlayer = true;
     this.x = player.x - this.facing * 42;
@@ -286,6 +290,11 @@ class SuckerEnemy extends DogRegimeEnemy {
 
   updatePinBite(dt, scene) {
     const player = scene.player;
+    if (player.pinnedBy !== this || player.state !== 'pinned') {
+      this.releasePinnedPlayer(player);
+      return;
+    }
+
     this.pinTimer += dt;
     this.biteTimer += dt;
 
@@ -295,15 +304,33 @@ class SuckerEnemy extends DogRegimeEnemy {
     if (this.biteTimer >= this.biteTickMs) {
       this.biteTimer -= this.biteTickMs;
       this.biteFrame = 1 - this.biteFrame;
+      this.biteCount += 1;
       player.receiveDamage(this.biteDamage, { source: 'melee' });
     }
 
-    if (this.pinTimer >= this.pinDurationMs || player.hp <= 0) {
-      player.releaseFromPin();
-      this.state = 'recovery';
-      this.recoveryTimer = this.slideRecoveryMs;
-      this.hasPinnedPlayer = false;
+    if (player.hp <= 0) {
+      this.releasePinnedPlayer(player);
+      return;
     }
+
+    if (this.canEscapePin() && Input.consume('space')) {
+      if (player.playComboHitSound) player.playComboHitSound();
+      scene.hitStop = Math.max(scene.hitStop || 0, 45);
+      this.releasePinnedPlayer(player);
+    }
+  }
+
+  canEscapePin() {
+    return this.state === 'pinBite' && this.biteCount >= this.pinEscapeMinBites;
+  }
+
+  releasePinnedPlayer(player) {
+    if (player && player.pinnedBy === this) player.releaseFromPin();
+    this.state = 'recovery';
+    this.recoveryTimer = this.slideRecoveryMs;
+    this.hasPinnedPlayer = false;
+    this.pinTimer = 0;
+    this.biteTimer = 0;
   }
 
   scatterOtherEnemies(scene) {

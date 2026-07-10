@@ -422,6 +422,20 @@ class Player {
       ctx.restore();
     }
 
+    if (this.state === 'pinned' && this.pinnedBy && this.pinnedBy.canEscapePin && this.pinnedBy.canEscapePin()) {
+      const pulse = 0.72 + Math.sin(performance.now() / 95) * 0.28;
+      ctx.save();
+      ctx.globalAlpha = Math.max(0.35, pulse);
+      ctx.font = 'bold 22px Arial';
+      ctx.textAlign = 'center';
+      ctx.lineWidth = 5;
+      ctx.strokeStyle = 'rgba(0,0,0,0.86)';
+      ctx.fillStyle = '#ffef6f';
+      ctx.strokeText('PRESS ATTACK', this.x, this.y - h - 54);
+      ctx.fillText('PRESS ATTACK', this.x, this.y - h - 54);
+      ctx.restore();
+    }
+
     if (debug && this.state === 'attack') {
       const hb = this.getHitbox();
       ctx.strokeStyle = 'lime';

@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  buildVersion: '0.4.25',
+  buildVersion: '0.4.26',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -205,6 +205,8 @@ const GAME_CONFIG = {
       counterRangeX: 150,
       counterRangeY: 58,
       pinDurationMs: 1700,
+      pinEscapeMinBites: 3,
+      pinHoldMs: 120000,
       biteTickMs: 450,
       biteDamage: 6,
       otherEnemyScatterDistance: 120,
