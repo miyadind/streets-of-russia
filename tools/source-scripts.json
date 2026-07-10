@@ -50,5 +50,6 @@
   "src/saveSystemPatch.js",
   "src/storyFlowPatch.js",
   "src/sessionOnlyRunPatch.js",
-  "src/heroDefeatOverlayPatch.js"
+  "src/heroDefeatOverlayPatch.js",
+  "src/audioPauseGuardPatch.js"
 ]
