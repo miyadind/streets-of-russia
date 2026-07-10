@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.26',
+  buildVersion: '0.4.27',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -4745,6 +4745,7 @@ class LevelScene {
     this.nonBlockingWaveTimer = 0;
     this.pendingWave = null;
     this.pendingWaveTimer = 0;
+    this.scheduledGroups = [];
     this.spawnInitialWave();
   }
 
@@ -4774,6 +4775,7 @@ class LevelScene {
     this.nonBlockingWaveTimer = 0;
     this.pendingWave = null;
     this.pendingWaveTimer = 0;
+    this.scheduledGroups = [];
     this.spawnNextWave('onEnter');
   }
 
@@ -4869,7 +4871,7 @@ class LevelScene {
 
   materializeWave(wave) {
     this.spawnWave(wave);
-    this.encounterActive = this.hasWaveBlockers();
+    this.encounterActive = this.hasWaveBlockers() || this.hasScheduledGroups();
     this.encounterCleared = !this.encounterActive;
     this.nonBlockingWaveTimer = 0;
     this.pendingWave = null;
@@ -4882,30 +4884,60 @@ class LevelScene {
 
   spawnWave(wave) {
     this.enemies = this.enemies.filter(enemy => enemy && enemy.alive && enemy.enemyType === 'bastard');
-    let enemyId = this.enemies.length;
-    const playedAppearTypes = new Set();
+    this.scheduledGroups = [];
 
     for (const group of wave.enemies || []) {
-      const count = Math.max(0, Number(group.count) || 0);
-      for (let i = 0; i < count; i++) {
-        if (group.type === 'bastard' && this.enemies.some(enemy => enemy.enemyType === 'bastard' && enemy.alive)) {
-          continue;
-        }
-
-        const spawn = this.getSpawnPoint(group.side, i, count);
-        const enemy = this.createEnemy(group.type, spawn.x, spawn.y, enemyId);
-        if (enemy) {
-          this.enemies.push(enemy);
-          if (!playedAppearTypes.has(enemy.enemyType)) {
-            playedAppearTypes.add(enemy.enemyType);
-            this.playEnemyAppearSound(enemy.enemyType);
-          }
-          enemyId += 1;
-        }
-      }
+      const delayMs = Math.max(0, Number(group.delayMs) || 0);
+      if (delayMs > 0) this.scheduleEnemyGroup(group, delayMs);
+      else this.spawnEnemyGroup(group);
     }
 
     this.separateEnemies(16.67, true);
+  }
+
+  scheduleEnemyGroup(group, delayMs) {
+    this.scheduledGroups.push({
+      group: JSON.parse(JSON.stringify(group)),
+      timer: delayMs
+    });
+  }
+
+  updateScheduledGroups(dt) {
+    if (!this.scheduledGroups.length) return;
+    for (const item of this.scheduledGroups) item.timer -= dt;
+
+    const ready = this.scheduledGroups.filter(item => item.timer <= 0);
+    this.scheduledGroups = this.scheduledGroups.filter(item => item.timer > 0);
+    for (const item of ready) {
+      this.spawnEnemyGroup(item.group);
+      this.separateEnemies(16.67, true);
+    }
+  }
+
+  hasScheduledGroups() {
+    return this.scheduledGroups && this.scheduledGroups.length > 0;
+  }
+
+  spawnEnemyGroup(group) {
+    const count = Math.max(0, Number(group.count) || 0);
+    let enemyId = this.enemies.length;
+    let playedAppearSound = false;
+    for (let i = 0; i < count; i++) {
+      if (group.type === 'bastard' && this.enemies.some(enemy => enemy.enemyType === 'bastard' && enemy.alive)) {
+        continue;
+      }
+
+      const spawn = this.getSpawnPoint(group.side, i, count);
+      const enemy = this.createEnemy(group.type, spawn.x, spawn.y, enemyId);
+      if (!enemy) continue;
+
+      this.enemies.push(enemy);
+      if (!playedAppearSound) {
+        this.playEnemyAppearSound(enemy.enemyType);
+        playedAppearSound = true;
+      }
+      enemyId += 1;
+    }
   }
 
   getBossMusicKey(wave) {
@@ -5068,6 +5100,8 @@ class LevelScene {
       }
     }
 
+    this.updateScheduledGroups(dt);
+
     for (const enemy of this.enemies) enemy.update(dt, this);
     this.separateEnemies(dt);
     this.enemies = this.enemies.filter(enemy => !enemy.remove);
@@ -5083,7 +5117,7 @@ class LevelScene {
       }
     }
 
-    if (this.encounterActive && !this.enemies.some(enemy => this.isWaveBlocker(enemy))) {
+    if (this.encounterActive && !this.hasScheduledGroups() && !this.enemies.some(enemy => this.isWaveBlocker(enemy))) {
       AudioManager.playSfx('waveClear', 0.7);
       const spawnedNext = this.spawnNextWave('afterWaveCleared');
       if (!spawnedNext) {
@@ -5305,6 +5339,8 @@ const DevPanel = {
     if (this.inRect(point, r.countMinus)) { group.count = Math.max(0, group.count - 1); this.restartScene(game); this.setStatus('Count: ' + group.count); return true; }
     if (this.inRect(point, r.countPlus)) { group.count = Math.min(12, group.count + 1); this.restartScene(game); this.setStatus('Count: ' + group.count); return true; }
     if (this.inRect(point, r.sideBtn)) { group.side = this.nextValue(group.side, ['right', 'left', 'both']); this.restartScene(game); this.setStatus('Side: ' + group.side); return true; }
+    if (this.inRect(point, r.delayMinus)) { group.delayMs = Math.max(0, (Number(group.delayMs) || 0) - 500); this.restartScene(game); this.setStatus('Group delay: ' + this.formatDelay(group.delayMs)); return true; }
+    if (this.inRect(point, r.delayPlus)) { group.delayMs = Math.min(60000, (Number(group.delayMs) || 0) + 500); this.restartScene(game); this.setStatus('Group delay: ' + this.formatDelay(group.delayMs)); return true; }
     if (this.inRect(point, r.triggerBtn)) { wave.trigger = this.nextValue(wave.trigger, ['onEnter', 'afterWaveCleared']); this.restartScene(game); this.setStatus('Trigger: ' + wave.trigger); return true; }
     if (this.inRect(point, r.addGroup)) { this.addEnemyGroup(game); return true; }
     if (this.inRect(point, r.removeGroup)) { this.removeEnemyGroup(game); return true; }
@@ -5474,7 +5510,12 @@ const DevPanel = {
     this.drawRowLabel(ctx, 'Side:', r.box.x + 24, r.box.y + 340);
     this.drawButton(ctx, r.sideBtn.x, r.sideBtn.y, r.sideBtn.w, r.sideBtn.h, String(group.side).toUpperCase());
 
-    this.drawRowLabel(ctx, 'Trigger:', r.box.x + 24, r.box.y + 386);
+    this.drawRowLabel(ctx, 'Delay:', r.box.x + 24, r.box.y + 386);
+    this.drawButton(ctx, r.delayMinus.x, r.delayMinus.y, r.delayMinus.w, r.delayMinus.h, '-');
+    this.drawButton(ctx, r.delayPlus.x, r.delayPlus.y, r.delayPlus.w, r.delayPlus.h, '+');
+    this.drawValue(ctx, this.formatDelay(group.delayMs), r.box.x + 145, r.box.y + 386);
+
+    this.drawRowLabel(ctx, 'Trigger:', r.box.x + 24, r.box.y + 432);
     this.drawButton(ctx, r.triggerBtn.x, r.triggerBtn.y, r.triggerBtn.w, r.triggerBtn.h, wave.trigger);
 
     this.drawButton(ctx, r.addGroup.x, r.addGroup.y, r.addGroup.w, r.addGroup.h, 'ADD GROUP');
@@ -5556,12 +5597,14 @@ const DevPanel = {
       countMinus: { x: x + 100, y: y + 272, w: 36, h: 26 },
       countPlus: { x: x + 180, y: y + 272, w: 36, h: 26 },
       sideBtn: { x: x + 132, y: y + 318, w: 160, h: 30 },
-      triggerBtn: { x: x + 132, y: y + 364, w: 210, h: 30 },
-      addGroup: { x: x + 24, y: y + 428, w: 110, h: 34 },
-      removeGroup: { x: x + 146, y: y + 428, w: 110, h: 34 },
-      addWave: { x: x + 280, y: y + 428, w: 110, h: 34 },
-      removeWave: { x: x + 402, y: y + 428, w: 110, h: 34 },
-      copyWave: { x: x + 524, y: y + 428, w: 110, h: 34 }
+      delayMinus: { x: x + 100, y: y + 364, w: 36, h: 26 },
+      delayPlus: { x: x + 180, y: y + 364, w: 36, h: 26 },
+      triggerBtn: { x: x + 132, y: y + 410, w: 210, h: 30 },
+      addGroup: { x: x + 24, y: y + 452, w: 110, h: 34 },
+      removeGroup: { x: x + 146, y: y + 452, w: 110, h: 34 },
+      addWave: { x: x + 280, y: y + 452, w: 110, h: 34 },
+      removeWave: { x: x + 402, y: y + 452, w: 110, h: 34 },
+      copyWave: { x: x + 524, y: y + 452, w: 110, h: 34 }
     };
   },
 
@@ -5639,6 +5682,11 @@ const DevPanel = {
     return wave.enemies[this.selectedGroupIndex];
   },
 
+  formatDelay(delayMs) {
+    const seconds = Math.max(0, Number(delayMs) || 0) / 1000;
+    return seconds.toFixed(seconds % 1 === 0 ? 0 : 1) + 's';
+  },
+
   syncSelectedLevelWithScene(game) {
     if (!game.scene || typeof game.scene.getLevelKey !== 'function') return;
     const keys = this.getLevelKeys();
@@ -5649,12 +5697,12 @@ const DevPanel = {
   },
 
   createDefaultWave(trigger = 'afterWaveCleared') {
-    return { trigger, enemies: [{ type: 'dogRegime', count: 1, side: 'right' }] };
+    return { trigger, enemies: [{ type: 'dogRegime', count: 1, side: 'right', delayMs: 0 }] };
   },
 
   addEnemyGroup(game) {
     const wave = this.getSelectedWave();
-    wave.enemies.push({ type: 'dogRegime', count: 1, side: 'right' });
+    wave.enemies.push({ type: 'dogRegime', count: 1, side: 'right', delayMs: 0 });
     this.selectedGroupIndex = wave.enemies.length - 1;
     this.restartScene(game);
     this.setStatus('Enemy group added');
@@ -5713,6 +5761,7 @@ const DevPanel = {
           if (!group.type) group.type = 'dogRegime';
           if (group.count == null) group.count = 1;
           if (!group.side) group.side = 'right';
+          if (group.delayMs == null) group.delayMs = 0;
         }
       }
     }

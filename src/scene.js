@@ -13,6 +13,7 @@ class LevelScene {
     this.nonBlockingWaveTimer = 0;
     this.pendingWave = null;
     this.pendingWaveTimer = 0;
+    this.scheduledGroups = [];
     this.spawnInitialWave();
   }
 
@@ -42,6 +43,7 @@ class LevelScene {
     this.nonBlockingWaveTimer = 0;
     this.pendingWave = null;
     this.pendingWaveTimer = 0;
+    this.scheduledGroups = [];
     this.spawnNextWave('onEnter');
   }
 
@@ -137,7 +139,7 @@ class LevelScene {
 
   materializeWave(wave) {
     this.spawnWave(wave);
-    this.encounterActive = this.hasWaveBlockers();
+    this.encounterActive = this.hasWaveBlockers() || this.hasScheduledGroups();
     this.encounterCleared = !this.encounterActive;
     this.nonBlockingWaveTimer = 0;
     this.pendingWave = null;
@@ -150,30 +152,60 @@ class LevelScene {
 
   spawnWave(wave) {
     this.enemies = this.enemies.filter(enemy => enemy && enemy.alive && enemy.enemyType === 'bastard');
-    let enemyId = this.enemies.length;
-    const playedAppearTypes = new Set();
+    this.scheduledGroups = [];
 
     for (const group of wave.enemies || []) {
-      const count = Math.max(0, Number(group.count) || 0);
-      for (let i = 0; i < count; i++) {
-        if (group.type === 'bastard' && this.enemies.some(enemy => enemy.enemyType === 'bastard' && enemy.alive)) {
-          continue;
-        }
-
-        const spawn = this.getSpawnPoint(group.side, i, count);
-        const enemy = this.createEnemy(group.type, spawn.x, spawn.y, enemyId);
-        if (enemy) {
-          this.enemies.push(enemy);
-          if (!playedAppearTypes.has(enemy.enemyType)) {
-            playedAppearTypes.add(enemy.enemyType);
-            this.playEnemyAppearSound(enemy.enemyType);
-          }
-          enemyId += 1;
-        }
-      }
+      const delayMs = Math.max(0, Number(group.delayMs) || 0);
+      if (delayMs > 0) this.scheduleEnemyGroup(group, delayMs);
+      else this.spawnEnemyGroup(group);
     }
 
     this.separateEnemies(16.67, true);
+  }
+
+  scheduleEnemyGroup(group, delayMs) {
+    this.scheduledGroups.push({
+      group: JSON.parse(JSON.stringify(group)),
+      timer: delayMs
+    });
+  }
+
+  updateScheduledGroups(dt) {
+    if (!this.scheduledGroups.length) return;
+    for (const item of this.scheduledGroups) item.timer -= dt;
+
+    const ready = this.scheduledGroups.filter(item => item.timer <= 0);
+    this.scheduledGroups = this.scheduledGroups.filter(item => item.timer > 0);
+    for (const item of ready) {
+      this.spawnEnemyGroup(item.group);
+      this.separateEnemies(16.67, true);
+    }
+  }
+
+  hasScheduledGroups() {
+    return this.scheduledGroups && this.scheduledGroups.length > 0;
+  }
+
+  spawnEnemyGroup(group) {
+    const count = Math.max(0, Number(group.count) || 0);
+    let enemyId = this.enemies.length;
+    let playedAppearSound = false;
+    for (let i = 0; i < count; i++) {
+      if (group.type === 'bastard' && this.enemies.some(enemy => enemy.enemyType === 'bastard' && enemy.alive)) {
+        continue;
+      }
+
+      const spawn = this.getSpawnPoint(group.side, i, count);
+      const enemy = this.createEnemy(group.type, spawn.x, spawn.y, enemyId);
+      if (!enemy) continue;
+
+      this.enemies.push(enemy);
+      if (!playedAppearSound) {
+        this.playEnemyAppearSound(enemy.enemyType);
+        playedAppearSound = true;
+      }
+      enemyId += 1;
+    }
   }
 
   getBossMusicKey(wave) {
@@ -336,6 +368,8 @@ class LevelScene {
       }
     }
 
+    this.updateScheduledGroups(dt);
+
     for (const enemy of this.enemies) enemy.update(dt, this);
     this.separateEnemies(dt);
     this.enemies = this.enemies.filter(enemy => !enemy.remove);
@@ -351,7 +385,7 @@ class LevelScene {
       }
     }
 
-    if (this.encounterActive && !this.enemies.some(enemy => this.isWaveBlocker(enemy))) {
+    if (this.encounterActive && !this.hasScheduledGroups() && !this.enemies.some(enemy => this.isWaveBlocker(enemy))) {
       AudioManager.playSfx('waveClear', 0.7);
       const spawnedNext = this.spawnNextWave('afterWaveCleared');
       if (!spawnedNext) {
