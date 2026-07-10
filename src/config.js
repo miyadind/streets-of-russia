@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  buildVersion: '0.4.33',
+  buildVersion: '0.4.34',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -166,7 +166,7 @@ const GAME_CONFIG = {
     zetnik: {
       name: 'Зетник',
       hp: 110,
-      speed: 2.325,
+      speed: 5.8125,
       damage: 12,
       scale: 0.105,
       bossMusic: false,
