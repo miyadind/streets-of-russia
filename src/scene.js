@@ -268,15 +268,13 @@ class LevelScene {
     return { x: GAME_CONFIG.width - 130 - index * 34, y };
   }
 
+  enemyHasPhysicalPresence(enemy) {
+    if (!enemy || !enemy.alive || enemy.remove) return false;
+    return !['jump', 'crash', 'pinBite', 'knockdown', 'dead', 'fallen', 'interrupted'].includes(enemy.state);
+  }
+
   separateEnemies(dt = 16.67, force = false) {
-    const active = this.enemies.filter(enemy =>
-      enemy &&
-      enemy.alive &&
-      !enemy.remove &&
-      enemy.state !== 'jump' &&
-      enemy.state !== 'crash' &&
-      enemy.state !== 'pinBite'
-    );
+    const active = this.enemies.filter(enemy => this.enemyHasPhysicalPresence(enemy));
 
     const iterations = force ? 4 : Math.max(1, GAME_CONFIG.enemySeparationIterations || 1);
     const strength = force ? 0.85 : Math.max(0, Math.min(1, GAME_CONFIG.enemySeparationStrength == null ? 0.5 : GAME_CONFIG.enemySeparationStrength));

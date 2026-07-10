@@ -368,7 +368,8 @@ class DogRegimeEnemy {
     for (const other of scene.enemies || []) {
       if (!other || other === this || !other.alive || other.remove) continue;
       if (other.blocksWaveClear === false) continue;
-      if (other.state === 'jump' || other.state === 'crash' || other.state === 'knockdown') continue;
+      if (scene.enemyHasPhysicalPresence && !scene.enemyHasPhysicalPresence(other)) continue;
+      if (!scene.enemyHasPhysicalPresence && (other.state === 'jump' || other.state === 'crash' || other.state === 'knockdown')) continue;
 
       const otherSide = Math.sign(other.x - player.x || other.facing || 1);
       if (otherSide !== mySide) continue;
