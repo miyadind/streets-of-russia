@@ -99,8 +99,10 @@ class ZetnikEnemy extends DogRegimeEnemy {
 
     const hit = player.receiveDamage(this.damage, {
       source: 'ranged',
-      knockbackX: this.facing * this.crashKnockbackX,
-      knockdownMs: this.knockdownMs
+      knockbackX: 0,
+      knockdownMs: this.knockdownMs,
+      forceKnockdown: true,
+      knockdownFacing: -this.facing
     });
     if (hit) {
       this.jumpTargetY = this.y;
@@ -212,8 +214,10 @@ class ZetnikEnemy extends DogRegimeEnemy {
       this.gundosHitPlayer = true;
       player.receiveDamage(this.damage, {
         source: 'ranged',
-        knockbackX: this.facing * this.crashKnockbackX,
-        knockdownMs: this.knockdownMs
+        knockbackX: 0,
+        knockdownMs: this.knockdownMs,
+        forceKnockdown: true,
+        knockdownFacing: -this.facing
       });
       this.finishGundosCrash(scene);
       return;
@@ -329,8 +333,10 @@ class ZetnikEnemy extends DogRegimeEnemy {
 
     const hit = player.receiveDamage(this.damage, {
       source: 'ranged',
-      knockbackX: this.facing * this.crashKnockbackX,
-      knockdownMs: this.knockdownMs
+      knockbackX: 0,
+      knockdownMs: this.knockdownMs,
+      forceKnockdown: true,
+      knockdownFacing: -this.facing
     });
 
     this.jumpHasHit = true;

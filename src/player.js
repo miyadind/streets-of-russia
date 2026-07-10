@@ -30,6 +30,7 @@ class Player {
     this.invulnerableTimer = 0;
     this.flash = 0;
     this.knockdownTimer = 0;
+    this.knockdownFacing = 1;
     this.pinnedBy = null;
     this.reviveTextTimer = 0;
     this.reviveText = '';
@@ -141,7 +142,10 @@ class Player {
     if (this.hp <= 0 && this.tryRevive()) return true;
 
     if (this.hp > 0 && options.knockdownMs) {
-      this.knockDown(options.knockdownMs);
+      this.knockDown(options.knockdownMs, {
+        force: options.forceKnockdown,
+        facing: options.knockdownFacing || (options.knockbackX ? -Math.sign(options.knockbackX) : this.facing)
+      });
     } else if (this.hp > 0 && this.state !== 'pinned' && this.state !== 'knockdown') {
       this.startHitStun(options.hitStunMs, options.invulnerableMs);
     }
@@ -339,11 +343,13 @@ class Player {
     }));
   }
 
-  knockDown(durationMs = 900) {
-    if (!this.canBeKnockedDown()) return false;
+  knockDown(durationMs = 900, options = {}) {
+    if (!options.force && !this.canBeKnockedDown()) return false;
     if (this.state === 'pinned') return false;
     AudioManager.playSfx('playerDown', 0.85);
     this.state = 'knockdown';
+    this.knockdownFacing = options.facing ? Math.sign(options.facing) || this.facing || 1 : this.facing || 1;
+    this.facing = this.knockdownFacing;
     this.hitStunTimer = 0;
     this.invulnerableTimer = GAME_CONFIG.playerInvulnerableMs;
     this.flash = GAME_CONFIG.playerInvulnerableMs;
@@ -402,12 +408,16 @@ class Player {
     const scale = hero.scale || this.scale || GAME_CONFIG.playerScale;
     const w = img.width * scale;
     const h = img.height * scale;
+    const isKnockdown = this.state === 'knockdown' || this.state === 'pinned';
+    const knockdownDraw = isKnockdown ? hero.knockdownDraw : null;
+    const drawX = knockdownDraw ? -(knockdownDraw.alphaCenterX || img.width / 2) * scale : -w / 2;
+    const drawY = knockdownDraw ? -(knockdownDraw.alphaBottomY || img.height) * scale : -h;
 
     ctx.save();
     ctx.translate(this.x, this.y);
     if (this.facing === -1) ctx.scale(-1, 1);
     if (this.flash > 0 && Math.floor(this.flash / 55) % 2 === 0) ctx.globalAlpha = 0.48;
-    ctx.drawImage(img, -w / 2, -h, w, h);
+    ctx.drawImage(img, drawX, drawY, w, h);
     ctx.restore();
 
     if (this.reviveTextTimer > 0) {
