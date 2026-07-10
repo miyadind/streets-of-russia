@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.24',
+  buildVersion: '0.4.25',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -6025,6 +6025,90 @@ const DevPanel = {
     return zone;
   }
 
+  function getLevelAreaVisuals(level) {
+    ensureLevelArea(level);
+    const zone = level.walkZone;
+    const spawnX = clamp(num(level.enemySpawnMargin.x, 40), 0, 240);
+    const spawnY = clamp(num(level.enemySpawnMargin.y, 28), 0, 120);
+    const playerStart = {
+      x: clamp(num(level.playerStart.x, DEFAULT_PLAYER_START.x), zone.left, zone.right),
+      y: clamp(num(level.playerStart.y, DEFAULT_PLAYER_START.y), zone.top, zone.bottom)
+    };
+    return {
+      zone,
+      playerStart,
+      spawn: {
+        leftX: zone.left + spawnX,
+        rightX: zone.right - spawnX,
+        topY: Math.min(zone.bottom, zone.top + spawnY),
+        bottomY: Math.max(zone.top, zone.bottom - spawnY)
+      }
+    };
+  }
+
+  function drawMarkerLabel(ctx, text, x, y, fill) {
+    ctx.save();
+    ctx.font = 'bold 13px Arial';
+    ctx.textAlign = 'center';
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = 'rgba(0,0,0,0.78)';
+    ctx.fillStyle = fill;
+    ctx.strokeText(text, x, y);
+    ctx.fillText(text, x, y);
+    ctx.restore();
+  }
+
+  function drawLevelAreaOverlay(ctx, level, activeKey) {
+    const visual = getLevelAreaVisuals(level);
+    const z = visual.zone;
+    const p = visual.playerStart;
+    const s = visual.spawn;
+    const walkColor = activeKey && ['left', 'right', 'top', 'bottom'].includes(activeKey) ? '#d6d6d6' : '#8f8f8f';
+    const playerColor = activeKey && ['playerX', 'playerY'].includes(activeKey) ? '#72b7ff' : '#4aa3ff';
+    const spawnColor = activeKey && ['spawnX', 'spawnY'].includes(activeKey) ? '#ffcf5a' : '#ffa33b';
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(155, 155, 155, 0.13)';
+    ctx.fillRect(z.left, z.top, z.right - z.left, z.bottom - z.top);
+    ctx.strokeStyle = walkColor;
+    ctx.lineWidth = 4;
+    ctx.setLineDash([12, 7]);
+    ctx.strokeRect(z.left, z.top, z.right - z.left, z.bottom - z.top);
+    ctx.setLineDash([]);
+    drawMarkerLabel(ctx, 'WALK AREA', (z.left + z.right) / 2, z.top - 10, walkColor);
+
+    ctx.strokeStyle = spawnColor;
+    ctx.fillStyle = 'rgba(255, 165, 45, 0.16)';
+    ctx.lineWidth = 3;
+    ctx.fillRect(s.leftX - 8, s.topY, 16, s.bottomY - s.topY);
+    ctx.fillRect(s.rightX - 8, s.topY, 16, s.bottomY - s.topY);
+    ctx.beginPath();
+    ctx.moveTo(s.leftX, s.topY);
+    ctx.lineTo(s.leftX, s.bottomY);
+    ctx.moveTo(s.rightX, s.topY);
+    ctx.lineTo(s.rightX, s.bottomY);
+    ctx.stroke();
+    drawMarkerLabel(ctx, 'ENEMY SPAWN', s.rightX, s.topY - 10, spawnColor);
+
+    ctx.fillStyle = playerColor;
+    ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 12, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(p.x - 22, p.y);
+    ctx.lineTo(p.x + 22, p.y);
+    ctx.moveTo(p.x, p.y - 22);
+    ctx.lineTo(p.x, p.y + 22);
+    ctx.strokeStyle = playerColor;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    drawMarkerLabel(ctx, 'PLAYER START', p.x, p.y - 24, playerColor);
+    ctx.restore();
+  }
+
   function buildLevelAreaExport() {
     ensureAllLevelAreas();
     const levels = {};
@@ -6159,17 +6243,8 @@ const DevPanel = {
       const showArea = this.debug || (typeof DevPanel !== 'undefined' && DevPanel.open && DevPanel.tab === 'LEVEL AREA');
       if (!showArea) return;
 
-      const zone = this.getWalkZone();
-      ctx.save();
-      ctx.fillStyle = 'rgba(0, 255, 90, 0.075)';
-      ctx.fillRect(zone.left, zone.top, zone.right - zone.left, zone.bottom - zone.top);
-      ctx.strokeStyle = 'rgba(0, 255, 90, 0.95)';
-      ctx.lineWidth = 3;
-      ctx.strokeRect(zone.left, zone.top, zone.right - zone.left, zone.bottom - zone.top);
-      ctx.font = 'bold 14px Arial';
-      ctx.fillStyle = '#7CFF90';
-      ctx.fillText('WALK ZONE', zone.left + 10, zone.top - 8);
-      ctx.restore();
+      const level = this.getLevelConfig();
+      if (level) drawLevelAreaOverlay(ctx, level, typeof DevPanel !== 'undefined' ? DevPanel.levelAreaActiveKey : null);
     };
   }
 
@@ -6276,7 +6351,7 @@ const DevPanel = {
         ctx.fillText('DEVELOPER PANEL', panel.x + 22, panel.y + 38);
         ctx.font = '13px Arial';
         ctx.fillStyle = '#aaa';
-        ctx.fillText('LEVEL AREA: tune walkable bounds for player and enemies. Green rectangle is the playable zone.', panel.x + 22, panel.y + 58);
+        ctx.fillText('LEVEL AREA: grey box = walking area, blue dot = player start, orange lines = enemy spawn lanes.', panel.x + 22, panel.y + 58);
 
         this.drawButton(ctx, panel.x + panel.w - 78, panel.y + 14, 56, 32, 'X');
         this.drawTabs(ctx);
@@ -6294,7 +6369,8 @@ const DevPanel = {
       const y = panel.y + 124;
       const rows = ['left', 'right', 'top', 'bottom', 'playerX', 'playerY', 'spawnX', 'spawnY'];
       const out = {
-        box: { x, y, w: 760, h: 492 },
+        box: { x, y, w: 980, h: 492 },
+        preview: { x: x + 744, y: y + 86, w: 210, h: 118 },
         levelPrev: { x: x + 92, y: y + 54, w: 36, h: 26 },
         levelNext: { x: x + 690, y: y + 54, w: 36, h: 26 }
       };
@@ -6311,15 +6387,58 @@ const DevPanel = {
     DevPanel.getLevelAreaFields = function () {
       const key = this.getSelectedLevelKey();
       return [
-        { key: 'left', label: 'Left limit', path: 'levels.' + key + '.walkZone.left', min: 0, max: GAME_CONFIG.width - 100, step: 5 },
-        { key: 'right', label: 'Right limit', path: 'levels.' + key + '.walkZone.right', min: 100, max: GAME_CONFIG.width, step: 5 },
-        { key: 'top', label: 'Top line', path: 'levels.' + key + '.walkZone.top', min: 260, max: GAME_CONFIG.height - 20, step: 5 },
-        { key: 'bottom', label: 'Bottom line', path: 'levels.' + key + '.walkZone.bottom', min: 320, max: bottomTuningMax(), step: 5 },
-        { key: 'playerX', label: 'Player start X', path: 'levels.' + key + '.playerStart.x', min: 0, max: GAME_CONFIG.width, step: 5 },
-        { key: 'playerY', label: 'Player start Y', path: 'levels.' + key + '.playerStart.y', min: 260, max: bottomTuningMax(), step: 5 },
-        { key: 'spawnX', label: 'Enemy spawn X margin', path: 'levels.' + key + '.enemySpawnMargin.x', min: 0, max: 240, step: 5 },
-        { key: 'spawnY', label: 'Enemy spawn Y margin', path: 'levels.' + key + '.enemySpawnMargin.y', min: 0, max: 120, step: 2 }
+        { key: 'left', label: 'Walk area left edge', hint: 'moves the left side of the grey walking box', path: 'levels.' + key + '.walkZone.left', min: 0, max: GAME_CONFIG.width - 100, step: 5 },
+        { key: 'right', label: 'Walk area right edge', hint: 'moves the right side of the grey walking box', path: 'levels.' + key + '.walkZone.right', min: 100, max: GAME_CONFIG.width, step: 5 },
+        { key: 'top', label: 'Walk area top edge', hint: 'moves the top side of the grey walking box', path: 'levels.' + key + '.walkZone.top', min: 260, max: GAME_CONFIG.height - 20, step: 5 },
+        { key: 'bottom', label: 'Walk area bottom edge', hint: 'moves the bottom side of the grey walking box', path: 'levels.' + key + '.walkZone.bottom', min: 320, max: bottomTuningMax(), step: 5 },
+        { key: 'playerX', label: 'Player start left/right', hint: 'moves the blue player-start dot horizontally', path: 'levels.' + key + '.playerStart.x', min: 0, max: GAME_CONFIG.width, step: 5 },
+        { key: 'playerY', label: 'Player start up/down', hint: 'moves the blue player-start dot vertically', path: 'levels.' + key + '.playerStart.y', min: 260, max: bottomTuningMax(), step: 5 },
+        { key: 'spawnX', label: 'Enemy spawn side inset', hint: 'moves orange spawn lines inward from left and right edges', path: 'levels.' + key + '.enemySpawnMargin.x', min: 0, max: 240, step: 5 },
+        { key: 'spawnY', label: 'Enemy spawn top/bottom gap', hint: 'shrinks or expands the orange spawn segment vertically', path: 'levels.' + key + '.enemySpawnMargin.y', min: 0, max: 120, step: 2 }
       ];
+    };
+
+    DevPanel.drawLevelAreaMiniPreview = function (ctx, r, level, activeKey) {
+      const p = r.preview;
+      const visual = getLevelAreaVisuals(level);
+      const sx = p.w / GAME_CONFIG.width;
+      const sy = p.h / GAME_CONFIG.height;
+      const tx = x => p.x + x * sx;
+      const ty = y => p.y + y * sy;
+      const z = visual.zone;
+      const s = visual.spawn;
+      const start = visual.playerStart;
+
+      ctx.save();
+      ctx.fillStyle = 'rgba(0,0,0,0.52)';
+      ctx.fillRect(p.x, p.y, p.w, p.h);
+      ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+      ctx.strokeRect(p.x, p.y, p.w, p.h);
+
+      ctx.fillStyle = 'rgba(150,150,150,0.22)';
+      ctx.fillRect(tx(z.left), ty(z.top), (z.right - z.left) * sx, (z.bottom - z.top) * sy);
+      ctx.strokeStyle = activeKey && ['left', 'right', 'top', 'bottom'].includes(activeKey) ? '#fff' : '#aaa';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(tx(z.left), ty(z.top), (z.right - z.left) * sx, (z.bottom - z.top) * sy);
+
+      ctx.strokeStyle = activeKey && ['spawnX', 'spawnY'].includes(activeKey) ? '#ffcf5a' : '#ffa33b';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(tx(s.leftX), ty(s.topY));
+      ctx.lineTo(tx(s.leftX), ty(s.bottomY));
+      ctx.moveTo(tx(s.rightX), ty(s.topY));
+      ctx.lineTo(tx(s.rightX), ty(s.bottomY));
+      ctx.stroke();
+
+      ctx.fillStyle = activeKey && ['playerX', 'playerY'].includes(activeKey) ? '#9fd0ff' : '#4aa3ff';
+      ctx.beginPath();
+      ctx.arc(tx(start.x), ty(start.y), 5, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#ddd';
+      ctx.font = '12px Arial';
+      ctx.fillText('mini map', p.x, p.y - 8);
+      ctx.restore();
     };
 
     DevPanel.drawLevelAreaEditor = function (ctx) {
@@ -6343,29 +6462,41 @@ const DevPanel = {
       this.drawButton(ctx, r.levelPrev.x, r.levelPrev.y, r.levelPrev.w, r.levelPrev.h, '<');
       this.drawButton(ctx, r.levelNext.x, r.levelNext.y, r.levelNext.w, r.levelNext.h, '>');
       this.drawValue(ctx, levelKey + ' / ' + level.name, r.box.x + 145, r.box.y + 76);
+      this.drawLevelAreaMiniPreview(ctx, r, level, this.levelAreaActiveKey);
 
       for (const field of fields) {
         const value = this.getValue(field.path);
         const ratio = (value - field.min) / Math.max(1, field.max - field.min);
         const y = r[field.key + 'Y'];
+        const active = this.levelAreaActiveKey === field.key;
+        const groupColor = ['playerX', 'playerY'].includes(field.key)
+          ? '#4aa3ff'
+          : ['spawnX', 'spawnY'].includes(field.key)
+            ? '#ffa33b'
+            : '#cfcfcf';
         ctx.font = '14px Arial';
-        ctx.fillStyle = '#fff';
+        ctx.fillStyle = active ? groupColor : '#fff';
         ctx.fillText(field.label, r.box.x + 24, y);
         ctx.fillStyle = '#ccc';
-        ctx.fillText(String(value), r.box.x + 185, y);
+        ctx.fillText(String(value), r.box.x + 218, y);
         this.drawButton(ctx, r[field.key + 'Minus'].x, r[field.key + 'Minus'].y, r[field.key + 'Minus'].w, r[field.key + 'Minus'].h, '-');
         ctx.fillStyle = '#222';
         ctx.fillRect(r[field.key + 'Bar'].x, r[field.key + 'Bar'].y, r[field.key + 'Bar'].w, r[field.key + 'Bar'].h);
-        ctx.fillStyle = '#7CFF90';
+        ctx.fillStyle = groupColor;
         ctx.fillRect(r[field.key + 'Bar'].x, r[field.key + 'Bar'].y, r[field.key + 'Bar'].w * clamp(ratio, 0, 1), r[field.key + 'Bar'].h);
-        ctx.strokeStyle = '#777';
+        ctx.strokeStyle = active ? groupColor : '#777';
         ctx.strokeRect(r[field.key + 'Bar'].x, r[field.key + 'Bar'].y, r[field.key + 'Bar'].w, r[field.key + 'Bar'].h);
         this.drawButton(ctx, r[field.key + 'Plus'].x, r[field.key + 'Plus'].y, r[field.key + 'Plus'].w, r[field.key + 'Plus'].h, '+');
+        if (active && field.hint) {
+          ctx.font = '12px Arial';
+          ctx.fillStyle = '#bbb';
+          ctx.fillText(field.hint, r.box.x + 710, y);
+        }
       }
 
       ctx.font = '13px Arial';
       ctx.fillStyle = '#aaa';
-      ctx.fillText('H key also shows debug hitboxes. This tab shows the green movement rectangle while open.', r.box.x + 24, r.box.y + 462);
+      ctx.fillText('Tip: click any row or +/- button. The same color marker moves on the level and mini map.', r.box.x + 24, r.box.y + 462);
     };
 
     DevPanel.handleLevelAreaClick = function (point, game) {
@@ -6379,6 +6510,7 @@ const DevPanel = {
         const minus = r[field.key + 'Minus'];
         const plus = r[field.key + 'Plus'];
         const bar = r[field.key + 'Bar'];
+        const row = { x: r.box.x + 18, y: r[field.key + 'Y'] - 24, w: r.box.w - 36, h: 34 };
         if (this.inRect(point, minus)) { this.changeLevelAreaField(field, -field.step, game); return true; }
         if (this.inRect(point, plus)) { this.changeLevelAreaField(field, field.step, game); return true; }
         if (this.inRect(point, bar)) {
@@ -6387,18 +6519,21 @@ const DevPanel = {
           this.setLevelAreaValue(field, this.roundToStep(raw, field.step), game);
           return true;
         }
+        if (this.inRect(point, row)) { this.levelAreaActiveKey = field.key; this.setStatus(field.hint || field.label); return true; }
       }
       return false;
     };
 
     DevPanel.changeLevelAreaField = function (field, delta, game) {
       const current = this.getValue(field.path);
+      this.levelAreaActiveKey = field.key;
       this.setLevelAreaValue(field, current + delta, game);
     };
 
     DevPanel.setLevelAreaValue = function (field, value, game) {
       const level = this.getSelectedLevel();
       ensureLevelArea(level);
+      this.levelAreaActiveKey = field.key;
       const next = clamp(this.roundToStep(value, field.step), field.min, field.max);
       this.setValue(field.path, next);
       this.fixSelectedLevelArea();
