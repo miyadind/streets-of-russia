@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.34',
+  buildVersion: '0.4.35',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -2603,7 +2603,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
       knockbackX: 0,
       knockdownMs: this.knockdownMs,
       forceKnockdown: true,
-      knockdownFacing: -this.facing
+      knockdownFacing: this.getImpactFallFacing(player)
     });
     if (hit) {
       this.jumpTargetY = this.y;
@@ -2718,7 +2718,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
         knockbackX: 0,
         knockdownMs: this.knockdownMs,
         forceKnockdown: true,
-        knockdownFacing: -this.facing
+        knockdownFacing: this.getImpactFallFacing(player)
       });
       this.finishGundosCrash(scene);
       return;
@@ -2837,7 +2837,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
       knockbackX: 0,
       knockdownMs: this.knockdownMs,
       forceKnockdown: true,
-      knockdownFacing: -this.facing
+      knockdownFacing: this.getImpactFallFacing(player)
     });
 
     this.jumpHasHit = true;
@@ -2847,6 +2847,14 @@ class ZetnikEnemy extends DogRegimeEnemy {
         AudioManager.playSfx('playerDown', 0.85, { playbackRate: 1.08, startAt: 0.01 });
       }
     }
+  }
+
+  getImpactFallFacing(player) {
+    if (player && Number.isFinite(player.x) && Number.isFinite(this.x) && Math.abs(player.x - this.x) > 1) {
+      return Math.sign(player.x - this.x);
+    }
+    if (Number.isFinite(this.gundosDirection) && this.gundosDirection !== 0) return Math.sign(this.gundosDirection);
+    return this.facing || 1;
   }
 
   finishCrash(scene) {
