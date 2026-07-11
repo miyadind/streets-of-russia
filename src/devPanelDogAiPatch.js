@@ -70,6 +70,9 @@
     this.attackMinDistanceX = config.attackMinDistanceX || 30;
     this.attackMaxDistanceX = config.attackMaxDistanceX || 128;
     this.attackRangeX = Math.max(config.attackRangeX || 0, this.attackMaxDistanceX);
+    this.attackWindupMs = config.attackWindupMs || GAME_CONFIG.enemyWindupMs;
+    this.attackActiveMs = config.attackActiveMs || GAME_CONFIG.enemyActiveMs;
+    this.attackRecoveryMs = config.attackRecoveryMs || GAME_CONFIG.enemyRecoveryMs;
   };
 
   DogRegimeEnemy.prototype.isInAttackRange = function (player) {
@@ -92,8 +95,11 @@
 
   DogRegimeEnemy.prototype.updateAttack = function (dt, scene) {
     this.attackTimer += dt;
-    const activeStart = GAME_CONFIG.enemyWindupMs;
-    const activeEnd = GAME_CONFIG.enemyWindupMs + GAME_CONFIG.enemyActiveMs;
+    const windupMs = this.attackWindupMs || GAME_CONFIG.enemyWindupMs;
+    const activeMs = this.attackActiveMs || GAME_CONFIG.enemyActiveMs;
+    const recoveryMs = this.attackRecoveryMs || GAME_CONFIG.enemyRecoveryMs;
+    const activeStart = windupMs;
+    const activeEnd = windupMs + activeMs;
 
     if (!this.attackHasHit && this.attackTimer >= activeStart && this.attackTimer <= activeEnd) {
       const player = scene.player;
@@ -107,7 +113,7 @@
       this.attackHasHit = true;
     }
 
-    if (this.attackTimer >= GAME_CONFIG.enemyWindupMs + GAME_CONFIG.enemyActiveMs + GAME_CONFIG.enemyRecoveryMs) {
+    if (this.attackTimer >= windupMs + activeMs + recoveryMs) {
       this.state = 'walk';
       this.intent = Math.random() < 0.58 ? 'retreat' : 'strafe';
       this.strafeDirection = Math.random() < 0.5 ? -1 : 1;

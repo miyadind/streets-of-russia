@@ -10,15 +10,15 @@
   }
 
   Assets.horse = Object.assign(Assets.horse || {}, {
-    idle: frame('walk01'),
+    idle: frame('idle'),
     walk: [
       frame('walk01'),
       frame('walk02'),
       frame('walk03')
     ],
     attack: [
-      frame('walk02'),
-      frame('walk03')
+      frame('idle'),
+      frame('Whiplash')
     ]
   });
   Assets.horse.finalFrame = frame('walk03');
@@ -76,7 +76,7 @@
       const walk0 = await loadFirstExistingImage(horse.walk && horse.walk[0]);
       const walk1 = await loadFirstExistingImage(horse.walk && horse.walk[1]);
       const walk2 = await loadFirstExistingImage(horse.walk && horse.walk[2]);
-      const idle = walk0 || await loadFirstExistingImage(horse.idle);
+      const idle = await loadFirstExistingImage(horse.idle) || walk0;
       const action0 = await loadFirstExistingImage(horse.attack && horse.attack[0]);
       const action1 = await loadFirstExistingImage(horse.attack && horse.attack[1]);
       const finalFrame = await loadFirstExistingImage(horse.finalFrame);

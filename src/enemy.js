@@ -502,7 +502,8 @@ class DogRegimeEnemy {
     if (this.state === 'knockdown') return enemyImages.dead || enemyImages.idle;
     if (this.state === 'attack') {
       const attack = enemyImages.attack || [];
-      return this.attackTimer < GAME_CONFIG.enemyWindupMs ? attack[0] || enemyImages.idle : attack[1] || attack[0] || enemyImages.idle;
+      const windupMs = this.attackWindupMs || GAME_CONFIG.enemyWindupMs;
+      return this.attackTimer < windupMs ? attack[0] || enemyImages.idle : attack[1] || attack[0] || enemyImages.idle;
     }
     if (this.hitStun > 0) return enemyImages.idle;
     return enemyImages.walk[this.walkFrame] || enemyImages.idle;

@@ -2,7 +2,7 @@
   if (typeof GAME_CONFIG === 'undefined' || typeof Assets === 'undefined') return;
 
   const FOLDER = 'assets/enemies/gundos';
-  const ASSET_VERSION = 'gundos-finale-1';
+  const ASSET_VERSION = 'gundos-finale-2';
   const INTRO_DURATION_MS = 56425;
   const DEVIL_LEAD_MS = 2000;
 
@@ -14,6 +14,7 @@
     walk: [versioned('walk0.png'), versioned('walk1.png')],
     swing: versioned('swing.png'),
     devil: versioned('devil.png'),
+    knockdownBody: versioned('knockdownBody.png'),
     fireWall: 'assets/effects/gundos-fire-wall.png?v=' + ASSET_VERSION,
     appear: versioned('Appear.mp3')
   };
@@ -227,6 +228,7 @@
       const walk1 = await loadImage(Assets.gundos.walk[1]);
       const swing = await loadImage(Assets.gundos.swing);
       const devil = await loadImage(Assets.gundos.devil);
+      const knockdownBody = await loadImage(Assets.gundos.knockdownBody);
       const fireWall = await loadImage(Assets.gundos.fireWall);
       if (!loaded.enemies) loaded.enemies = {};
       loaded.enemies.gundos = {
@@ -234,7 +236,8 @@
         walk: [walk0 || walk1, walk1 || walk0],
         swing: swing || walk1 || walk0,
         devil: devil || swing || walk1 || walk0,
-        dead: devil || swing || walk1 || walk0,
+        knockdownBody: knockdownBody || devil || swing || walk1 || walk0,
+        dead: knockdownBody || devil || swing || walk1 || walk0,
         fireWall
       };
       return loaded;
@@ -563,6 +566,7 @@
 
     getImage() {
       const set = this.images.enemies.gundos;
+      if (!this.alive) return set.knockdownBody || set.dead || set.devil;
       if (this.state === 'devil') return set.devil;
       if (this.state === 'swing') return set.swing;
       return set.walk[this.walkFrame] || set.idle;

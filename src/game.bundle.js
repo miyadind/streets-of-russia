@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.41',
+  buildVersion: '0.4.42',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -2457,7 +2457,8 @@ class DogRegimeEnemy {
     if (this.state === 'knockdown') return enemyImages.dead || enemyImages.idle;
     if (this.state === 'attack') {
       const attack = enemyImages.attack || [];
-      return this.attackTimer < GAME_CONFIG.enemyWindupMs ? attack[0] || enemyImages.idle : attack[1] || attack[0] || enemyImages.idle;
+      const windupMs = this.attackWindupMs || GAME_CONFIG.enemyWindupMs;
+      return this.attackTimer < windupMs ? attack[0] || enemyImages.idle : attack[1] || attack[0] || enemyImages.idle;
     }
     if (this.hitStun > 0) return enemyImages.idle;
     return enemyImages.walk[this.walkFrame] || enemyImages.idle;
@@ -6046,6 +6047,9 @@ const DevPanel = {
     this.attackMinDistanceX = config.attackMinDistanceX || 30;
     this.attackMaxDistanceX = config.attackMaxDistanceX || 128;
     this.attackRangeX = Math.max(config.attackRangeX || 0, this.attackMaxDistanceX);
+    this.attackWindupMs = config.attackWindupMs || GAME_CONFIG.enemyWindupMs;
+    this.attackActiveMs = config.attackActiveMs || GAME_CONFIG.enemyActiveMs;
+    this.attackRecoveryMs = config.attackRecoveryMs || GAME_CONFIG.enemyRecoveryMs;
   };
 
   DogRegimeEnemy.prototype.isInAttackRange = function (player) {
@@ -6068,8 +6072,11 @@ const DevPanel = {
 
   DogRegimeEnemy.prototype.updateAttack = function (dt, scene) {
     this.attackTimer += dt;
-    const activeStart = GAME_CONFIG.enemyWindupMs;
-    const activeEnd = GAME_CONFIG.enemyWindupMs + GAME_CONFIG.enemyActiveMs;
+    const windupMs = this.attackWindupMs || GAME_CONFIG.enemyWindupMs;
+    const activeMs = this.attackActiveMs || GAME_CONFIG.enemyActiveMs;
+    const recoveryMs = this.attackRecoveryMs || GAME_CONFIG.enemyRecoveryMs;
+    const activeStart = windupMs;
+    const activeEnd = windupMs + activeMs;
 
     if (!this.attackHasHit && this.attackTimer >= activeStart && this.attackTimer <= activeEnd) {
       const player = scene.player;
@@ -6083,7 +6090,7 @@ const DevPanel = {
       this.attackHasHit = true;
     }
 
-    if (this.attackTimer >= GAME_CONFIG.enemyWindupMs + GAME_CONFIG.enemyActiveMs + GAME_CONFIG.enemyRecoveryMs) {
+    if (this.attackTimer >= windupMs + activeMs + recoveryMs) {
       this.state = 'walk';
       this.intent = Math.random() < 0.58 ? 'retreat' : 'strafe';
       this.strafeDirection = Math.random() < 0.5 ? -1 : 1;
@@ -6107,6 +6114,7 @@ const DevPanel = {
 
   DogRegimeEnemy.prototype.clubReachPatchApplied = true;
 })();
+
 
 
 /* ===== src/walkZonePatch.js ===== */
@@ -9103,15 +9111,15 @@ window.addEventListener('load', () => {
   const HORSE_FOLDER = 'assets/enemies/horse';
 
   Assets.horse = Object.assign({
-    idle: HORSE_FOLDER + '/walk01.png',
+    idle: HORSE_FOLDER + '/idle.png',
     walk: [
       HORSE_FOLDER + '/walk01.png',
       HORSE_FOLDER + '/walk02.png',
       HORSE_FOLDER + '/walk03.png'
     ],
     attack: [
-      HORSE_FOLDER + '/walk02.png',
-      HORSE_FOLDER + '/walk03.png'
+      HORSE_FOLDER + '/idle.png',
+      HORSE_FOLDER + '/Whiplash.png'
     ],
     dead: HORSE_FOLDER + '/walk03.png'
   }, Assets.horse || {});
@@ -9121,12 +9129,16 @@ window.addEventListener('load', () => {
     hp: 125,
     speed: 2.025,
     damage: 14,
-    scale: 0.12,
+    scale: 0.17,
+    attackScale: 0.62,
+    attackWindupMs: 1000,
+    attackActiveMs: 180,
+    attackRecoveryMs: 360,
     bossMusic: false,
     bossMusicKey: 'bossTheme',
     minDistanceX: 46,
     preferredDistanceX: 84,
-    attackRangeX: 86,
+    attackRangeX: 132,
     attackRangeY: 38,
     maxAttackers: 1,
     decisionMinMs: 240,
@@ -9241,15 +9253,15 @@ window.addEventListener('load', () => {
   }
 
   Assets.horse = Object.assign(Assets.horse || {}, {
-    idle: frame('walk01'),
+    idle: frame('idle'),
     walk: [
       frame('walk01'),
       frame('walk02'),
       frame('walk03')
     ],
     attack: [
-      frame('walk02'),
-      frame('walk03')
+      frame('idle'),
+      frame('Whiplash')
     ]
   });
   Assets.horse.finalFrame = frame('walk03');
@@ -9307,7 +9319,7 @@ window.addEventListener('load', () => {
       const walk0 = await loadFirstExistingImage(horse.walk && horse.walk[0]);
       const walk1 = await loadFirstExistingImage(horse.walk && horse.walk[1]);
       const walk2 = await loadFirstExistingImage(horse.walk && horse.walk[2]);
-      const idle = walk0 || await loadFirstExistingImage(horse.idle);
+      const idle = await loadFirstExistingImage(horse.idle) || walk0;
       const action0 = await loadFirstExistingImage(horse.attack && horse.attack[0]);
       const action1 = await loadFirstExistingImage(horse.attack && horse.attack[1]);
       const finalFrame = await loadFirstExistingImage(horse.finalFrame);
@@ -9333,6 +9345,7 @@ window.addEventListener('load', () => {
     GameApp.prototype.horseWalkOnlyPatchApplied = true;
   }
 })();
+
 
 
 /* ===== src/mobileBootstrap.js ===== */
@@ -13550,7 +13563,7 @@ window.addEventListener('load', () => {
   if (typeof GAME_CONFIG === 'undefined' || typeof Assets === 'undefined') return;
 
   const FOLDER = 'assets/enemies/gundos';
-  const ASSET_VERSION = 'gundos-finale-1';
+  const ASSET_VERSION = 'gundos-finale-2';
   const INTRO_DURATION_MS = 56425;
   const DEVIL_LEAD_MS = 2000;
 
@@ -13562,6 +13575,7 @@ window.addEventListener('load', () => {
     walk: [versioned('walk0.png'), versioned('walk1.png')],
     swing: versioned('swing.png'),
     devil: versioned('devil.png'),
+    knockdownBody: versioned('knockdownBody.png'),
     fireWall: 'assets/effects/gundos-fire-wall.png?v=' + ASSET_VERSION,
     appear: versioned('Appear.mp3')
   };
@@ -13775,6 +13789,7 @@ window.addEventListener('load', () => {
       const walk1 = await loadImage(Assets.gundos.walk[1]);
       const swing = await loadImage(Assets.gundos.swing);
       const devil = await loadImage(Assets.gundos.devil);
+      const knockdownBody = await loadImage(Assets.gundos.knockdownBody);
       const fireWall = await loadImage(Assets.gundos.fireWall);
       if (!loaded.enemies) loaded.enemies = {};
       loaded.enemies.gundos = {
@@ -13782,7 +13797,8 @@ window.addEventListener('load', () => {
         walk: [walk0 || walk1, walk1 || walk0],
         swing: swing || walk1 || walk0,
         devil: devil || swing || walk1 || walk0,
-        dead: devil || swing || walk1 || walk0,
+        knockdownBody: knockdownBody || devil || swing || walk1 || walk0,
+        dead: knockdownBody || devil || swing || walk1 || walk0,
         fireWall
       };
       return loaded;
@@ -14111,6 +14127,7 @@ window.addEventListener('load', () => {
 
     getImage() {
       const set = this.images.enemies.gundos;
+      if (!this.alive) return set.knockdownBody || set.dead || set.devil;
       if (this.state === 'devil') return set.devil;
       if (this.state === 'swing') return set.swing;
       return set.walk[this.walkFrame] || set.idle;

@@ -4,15 +4,15 @@
   const HORSE_FOLDER = 'assets/enemies/horse';
 
   Assets.horse = Object.assign({
-    idle: HORSE_FOLDER + '/walk01.png',
+    idle: HORSE_FOLDER + '/idle.png',
     walk: [
       HORSE_FOLDER + '/walk01.png',
       HORSE_FOLDER + '/walk02.png',
       HORSE_FOLDER + '/walk03.png'
     ],
     attack: [
-      HORSE_FOLDER + '/walk02.png',
-      HORSE_FOLDER + '/walk03.png'
+      HORSE_FOLDER + '/idle.png',
+      HORSE_FOLDER + '/Whiplash.png'
     ],
     dead: HORSE_FOLDER + '/walk03.png'
   }, Assets.horse || {});
@@ -22,12 +22,16 @@
     hp: 125,
     speed: 2.025,
     damage: 14,
-    scale: 0.12,
+    scale: 0.17,
+    attackScale: 0.62,
+    attackWindupMs: 1000,
+    attackActiveMs: 180,
+    attackRecoveryMs: 360,
     bossMusic: false,
     bossMusicKey: 'bossTheme',
     minDistanceX: 46,
     preferredDistanceX: 84,
-    attackRangeX: 86,
+    attackRangeX: 132,
     attackRangeY: 38,
     maxAttackers: 1,
     decisionMinMs: 240,
