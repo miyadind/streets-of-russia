@@ -2,19 +2,21 @@
   if (typeof GAME_CONFIG === 'undefined' || typeof Assets === 'undefined') return;
 
   const HORSE_FOLDER = 'assets/enemies/horse';
+  const HORSE_ASSET_VERSION = 'horse-whiplash-2';
+  const horseFrame = name => HORSE_FOLDER + '/' + name + '.png?v=' + HORSE_ASSET_VERSION;
 
   Assets.horse = Object.assign({
-    idle: HORSE_FOLDER + '/idle.png',
+    idle: horseFrame('idle'),
     walk: [
-      HORSE_FOLDER + '/walk01.png',
-      HORSE_FOLDER + '/walk02.png',
-      HORSE_FOLDER + '/walk03.png'
+      horseFrame('walk01'),
+      horseFrame('walk02'),
+      horseFrame('walk03')
     ],
     attack: [
-      HORSE_FOLDER + '/idle.png',
-      HORSE_FOLDER + '/Whiplash.png'
+      horseFrame('idle'),
+      horseFrame('Whiplash')
     ],
-    dead: HORSE_FOLDER + '/walk03.png'
+    dead: horseFrame('walk03')
   }, Assets.horse || {});
 
   GAME_CONFIG.enemies.horse = Object.assign({
@@ -22,7 +24,7 @@
     hp: 125,
     speed: 2.025,
     damage: 14,
-    scale: 0.17,
+    scale: 0.22,
     attackScale: 0.57,
     attackWindupMs: 1000,
     attackActiveMs: 560,

@@ -2,11 +2,12 @@
   if (typeof GAME_CONFIG === 'undefined' || typeof Assets === 'undefined') return;
 
   const FOLDER = 'assets/enemies/horse';
+  const HORSE_ASSET_VERSION = 'horse-whiplash-2';
   const KO_KEY = 'horseKo';
   const KO_FILE = FOLDER + '/' + ['de', 'ath'].join('') + '.mp3';
 
   function frame(name) {
-    return FOLDER + '/' + name + '.png';
+    return FOLDER + '/' + name + '.png?v=' + HORSE_ASSET_VERSION;
   }
 
   Assets.horse = Object.assign(Assets.horse || {}, {

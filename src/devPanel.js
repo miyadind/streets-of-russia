@@ -644,7 +644,19 @@ const DevPanel = {
       'enemies.bastard.speed': DEFAULT_GAME_CONFIG.enemies.bastard.speed,
       enemyOffscreenMargin: DEFAULT_GAME_CONFIG.enemyOffscreenMargin,
       'enemies.horse.speed': 2.025,
-      'enemies.gundos.speed': 1.875
+      'enemies.horse.scale': 0.22,
+      'enemies.horse.attackScale': 0.57,
+      'enemies.horse.attackRangeX': 180,
+      'enemies.horse.clubReachForward': 238,
+      'enemies.gundos.speed': 1.875,
+      'enemies.gundos.entranceY': 760,
+      'enemies.gundos.arenaBottom': 760,
+      'enemies.gundos.deathHoldMs': 5000,
+      'enemies.gundos.victoryDelayMs': 4800,
+      'levels.street01.interactives.0.hitbox.x': 342,
+      'levels.street01.interactives.0.hitbox.y': 272,
+      'levels.street01.interactives.0.hitbox.w': 128,
+      'levels.street01.interactives.0.hitbox.h': 146
     };
 
     for (const path of Object.keys(defaults)) {

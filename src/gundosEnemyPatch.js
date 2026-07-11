@@ -31,7 +31,7 @@
     introDurationMs: INTRO_DURATION_MS,
     devilLeadMs: DEVIL_LEAD_MS,
     entranceTargetX: 1040,
-    entranceY: 700,
+    entranceY: 760,
     zetnikSpawnMinMs: 1450,
     zetnikSpawnMaxMs: 2450,
     maxZetniks: 3,
@@ -43,7 +43,7 @@
     zetnikHitDamage: 1,
     arenaMoveSpeed: 0,
     arenaTop: 540,
-    arenaBottom: 705,
+    arenaBottom: 760,
     deathHoldMs: 5000,
     victoryDelayMs: 4800
   }, GAME_CONFIG.enemies.gundos || {});
@@ -58,7 +58,7 @@
       scale: 0.266,
       devilLeadMs: DEVIL_LEAD_MS,
       entranceTargetX: 1040,
-      entranceY: 700,
+      entranceY: 760,
       zetnikSpawnMinMs: 1450,
       zetnikSpawnMaxMs: 2450,
       maxZetniks: 3,
@@ -70,7 +70,7 @@
       zetnikHitDamage: 1,
       arenaMoveSpeed: 0,
       arenaTop: 540,
-      arenaBottom: 705,
+      arenaBottom: 760,
       deathHoldMs: 5000,
       victoryDelayMs: 4800
     });
@@ -121,7 +121,7 @@
       { label: 'Gundos scale', path: 'enemies.gundos.scale', min: 0.1, max: 0.7, step: 0.01 },
       { label: 'Gundos HP', path: 'enemies.gundos.hp', min: 1, max: 20, step: 1 },
       { label: 'Entrance target X', path: 'enemies.gundos.entranceTargetX', min: 600, max: 1200, step: 10 },
-      { label: 'Entrance Y', path: 'enemies.gundos.entranceY', min: 350, max: 720, step: 5 },
+      { label: 'Entrance Y', path: 'enemies.gundos.entranceY', min: 350, max: 820, step: 5 },
       { label: 'Devil lead ms', path: 'enemies.gundos.devilLeadMs', min: 0, max: 10000, step: 250 },
       { label: 'Zetnik min spawn', path: 'enemies.gundos.zetnikSpawnMinMs', min: 500, max: 6000, step: 100 },
       { label: 'Zetnik max spawn', path: 'enemies.gundos.zetnikSpawnMaxMs', min: 500, max: 8000, step: 100 },
@@ -579,9 +579,10 @@
     draw(ctx, debug) {
       const image = this.getImage();
       if (!image) return;
-      const scale = this.getConfig().scale;
+      const scale = this.alive ? this.getConfig().scale : this.getConfig().scale * 0.85;
       const width = image.width * scale;
       const height = image.height * scale;
+      const drawOffsetY = !this.alive ? 199 * scale : 0;
       ctx.save();
       if (!this.alive) {
         const holdMs = this.getConfig().deathHoldMs || 5000;
@@ -593,7 +594,7 @@
       }
       ctx.translate(this.x, this.y);
       if (this.facing < 0) ctx.scale(-1, 1);
-      ctx.drawImage(image, -width / 2, -height, width, height);
+      ctx.drawImage(image, -width / 2, -height + drawOffsetY, width, height);
       ctx.restore();
       this.drawHealthBar(ctx);
 

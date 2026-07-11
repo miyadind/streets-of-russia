@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.43',
+  buildVersion: '0.4.44',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -5901,7 +5901,19 @@ const DevPanel = {
       'enemies.bastard.speed': DEFAULT_GAME_CONFIG.enemies.bastard.speed,
       enemyOffscreenMargin: DEFAULT_GAME_CONFIG.enemyOffscreenMargin,
       'enemies.horse.speed': 2.025,
-      'enemies.gundos.speed': 1.875
+      'enemies.horse.scale': 0.22,
+      'enemies.horse.attackScale': 0.57,
+      'enemies.horse.attackRangeX': 180,
+      'enemies.horse.clubReachForward': 238,
+      'enemies.gundos.speed': 1.875,
+      'enemies.gundos.entranceY': 760,
+      'enemies.gundos.arenaBottom': 760,
+      'enemies.gundos.deathHoldMs': 5000,
+      'enemies.gundos.victoryDelayMs': 4800,
+      'levels.street01.interactives.0.hitbox.x': 342,
+      'levels.street01.interactives.0.hitbox.y': 272,
+      'levels.street01.interactives.0.hitbox.w': 128,
+      'levels.street01.interactives.0.hitbox.h': 146
     };
 
     for (const path of Object.keys(defaults)) {
@@ -9081,16 +9093,21 @@ window.addEventListener('load', () => {
 
   LevelScene.prototype.drawLevelBackgroundEffects = function (ctx) {
     const level = this.getLevelConfig();
+    const showObjectEditor = typeof DevPanel !== 'undefined' && DevPanel.open && DevPanel.tab === 'OBJECTS';
     for (const item of getInteractivesForLevel(level)) {
       if (item.type !== 'breakablePoster') continue;
       const state = getPosterState(this, item);
       if (!state.replaced) drawPosterDamage(ctx, item, state);
 
-      if (this.debug) {
+      if (this.debug || showObjectEditor) {
         ctx.save();
-        ctx.strokeStyle = 'rgba(255, 230, 90, 0.75)';
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = showObjectEditor ? 'rgba(255, 230, 90, 0.95)' : 'rgba(255, 230, 90, 0.75)';
+        ctx.lineWidth = showObjectEditor ? 3 : 2;
         ctx.strokeRect(item.hitbox.x, item.hitbox.y, item.hitbox.w, item.hitbox.h);
+        if (item.effectRect) {
+          ctx.strokeStyle = 'rgba(80, 190, 255, 0.9)';
+          ctx.strokeRect(item.effectRect.x, item.effectRect.y, item.effectRect.w, item.effectRect.h);
+        }
         if (Number.isFinite(item.laneY)) {
           ctx.strokeStyle = 'rgba(80,255,120,0.85)';
           ctx.beginPath();
@@ -9102,6 +9119,228 @@ window.addEventListener('load', () => {
       }
     }
   };
+
+  if (typeof DevPanel !== 'undefined' && !DevPanel.objectEditorPatchApplied) {
+    if (!DevPanel.tabs.includes('OBJECTS')) DevPanel.tabs.push('OBJECTS');
+    DevPanel.selectedObjectLevelIndex = DevPanel.selectedObjectLevelIndex || 0;
+    DevPanel.selectedObjectIndex = DevPanel.selectedObjectIndex || 0;
+    DevPanel.selectedObjectBoxKey = DevPanel.selectedObjectBoxKey || 'hitbox';
+
+    DevPanel.getObjectLevelKeys = function () {
+      return GAME_CONFIG.levelOrder || Object.keys(GAME_CONFIG.levels || {});
+    };
+
+    DevPanel.getSelectedObjectLevelKey = function () {
+      const keys = this.getObjectLevelKeys();
+      if (!keys.length) return null;
+      this.selectedObjectLevelIndex = this.wrap ? this.wrap(this.selectedObjectLevelIndex, keys.length) :
+        ((this.selectedObjectLevelIndex % keys.length) + keys.length) % keys.length;
+      return keys[this.selectedObjectLevelIndex];
+    };
+
+    DevPanel.getSelectedObjectLevel = function () {
+      const key = this.getSelectedObjectLevelKey();
+      return key && GAME_CONFIG.levels ? GAME_CONFIG.levels[key] : null;
+    };
+
+    DevPanel.getSelectedObjectList = function () {
+      return getInteractivesForLevel(this.getSelectedObjectLevel());
+    };
+
+    DevPanel.getSelectedObject = function () {
+      const list = this.getSelectedObjectList();
+      if (!list.length) return null;
+      this.selectedObjectIndex = this.wrap ? this.wrap(this.selectedObjectIndex, list.length) :
+        ((this.selectedObjectIndex % list.length) + list.length) % list.length;
+      return list[this.selectedObjectIndex];
+    };
+
+    DevPanel.getSelectedObjectBox = function () {
+      const item = this.getSelectedObject();
+      if (!item) return null;
+      if (this.selectedObjectBoxKey === 'lane') return item;
+      if (!item[this.selectedObjectBoxKey]) item[this.selectedObjectBoxKey] = { x: 0, y: 0, w: 40, h: 40 };
+      return item[this.selectedObjectBoxKey];
+    };
+
+    DevPanel.objectEditorRects = function () {
+      const panel = this.panelRect();
+      const x = panel.x + 36;
+      const y = panel.y + 118;
+      return {
+        box: { x, y, w: 980, h: 496 },
+        levelPrev: { x: x + 112, y: y + 24, w: 36, h: 28 },
+        levelNext: { x: x + 620, y: y + 24, w: 36, h: 28 },
+        objectPrev: { x: x + 112, y: y + 64, w: 36, h: 28 },
+        objectNext: { x: x + 620, y: y + 64, w: 36, h: 28 },
+        boxPrev: { x: x + 112, y: y + 104, w: 36, h: 28 },
+        boxNext: { x: x + 620, y: y + 104, w: 36, h: 28 }
+      };
+    };
+
+    DevPanel.objectBoxKeys = function (item) {
+      const keys = ['hitbox'];
+      if (item && item.effectRect) keys.push('effectRect');
+      if (item && Number.isFinite(item.laneY)) keys.push('lane');
+      return keys;
+    };
+
+    DevPanel.selectNextObjectBox = function (delta) {
+      const item = this.getSelectedObject();
+      const keys = this.objectBoxKeys(item);
+      const index = Math.max(0, keys.indexOf(this.selectedObjectBoxKey));
+      this.selectedObjectBoxKey = keys[((index + delta) % keys.length + keys.length) % keys.length];
+    };
+
+    const originalHandleClick = DevPanel.objectOriginalHandleClick || DevPanel.handleClick;
+    DevPanel.objectOriginalHandleClick = originalHandleClick;
+    DevPanel.handleClick = function (point, game) {
+      const panel = this.panelRect();
+      if (!this.inRect(point, panel)) return;
+      const close = { x: panel.x + panel.w - 78, y: panel.y + 14, w: 56, h: 32 };
+      if (this.inRect(point, close)) { this.open = false; return; }
+      const tab = this.getClickedTab(point);
+      if (tab) { this.tab = tab; this.setStatus('Tab: ' + tab); return; }
+      if (this.handleFooterClick(point, game)) return;
+      if (this.tab === 'OBJECTS') { this.handleObjectEditorClick(point, game); return; }
+      originalHandleClick.call(this, point, game);
+    };
+
+    DevPanel.handleObjectEditorClick = function (point, game) {
+      const r = this.objectEditorRects();
+      const list = this.getSelectedObjectList();
+      if (this.inRect(point, r.levelPrev)) { this.selectedObjectLevelIndex--; this.selectedObjectIndex = 0; this.setStatus('Object level: ' + this.getSelectedObjectLevelKey()); return true; }
+      if (this.inRect(point, r.levelNext)) { this.selectedObjectLevelIndex++; this.selectedObjectIndex = 0; this.setStatus('Object level: ' + this.getSelectedObjectLevelKey()); return true; }
+      if (this.inRect(point, r.objectPrev) && list.length) { this.selectedObjectIndex--; this.setStatus('Object changed'); return true; }
+      if (this.inRect(point, r.objectNext) && list.length) { this.selectedObjectIndex++; this.setStatus('Object changed'); return true; }
+      if (this.inRect(point, r.boxPrev)) { this.selectNextObjectBox(-1); this.setStatus('Object box: ' + this.selectedObjectBoxKey); return true; }
+      if (this.inRect(point, r.boxNext)) { this.selectNextObjectBox(1); this.setStatus('Object box: ' + this.selectedObjectBoxKey); return true; }
+
+      const box = this.getSelectedObjectBox();
+      if (!box) return false;
+      const props = this.selectedObjectBoxKey === 'lane' ? ['laneY', 'laneTolerance'] : ['x', 'y', 'w', 'h'];
+      for (let i = 0; i < props.length; i++) {
+        const y = r.box.y + 178 + i * 46;
+        const minus = { x: r.box.x + 118, y: y - 22, w: 34, h: 28 };
+        const plus = { x: r.box.x + 452, y: y - 22, w: 34, h: 28 };
+        const bar = { x: r.box.x + 166, y: y - 13, w: 270, h: 12 };
+        const prop = props[i];
+        const min = prop === 'w' || prop === 'h' ? 4 : 0;
+        const max = prop === 'w' ? GAME_CONFIG.width : prop === 'h' ? GAME_CONFIG.height : GAME_CONFIG.height;
+        const step = prop === 'laneTolerance' ? 2 : 4;
+        if (this.inRect(point, minus)) { box[prop] = Math.max(min, Math.round((Number(box[prop]) || 0) - step)); this.applyToCurrentScene(game); this.setStatus(prop + ': ' + box[prop]); return true; }
+        if (this.inRect(point, plus)) { box[prop] = Math.min(max, Math.round((Number(box[prop]) || 0) + step)); this.applyToCurrentScene(game); this.setStatus(prop + ': ' + box[prop]); return true; }
+        if (this.inRect(point, bar)) {
+          const ratio = Math.max(0, Math.min(1, (point.x - bar.x) / bar.w));
+          box[prop] = Math.round(min + ratio * (max - min));
+          this.applyToCurrentScene(game);
+          this.setStatus(prop + ': ' + box[prop]);
+          return true;
+        }
+      }
+      return false;
+    };
+
+    const originalDraw = DevPanel.objectOriginalDraw || DevPanel.draw;
+    DevPanel.objectOriginalDraw = originalDraw;
+    DevPanel.draw = function (ctx) {
+      if (!GAME_CONFIG.adminTuningEnabled) return;
+      if (!this.open || this.tab !== 'OBJECTS') { originalDraw.call(this, ctx); return; }
+      const panel = this.panelRect();
+      ctx.fillStyle = 'rgba(0,0,0,0.92)';
+      ctx.fillRect(panel.x, panel.y, panel.w, panel.h);
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(panel.x, panel.y, panel.w, panel.h);
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 24px Arial';
+      ctx.fillText('DEVELOPER PANEL', panel.x + 22, panel.y + 38);
+      ctx.font = '13px Arial';
+      ctx.fillStyle = '#aaa';
+      ctx.fillText('Object editor: yellow = hitbox, blue = visual effect, green line = lane.', panel.x + 22, panel.y + 58);
+      this.drawButton(ctx, panel.x + panel.w - 78, panel.y + 14, 56, 32, 'X');
+      this.drawTabs(ctx);
+      this.drawObjectEditor(ctx);
+      this.drawFooter(ctx);
+      this.drawStatus(ctx, panel);
+    };
+
+    DevPanel.drawObjectEditor = function (ctx) {
+      const r = this.objectEditorRects();
+      const item = this.getSelectedObject();
+      const box = this.getSelectedObjectBox();
+      ctx.fillStyle = 'rgba(255,255,255,0.06)';
+      ctx.fillRect(r.box.x, r.box.y, r.box.w, r.box.h);
+      ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+      ctx.strokeRect(r.box.x, r.box.y, r.box.w, r.box.h);
+
+      const levelKey = this.getSelectedObjectLevelKey() || 'none';
+      ctx.fillStyle = '#ccc';
+      ctx.font = '14px Arial';
+      ctx.fillText('Level:', r.box.x + 24, r.box.y + 43);
+      this.drawButton(ctx, r.levelPrev.x, r.levelPrev.y, r.levelPrev.w, r.levelPrev.h, '<');
+      this.drawButton(ctx, r.levelNext.x, r.levelNext.y, r.levelNext.w, r.levelNext.h, '>');
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 15px Arial';
+      ctx.fillText(levelKey, r.box.x + 160, r.box.y + 43);
+
+      ctx.fillStyle = '#ccc';
+      ctx.font = '14px Arial';
+      ctx.fillText('Object:', r.box.x + 24, r.box.y + 83);
+      this.drawButton(ctx, r.objectPrev.x, r.objectPrev.y, r.objectPrev.w, r.objectPrev.h, '<');
+      this.drawButton(ctx, r.objectNext.x, r.objectNext.y, r.objectNext.w, r.objectNext.h, '>');
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 15px Arial';
+      ctx.fillText(item ? (item.id || item.type || 'object') : 'no objects', r.box.x + 160, r.box.y + 83);
+
+      ctx.fillStyle = '#ccc';
+      ctx.font = '14px Arial';
+      ctx.fillText('Box:', r.box.x + 24, r.box.y + 123);
+      this.drawButton(ctx, r.boxPrev.x, r.boxPrev.y, r.boxPrev.w, r.boxPrev.h, '<');
+      this.drawButton(ctx, r.boxNext.x, r.boxNext.y, r.boxNext.w, r.boxNext.h, '>');
+      ctx.fillStyle = this.selectedObjectBoxKey === 'hitbox' ? '#ffe65a' : this.selectedObjectBoxKey === 'effectRect' ? '#50beff' : '#50ff78';
+      ctx.font = 'bold 15px Arial';
+      ctx.fillText(String(this.selectedObjectBoxKey).toUpperCase(), r.box.x + 160, r.box.y + 123);
+
+      if (!box) return;
+      const props = this.selectedObjectBoxKey === 'lane' ? ['laneY', 'laneTolerance'] : ['x', 'y', 'w', 'h'];
+      for (let i = 0; i < props.length; i++) {
+        const prop = props[i];
+        const value = Number(box[prop]) || 0;
+        const min = prop === 'w' || prop === 'h' ? 4 : 0;
+        const max = prop === 'w' ? GAME_CONFIG.width : prop === 'h' ? GAME_CONFIG.height : GAME_CONFIG.height;
+        const ratio = (value - min) / Math.max(1, max - min);
+        const y = r.box.y + 178 + i * 46;
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 14px Arial';
+        ctx.fillText(prop, r.box.x + 24, y);
+        ctx.fillStyle = '#ccc';
+        ctx.fillText(String(value), r.box.x + 104, y);
+        this.drawButton(ctx, r.box.x + 118, y - 22, 34, 28, '-');
+        ctx.fillStyle = '#222';
+        ctx.fillRect(r.box.x + 166, y - 13, 270, 12);
+        ctx.fillStyle = '#55ccff';
+        ctx.fillRect(r.box.x + 166, y - 13, 270 * Math.max(0, Math.min(1, ratio)), 12);
+        ctx.strokeStyle = '#777';
+        ctx.strokeRect(r.box.x + 166, y - 13, 270, 12);
+        this.drawButton(ctx, r.box.x + 452, y - 22, 34, 28, '+');
+      }
+
+      ctx.fillStyle = '#aaa';
+      ctx.font = '12px Arial';
+      ctx.fillText('Use EXPORT to print the current level object JSON, then I can lock it into config.', r.box.x + 24, r.box.y + 392);
+    };
+
+    const originalExportConfig = DevPanel.objectOriginalExportConfig || DevPanel.exportConfig;
+    DevPanel.objectOriginalExportConfig = originalExportConfig;
+    DevPanel.exportConfig = function () {
+      originalExportConfig.call(this);
+      console.log('STREETS_OF_RUSSIA_OBJECTS_ONLY');
+      console.log(JSON.stringify(GAME_CONFIG.levels, null, 2));
+    };
+
+    DevPanel.objectEditorPatchApplied = true;
+  }
 }());
 
 
@@ -9111,19 +9350,21 @@ window.addEventListener('load', () => {
   if (typeof GAME_CONFIG === 'undefined' || typeof Assets === 'undefined') return;
 
   const HORSE_FOLDER = 'assets/enemies/horse';
+  const HORSE_ASSET_VERSION = 'horse-whiplash-2';
+  const horseFrame = name => HORSE_FOLDER + '/' + name + '.png?v=' + HORSE_ASSET_VERSION;
 
   Assets.horse = Object.assign({
-    idle: HORSE_FOLDER + '/idle.png',
+    idle: horseFrame('idle'),
     walk: [
-      HORSE_FOLDER + '/walk01.png',
-      HORSE_FOLDER + '/walk02.png',
-      HORSE_FOLDER + '/walk03.png'
+      horseFrame('walk01'),
+      horseFrame('walk02'),
+      horseFrame('walk03')
     ],
     attack: [
-      HORSE_FOLDER + '/idle.png',
-      HORSE_FOLDER + '/Whiplash.png'
+      horseFrame('idle'),
+      horseFrame('Whiplash')
     ],
-    dead: HORSE_FOLDER + '/walk03.png'
+    dead: horseFrame('walk03')
   }, Assets.horse || {});
 
   GAME_CONFIG.enemies.horse = Object.assign({
@@ -9131,7 +9372,7 @@ window.addEventListener('load', () => {
     hp: 125,
     speed: 2.025,
     damage: 14,
-    scale: 0.17,
+    scale: 0.22,
     attackScale: 0.57,
     attackWindupMs: 1000,
     attackActiveMs: 560,
@@ -9277,11 +9518,12 @@ window.addEventListener('load', () => {
   if (typeof GAME_CONFIG === 'undefined' || typeof Assets === 'undefined') return;
 
   const FOLDER = 'assets/enemies/horse';
+  const HORSE_ASSET_VERSION = 'horse-whiplash-2';
   const KO_KEY = 'horseKo';
   const KO_FILE = FOLDER + '/' + ['de', 'ath'].join('') + '.mp3';
 
   function frame(name) {
-    return FOLDER + '/' + name + '.png';
+    return FOLDER + '/' + name + '.png?v=' + HORSE_ASSET_VERSION;
   }
 
   Assets.horse = Object.assign(Assets.horse || {}, {
@@ -13624,7 +13866,7 @@ window.addEventListener('load', () => {
     introDurationMs: INTRO_DURATION_MS,
     devilLeadMs: DEVIL_LEAD_MS,
     entranceTargetX: 1040,
-    entranceY: 700,
+    entranceY: 760,
     zetnikSpawnMinMs: 1450,
     zetnikSpawnMaxMs: 2450,
     maxZetniks: 3,
@@ -13636,7 +13878,7 @@ window.addEventListener('load', () => {
     zetnikHitDamage: 1,
     arenaMoveSpeed: 0,
     arenaTop: 540,
-    arenaBottom: 705,
+    arenaBottom: 760,
     deathHoldMs: 5000,
     victoryDelayMs: 4800
   }, GAME_CONFIG.enemies.gundos || {});
@@ -13651,7 +13893,7 @@ window.addEventListener('load', () => {
       scale: 0.266,
       devilLeadMs: DEVIL_LEAD_MS,
       entranceTargetX: 1040,
-      entranceY: 700,
+      entranceY: 760,
       zetnikSpawnMinMs: 1450,
       zetnikSpawnMaxMs: 2450,
       maxZetniks: 3,
@@ -13663,7 +13905,7 @@ window.addEventListener('load', () => {
       zetnikHitDamage: 1,
       arenaMoveSpeed: 0,
       arenaTop: 540,
-      arenaBottom: 705,
+      arenaBottom: 760,
       deathHoldMs: 5000,
       victoryDelayMs: 4800
     });
@@ -13714,7 +13956,7 @@ window.addEventListener('load', () => {
       { label: 'Gundos scale', path: 'enemies.gundos.scale', min: 0.1, max: 0.7, step: 0.01 },
       { label: 'Gundos HP', path: 'enemies.gundos.hp', min: 1, max: 20, step: 1 },
       { label: 'Entrance target X', path: 'enemies.gundos.entranceTargetX', min: 600, max: 1200, step: 10 },
-      { label: 'Entrance Y', path: 'enemies.gundos.entranceY', min: 350, max: 720, step: 5 },
+      { label: 'Entrance Y', path: 'enemies.gundos.entranceY', min: 350, max: 820, step: 5 },
       { label: 'Devil lead ms', path: 'enemies.gundos.devilLeadMs', min: 0, max: 10000, step: 250 },
       { label: 'Zetnik min spawn', path: 'enemies.gundos.zetnikSpawnMinMs', min: 500, max: 6000, step: 100 },
       { label: 'Zetnik max spawn', path: 'enemies.gundos.zetnikSpawnMaxMs', min: 500, max: 8000, step: 100 },
@@ -14172,9 +14414,10 @@ window.addEventListener('load', () => {
     draw(ctx, debug) {
       const image = this.getImage();
       if (!image) return;
-      const scale = this.getConfig().scale;
+      const scale = this.alive ? this.getConfig().scale : this.getConfig().scale * 0.85;
       const width = image.width * scale;
       const height = image.height * scale;
+      const drawOffsetY = !this.alive ? 199 * scale : 0;
       ctx.save();
       if (!this.alive) {
         const holdMs = this.getConfig().deathHoldMs || 5000;
@@ -14186,7 +14429,7 @@ window.addEventListener('load', () => {
       }
       ctx.translate(this.x, this.y);
       if (this.facing < 0) ctx.scale(-1, 1);
-      ctx.drawImage(image, -width / 2, -height, width, height);
+      ctx.drawImage(image, -width / 2, -height + drawOffsetY, width, height);
       ctx.restore();
       this.drawHealthBar(ctx);
 
