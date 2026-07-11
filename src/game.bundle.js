@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.45',
+  buildVersion: '0.4.46',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -5901,11 +5901,15 @@ const DevPanel = {
       'enemies.bastard.speed': DEFAULT_GAME_CONFIG.enemies.bastard.speed,
       enemyOffscreenMargin: DEFAULT_GAME_CONFIG.enemyOffscreenMargin,
       'enemies.horse.speed': 2.025,
-      'enemies.horse.scale': 0.26,
-      'enemies.horse.visibleHeight': 220,
-      'enemies.horse.attackScale': 0.57,
-      'enemies.horse.attackRangeX': 180,
-      'enemies.horse.clubReachForward': 238,
+      'enemies.horse.scale': 0.13,
+      'enemies.horse.visibleHeight': 0,
+      'enemies.horse.attackScale': 1,
+      'enemies.horse.minDistanceX': 120,
+      'enemies.horse.preferredDistanceX': 190,
+      'enemies.horse.attackMinDistanceX': 115,
+      'enemies.horse.attackMaxDistanceX': 255,
+      'enemies.horse.attackRangeX': 265,
+      'enemies.horse.clubReachForward': 310,
       'enemies.gundos.speed': 1.875,
       'enemies.gundos.entranceY': 720,
       'enemies.gundos.arenaBottom': 720,
@@ -9351,7 +9355,7 @@ window.addEventListener('load', () => {
   if (typeof GAME_CONFIG === 'undefined' || typeof Assets === 'undefined') return;
 
   const HORSE_FOLDER = 'assets/enemies/horse';
-  const HORSE_ASSET_VERSION = 'horse-whiplash-3';
+  const HORSE_ASSET_VERSION = 'horse-rebuilt-1';
   const horseFrame = name => HORSE_FOLDER + '/' + name + '.png?v=' + HORSE_ASSET_VERSION;
 
   Assets.horse = Object.assign({
@@ -9373,30 +9377,35 @@ window.addEventListener('load', () => {
     hp: 125,
     speed: 2.025,
     damage: 14,
-    scale: 0.26,
-    visibleHeight: 220,
-    attackScale: 0.57,
+    scale: 0.13,
+    visibleHeight: 0,
+    attackScale: 1,
     attackWindupMs: 1000,
     attackActiveMs: 560,
     attackRecoveryMs: 520,
     bossMusic: false,
     bossMusicKey: 'bossTheme',
-    minDistanceX: 46,
-    preferredDistanceX: 84,
-    attackRangeX: 180,
+    minDistanceX: 120,
+    preferredDistanceX: 190,
+    tooFarDistanceX: 310,
+    attackMinDistanceX: 115,
+    attackMaxDistanceX: 255,
+    attackRangeX: 265,
     attackRangeY: 38,
-    clubReachForward: 238,
-    clubReachBack: 24,
+    clubReachForward: 310,
+    clubReachBack: 18,
     maxAttackers: 1,
-    decisionMinMs: 240,
-    decisionMaxMs: 620,
-    strafeChance: 0.32,
-    retreatChance: 0.07,
-    attackChance: 0.74,
+    decisionMinMs: 340,
+    decisionMaxMs: 920,
+    strafeChance: 0.5,
+    retreatChance: 0.26,
+    attackChance: 0.46,
+    closeRetreatChance: 0.78,
+    postAttackRetreatMs: 760,
     slotSpacingX: 50,
-    slotSpacingY: 34,
-    flankDistanceX: 112,
-    pressureDistanceX: 165
+    slotSpacingY: 44,
+    flankDistanceX: 190,
+    pressureDistanceX: 225
   }, GAME_CONFIG.enemies.horse || {});
 
   if (typeof DevPanel !== 'undefined') {
@@ -9525,23 +9534,50 @@ window.addEventListener('load', () => {
         );
       }
 
-      const bounds = getAlphaBounds(img);
-      const config = (GAME_CONFIG.enemies && GAME_CONFIG.enemies.horse) || {};
-      const base = config.scale || baseScale || 0.26;
-      const targetHeight = (config.visibleHeight || 220) * (base / 0.26);
-      return bounds && bounds.h ? targetHeight / bounds.h : baseScale;
+      return baseScale;
     };
 
     const previousGetDrawOffsetY = DogRegimeEnemy.prototype.getDrawOffsetY;
     DogRegimeEnemy.prototype.getDrawOffsetY = function (img, frameScale) {
       if (this.enemyType === 'horse') {
-        const bounds = getAlphaBounds(img);
-        return bounds ? bounds.bottomGap * frameScale : 0;
+        return 0;
       }
       return previousGetDrawOffsetY ? previousGetDrawOffsetY.call(this, img, frameScale) : 0;
     };
 
     DogRegimeEnemy.prototype.horseWhiplashFramePatchApplied = true;
+  }
+
+  if (typeof DogRegimeEnemy !== 'undefined' && !DogRegimeEnemy.prototype.horseTacticsPatchApplied) {
+    const previousChooseIntent = DogRegimeEnemy.prototype.chooseIntent;
+    DogRegimeEnemy.prototype.chooseIntent = function (scene, canAttackNow, inAttackRange, frontThreat = false, absX = Infinity) {
+      if (this.enemyType !== 'horse') {
+        return previousChooseIntent.call(this, scene, canAttackNow, inAttackRange, frontThreat, absX);
+      }
+
+      const roll = Math.random();
+      if (frontThreat || absX < this.minDistanceX) {
+        this.intent = roll < 0.72 ? 'retreat' : 'strafe';
+        this.retreatTimer = 260 + Math.random() * 260;
+        this.strafeDirection = Math.random() < 0.5 ? -1 : 1;
+      } else if (canAttackNow && inAttackRange && this.cooldown <= 0 && roll < this.attackChance) {
+        this.intent = 'attack';
+      } else if (absX > this.attackMaxDistanceX) {
+        this.intent = roll < 0.72 ? 'approach' : 'flank';
+      } else if (roll < 0.5) {
+        this.intent = 'strafe';
+        this.strafeDirection = Math.random() < 0.5 ? -1 : 1;
+      } else if (roll < 0.75) {
+        this.intent = 'hold';
+      } else {
+        this.intent = 'retreat';
+        this.retreatTimer = 180 + Math.random() * 220;
+      }
+
+      this.decisionTimer = this.decisionMinMs + Math.random() * Math.max(1, this.decisionMaxMs - this.decisionMinMs);
+    };
+
+    DogRegimeEnemy.prototype.horseTacticsPatchApplied = true;
   }
 })();
 
@@ -9552,7 +9588,7 @@ window.addEventListener('load', () => {
   if (typeof GAME_CONFIG === 'undefined' || typeof Assets === 'undefined') return;
 
   const FOLDER = 'assets/enemies/horse';
-  const HORSE_ASSET_VERSION = 'horse-whiplash-3';
+  const HORSE_ASSET_VERSION = 'horse-rebuilt-1';
   const KO_KEY = 'horseKo';
   const KO_FILE = FOLDER + '/' + ['de', 'ath'].join('') + '.mp3';
 
