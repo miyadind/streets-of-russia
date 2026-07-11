@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.38',
+  buildVersion: '0.4.39',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -67,7 +67,7 @@ const GAME_CONFIG = {
       speed: 3.9,
       damage: 16,
       scale: 0.185,
-      knockdownDraw: { alphaCenterX: 1308, alphaBottomY: 834, facingMultiplier: -1 },
+      knockdownDraw: { alphaCenterX: 800, alphaBottomY: 834, facingMultiplier: -1 },
       knockdownBody: { footX: 1308, bottomY: 834, w: 190, h: 58 },
       strength: 5,
       speedStat: 5,
@@ -103,7 +103,7 @@ const GAME_CONFIG = {
       speed: 3.375,
       damage: 22,
       scale: 0.16,
-      knockdownDraw: { alphaCenterX: 155, alphaBottomY: 634 },
+      knockdownDraw: { alphaCenterX: 730, alphaBottomY: 634 },
       knockdownBody: { footX: 155, bottomY: 634, w: 210, h: 50 },
       strength: 7,
       speedStat: 3,
@@ -3303,8 +3303,9 @@ class SuckerEnemy extends DogRegimeEnemy {
     if (!player) return;
     const body = player.getBodyBox ? player.getBodyBox() : null;
     const centerX = body ? body.x + body.w / 2 : player.x;
+    const bottomY = body ? body.y + body.h : player.y;
     this.x = centerX;
-    this.y = player.y;
+    this.y = bottomY;
   }
 
   releasePinnedPlayer(player) {
@@ -14821,6 +14822,18 @@ window.addEventListener('load', () => {
     };
 
     Player.prototype.getBodyBox = function () {
+      const hero = GAME_CONFIG.heroes && (GAME_CONFIG.heroes[this.heroKey] || GAME_CONFIG.heroes.boris);
+      const knockdownBody = (this.state === 'knockdown' || this.state === 'pinned') && hero && hero.knockdownBody;
+      if (knockdownBody) {
+        const w = Math.max(1, knockdownBody.w || 160);
+        const h = Math.max(1, knockdownBody.h || 44);
+        return {
+          x: this.x - w / 2,
+          y: this.y - h,
+          w,
+          h
+        };
+      }
       return worldBox(this.x, this.y, this.facing, heroBox(this.heroKey, 'body'));
     };
 

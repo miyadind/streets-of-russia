@@ -338,8 +338,9 @@ class SuckerEnemy extends DogRegimeEnemy {
     if (!player) return;
     const body = player.getBodyBox ? player.getBodyBox() : null;
     const centerX = body ? body.x + body.w / 2 : player.x;
+    const bottomY = body ? body.y + body.h : player.y;
     this.x = centerX;
-    this.y = player.y;
+    this.y = bottomY;
   }
 
   releasePinnedPlayer(player) {

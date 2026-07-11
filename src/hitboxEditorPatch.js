@@ -259,6 +259,18 @@
     };
 
     Player.prototype.getBodyBox = function () {
+      const hero = GAME_CONFIG.heroes && (GAME_CONFIG.heroes[this.heroKey] || GAME_CONFIG.heroes.boris);
+      const knockdownBody = (this.state === 'knockdown' || this.state === 'pinned') && hero && hero.knockdownBody;
+      if (knockdownBody) {
+        const w = Math.max(1, knockdownBody.w || 160);
+        const h = Math.max(1, knockdownBody.h || 44);
+        return {
+          x: this.x - w / 2,
+          y: this.y - h,
+          w,
+          h
+        };
+      }
       return worldBox(this.x, this.y, this.facing, heroBox(this.heroKey, 'body'));
     };
 
