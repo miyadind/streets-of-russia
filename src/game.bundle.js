@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.39',
+  buildVersion: '0.4.40',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -14968,6 +14968,19 @@ window.addEventListener('load', () => {
   }
 
   if (typeof SuckerEnemy !== 'undefined') {
+    const originalSuckerGetBodyBox = SuckerEnemy.prototype.getBodyBox || DogRegimeEnemy.prototype.getBodyBox;
+    SuckerEnemy.prototype.getBodyBox = function () {
+      if (this.state === 'pinBite') {
+        const box = { x: -58, y: -58, w: 116, h: 58 };
+        return worldBox(this.x, this.y, this.facing, box);
+      }
+      return originalSuckerGetBodyBox.call(this);
+    };
+
+    SuckerEnemy.prototype.getHurtbox = function () {
+      return this.getBodyBox();
+    };
+
     SuckerEnemy.prototype.getSlideHitbox = function () {
       return worldBox(this.x, this.slideY || this.y, this.facing, enemyBox('sucker', 'slideAttack'));
     };
