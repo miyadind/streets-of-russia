@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.47',
+  buildVersion: '0.4.48',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -9703,7 +9703,7 @@ window.addEventListener('load', () => {
     if (window.__hitboxEditorPatchRequested) return;
     window.__hitboxEditorPatchRequested = true;
     var script = document.createElement('script');
-    script.src = 'src/hitboxEditorPatch.js?v=anatomy-hitboxes-2';
+    script.src = 'src/hitboxEditorPatch.js?v=anatomy-hitboxes-3';
     script.defer = true;
     document.body.appendChild(script);
   }
@@ -14952,7 +14952,7 @@ window.addEventListener('load', () => {
     biteAttack: '#45ff45'
   };
 
-  const ANATOMICAL_HITBOX_VERSION = 2;
+  const ANATOMICAL_HITBOX_VERSION = 3;
 
   const SPRITE_METRICS = {
     heroes: {
@@ -14965,7 +14965,7 @@ window.addEventListener('load', () => {
       zetnik: { w: 1024, h: 1536, scalePath: 'enemies.zetnik.scale' },
       sucker: { w: 1024, h: 1536, scalePath: 'enemies.sucker.scale' },
       bastard: { w: 1122, h: 1402, scalePath: 'enemies.bastard.scale' },
-      horse: { w: 760, h: 934, scalePath: 'enemies.horse.scale' },
+      horse: { w: 1024, h: 1536, scalePath: 'enemies.horse.scale' },
       gundos: { w: 1536, h: 1024, scalePath: 'enemies.gundos.scale' }
     }
   };
@@ -14977,7 +14977,7 @@ window.addEventListener('load', () => {
     humanEnemy: { bodyW: 0.42, minBodyW: 72, bodyH: 0.92, bodyTop: 0.99, pushW: 0.42, pushH: 0.18, attackY: 0.66, attackH: 0.28, attackW: 0.52 },
     skinnyEnemy: { bodyW: 0.36, minBodyW: 64, bodyH: 0.9, bodyTop: 0.99, pushW: 0.38, pushH: 0.16, attackY: 0.66, attackH: 0.27, attackW: 0.55 },
     sucker: { bodyW: 0.5, minBodyW: 82, bodyH: 0.88, bodyTop: 0.99, pushW: 0.46, pushH: 0.18, slideY: 0.66, slideH: 0.27, slideW: 0.62, biteY: 0.64, biteH: 0.28, biteW: 0.45 },
-    horse: { bodyW: 0.45, minBodyW: 46, bodyH: 0.86, bodyTop: 0.99, pushW: 0.5, pushH: 0.2, attackY: 0.63, attackH: 0.3, attackW: 0.58 },
+    horse: { bodyW: 0.32, minBodyW: 58, bodyH: 0.92, bodyTop: 0.99, pushW: 0.36, pushH: 0.16, attackY: 0.58, attackH: 0.34, attackW: 1.55 },
     gundos: { bodyW: 0.26, bodyH: 0.88, bodyTop: 0.98, pushW: 0.3, pushH: 0.18, attackY: 0.66, attackH: 0.3, attackW: 0.42 }
   };
 
@@ -15392,7 +15392,9 @@ window.addEventListener('load', () => {
         { group: 'enemies', key: 'dogRegime', label: 'Enemy: Dog' },
         { group: 'enemies', key: 'zetnik', label: 'Enemy: Zetnik' },
         { group: 'enemies', key: 'sucker', label: 'Enemy: Sucker' },
-        { group: 'enemies', key: 'bastard', label: 'Enemy: Bastard' }
+        { group: 'enemies', key: 'bastard', label: 'Enemy: Bastard' },
+        { group: 'enemies', key: 'horse', label: 'Enemy: Horse' },
+        { group: 'enemies', key: 'gundos', label: 'Enemy: Gundos' }
       ];
     };
 
