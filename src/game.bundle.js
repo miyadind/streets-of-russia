@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.35',
+  buildVersion: '0.4.36',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -101,7 +101,7 @@ const GAME_CONFIG = {
       speed: 3.375,
       damage: 22,
       scale: 0.16,
-      knockdownDraw: { alphaCenterX: 730, alphaBottomY: 634 },
+      knockdownDraw: { alphaCenterX: 155, alphaBottomY: 634 },
       strength: 7,
       speedStat: 3,
       health: 8,
