@@ -2,7 +2,7 @@
   if (typeof GAME_CONFIG === 'undefined' || typeof Assets === 'undefined') return;
 
   const HORSE_FOLDER = 'assets/enemies/horse';
-  const HORSE_ASSET_VERSION = 'horse-whiplash-2';
+  const HORSE_ASSET_VERSION = 'horse-whiplash-3';
   const horseFrame = name => HORSE_FOLDER + '/' + name + '.png?v=' + HORSE_ASSET_VERSION;
 
   Assets.horse = Object.assign({
@@ -24,7 +24,8 @@
     hp: 125,
     speed: 2.025,
     damage: 14,
-    scale: 0.22,
+    scale: 0.26,
+    visibleHeight: 220,
     attackScale: 0.57,
     attackWindupMs: 1000,
     attackActiveMs: 560,
@@ -134,6 +135,38 @@
     GameApp.prototype.horseEnemyPatchApplied = true;
   }
 
+  function getAlphaBounds(img) {
+    if (!img) return null;
+    if (img.__alphaBounds) return img.__alphaBounds;
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth || img.width;
+      canvas.height = img.naturalHeight || img.height;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(img, 0, 0);
+      const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+      let minX = canvas.width;
+      let minY = canvas.height;
+      let maxX = -1;
+      let maxY = -1;
+      for (let y = 0; y < canvas.height; y++) {
+        for (let x = 0; x < canvas.width; x++) {
+          if (data[(y * canvas.width + x) * 4 + 3] <= 8) continue;
+          if (x < minX) minX = x;
+          if (y < minY) minY = y;
+          if (x > maxX) maxX = x;
+          if (y > maxY) maxY = y;
+        }
+      }
+      img.__alphaBounds = maxX >= 0
+        ? { minX, minY, maxX, maxY, w: maxX - minX + 1, h: maxY - minY + 1, bottomGap: canvas.height - 1 - maxY }
+        : { minX: 0, minY: 0, maxX: canvas.width - 1, maxY: canvas.height - 1, w: canvas.width, h: canvas.height, bottomGap: 0 };
+    } catch (error) {
+      img.__alphaBounds = { minX: 0, minY: 0, maxX: img.width - 1, maxY: img.height - 1, w: img.width, h: img.height, bottomGap: 0 };
+    }
+    return img.__alphaBounds;
+  }
+
   if (typeof DogRegimeEnemy !== 'undefined' && !DogRegimeEnemy.prototype.horseWhiplashFramePatchApplied) {
     const previousGetFrameScale = DogRegimeEnemy.prototype.getFrameScale;
     DogRegimeEnemy.prototype.getFrameScale = function (img, baseScale) {
@@ -143,18 +176,18 @@
         );
       }
 
-      if (this.state !== 'attack') return baseScale;
-      const windupMs = this.attackWindupMs || GAME_CONFIG.enemyWindupMs;
-      const isWhiplash = this.attackTimer >= windupMs;
-      return baseScale * (isWhiplash ? 0.78 : 0.57);
+      const bounds = getAlphaBounds(img);
+      const config = (GAME_CONFIG.enemies && GAME_CONFIG.enemies.horse) || {};
+      const base = config.scale || baseScale || 0.26;
+      const targetHeight = (config.visibleHeight || 220) * (base / 0.26);
+      return bounds && bounds.h ? targetHeight / bounds.h : baseScale;
     };
 
     const previousGetDrawOffsetY = DogRegimeEnemy.prototype.getDrawOffsetY;
     DogRegimeEnemy.prototype.getDrawOffsetY = function (img, frameScale) {
-      if (this.enemyType === 'horse' && this.state === 'attack') {
-        const windupMs = this.attackWindupMs || GAME_CONFIG.enemyWindupMs;
-        const isWhiplash = this.attackTimer >= windupMs;
-        return (isWhiplash ? 225 : 9) * frameScale;
+      if (this.enemyType === 'horse') {
+        const bounds = getAlphaBounds(img);
+        return bounds ? bounds.bottomGap * frameScale : 0;
       }
       return previousGetDrawOffsetY ? previousGetDrawOffsetY.call(this, img, frameScale) : 0;
     };

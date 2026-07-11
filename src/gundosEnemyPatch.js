@@ -31,7 +31,7 @@
     introDurationMs: INTRO_DURATION_MS,
     devilLeadMs: DEVIL_LEAD_MS,
     entranceTargetX: 1040,
-    entranceY: 760,
+    entranceY: 720,
     zetnikSpawnMinMs: 1450,
     zetnikSpawnMaxMs: 2450,
     maxZetniks: 3,
@@ -43,22 +43,22 @@
     zetnikHitDamage: 1,
     arenaMoveSpeed: 0,
     arenaTop: 540,
-    arenaBottom: 760,
+    arenaBottom: 720,
     deathHoldMs: 5000,
     victoryDelayMs: 4800
   }, GAME_CONFIG.enemies.gundos || {});
 
   function migrateIntroSequence() {
     const config = GAME_CONFIG.enemies.gundos;
-    if (Number(config.introSequenceVersion) >= 7) return;
+    if (Number(config.introSequenceVersion) >= 8) return;
     Object.assign(config, {
-      introSequenceVersion: 7,
+      introSequenceVersion: 8,
       speed: 1.875,
       hp: 6,
       scale: 0.266,
       devilLeadMs: DEVIL_LEAD_MS,
       entranceTargetX: 1040,
-      entranceY: 760,
+      entranceY: 720,
       zetnikSpawnMinMs: 1450,
       zetnikSpawnMaxMs: 2450,
       maxZetniks: 3,
@@ -70,7 +70,7 @@
       zetnikHitDamage: 1,
       arenaMoveSpeed: 0,
       arenaTop: 540,
-      arenaBottom: 760,
+      arenaBottom: 720,
       deathHoldMs: 5000,
       victoryDelayMs: 4800
     });

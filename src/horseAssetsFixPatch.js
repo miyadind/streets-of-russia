@@ -2,7 +2,7 @@
   if (typeof GAME_CONFIG === 'undefined' || typeof Assets === 'undefined') return;
 
   const FOLDER = 'assets/enemies/horse';
-  const HORSE_ASSET_VERSION = 'horse-whiplash-2';
+  const HORSE_ASSET_VERSION = 'horse-whiplash-3';
   const KO_KEY = 'horseKo';
   const KO_FILE = FOLDER + '/' + ['de', 'ath'].join('') + '.mp3';
 
@@ -19,7 +19,7 @@
     ],
     attack: [
       frame('idle'),
-      frame('Whiplash')
+      [frame('Whiplash'), frame('Whiplash2'), frame('Whiplash3')]
     ]
   });
   Assets.horse.finalFrame = frame('walk03');
