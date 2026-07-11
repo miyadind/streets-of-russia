@@ -513,7 +513,9 @@ class DogRegimeEnemy {
     const img = this.getImage();
     if (!img) return;
     const baseScale = this.scale || GAME_CONFIG.enemyScale;
-    const frameScale = this.state === 'attack' ? baseScale * (this.attackScale || 1) : baseScale;
+    const frameScale = typeof this.getFrameScale === 'function'
+      ? this.getFrameScale(img, baseScale)
+      : (this.state === 'attack' ? baseScale * (this.attackScale || 1) : baseScale);
     const w = img.width * frameScale;
     const h = img.height * frameScale;
     const baseH = img.height * baseScale;

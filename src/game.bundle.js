@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.42',
+  buildVersion: '0.4.43',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -286,7 +286,7 @@ const GAME_CONFIG = {
           altBackground: 'assets/backgrounds/1/street01_1.png',
           laneY: 620,
           laneTolerance: 42,
-          hitbox: { x: 342, y: 418, w: 128, h: 146 },
+          hitbox: { x: 342, y: 272, w: 128, h: 146 },
           effectRect: { x: 360, y: 322, w: 72, h: 150 }
         }
       ],
@@ -2468,7 +2468,9 @@ class DogRegimeEnemy {
     const img = this.getImage();
     if (!img) return;
     const baseScale = this.scale || GAME_CONFIG.enemyScale;
-    const frameScale = this.state === 'attack' ? baseScale * (this.attackScale || 1) : baseScale;
+    const frameScale = typeof this.getFrameScale === 'function'
+      ? this.getFrameScale(img, baseScale)
+      : (this.state === 'attack' ? baseScale * (this.attackScale || 1) : baseScale);
     const w = img.width * frameScale;
     const h = img.height * frameScale;
     const baseH = img.height * baseScale;
@@ -9130,16 +9132,18 @@ window.addEventListener('load', () => {
     speed: 2.025,
     damage: 14,
     scale: 0.17,
-    attackScale: 0.62,
+    attackScale: 0.57,
     attackWindupMs: 1000,
-    attackActiveMs: 180,
-    attackRecoveryMs: 360,
+    attackActiveMs: 560,
+    attackRecoveryMs: 520,
     bossMusic: false,
     bossMusicKey: 'bossTheme',
     minDistanceX: 46,
     preferredDistanceX: 84,
-    attackRangeX: 132,
+    attackRangeX: 180,
     attackRangeY: 38,
+    clubReachForward: 238,
+    clubReachBack: 24,
     maxAttackers: 1,
     decisionMinMs: 240,
     decisionMaxMs: 620,
@@ -9235,6 +9239,34 @@ window.addEventListener('load', () => {
     };
 
     GameApp.prototype.horseEnemyPatchApplied = true;
+  }
+
+  if (typeof DogRegimeEnemy !== 'undefined' && !DogRegimeEnemy.prototype.horseWhiplashFramePatchApplied) {
+    const previousGetFrameScale = DogRegimeEnemy.prototype.getFrameScale;
+    DogRegimeEnemy.prototype.getFrameScale = function (img, baseScale) {
+      if (this.enemyType !== 'horse') {
+        return previousGetFrameScale ? previousGetFrameScale.call(this, img, baseScale) : (
+          this.state === 'attack' ? baseScale * (this.attackScale || 1) : baseScale
+        );
+      }
+
+      if (this.state !== 'attack') return baseScale;
+      const windupMs = this.attackWindupMs || GAME_CONFIG.enemyWindupMs;
+      const isWhiplash = this.attackTimer >= windupMs;
+      return baseScale * (isWhiplash ? 0.78 : 0.57);
+    };
+
+    const previousGetDrawOffsetY = DogRegimeEnemy.prototype.getDrawOffsetY;
+    DogRegimeEnemy.prototype.getDrawOffsetY = function (img, frameScale) {
+      if (this.enemyType === 'horse' && this.state === 'attack') {
+        const windupMs = this.attackWindupMs || GAME_CONFIG.enemyWindupMs;
+        const isWhiplash = this.attackTimer >= windupMs;
+        return (isWhiplash ? 225 : 9) * frameScale;
+      }
+      return previousGetDrawOffsetY ? previousGetDrawOffsetY.call(this, img, frameScale) : 0;
+    };
+
+    DogRegimeEnemy.prototype.horseWhiplashFramePatchApplied = true;
   }
 })();
 
@@ -13592,7 +13624,7 @@ window.addEventListener('load', () => {
     introDurationMs: INTRO_DURATION_MS,
     devilLeadMs: DEVIL_LEAD_MS,
     entranceTargetX: 1040,
-    entranceY: 620,
+    entranceY: 700,
     zetnikSpawnMinMs: 1450,
     zetnikSpawnMaxMs: 2450,
     maxZetniks: 3,
@@ -13604,7 +13636,9 @@ window.addEventListener('load', () => {
     zetnikHitDamage: 1,
     arenaMoveSpeed: 0,
     arenaTop: 540,
-    arenaBottom: 675
+    arenaBottom: 705,
+    deathHoldMs: 5000,
+    victoryDelayMs: 4800
   }, GAME_CONFIG.enemies.gundos || {});
 
   function migrateIntroSequence() {
@@ -13617,7 +13651,7 @@ window.addEventListener('load', () => {
       scale: 0.266,
       devilLeadMs: DEVIL_LEAD_MS,
       entranceTargetX: 1040,
-      entranceY: 620,
+      entranceY: 700,
       zetnikSpawnMinMs: 1450,
       zetnikSpawnMaxMs: 2450,
       maxZetniks: 3,
@@ -13629,7 +13663,9 @@ window.addEventListener('load', () => {
       zetnikHitDamage: 1,
       arenaMoveSpeed: 0,
       arenaTop: 540,
-      arenaBottom: 675
+      arenaBottom: 705,
+      deathHoldMs: 5000,
+      victoryDelayMs: 4800
     });
     delete config.swingLeadMs;
     delete config.patrolLeft;
@@ -13967,7 +14003,7 @@ window.addEventListener('load', () => {
     update(dt, scene) {
       if (!this.alive) {
         this.deathTimer += dt;
-        if (this.deathTimer > 1200) this.remove = true;
+        if (this.deathTimer > (this.getConfig().deathHoldMs || 5000) + 1200) this.remove = true;
         return;
       }
 
@@ -14140,7 +14176,10 @@ window.addEventListener('load', () => {
       const width = image.width * scale;
       const height = image.height * scale;
       ctx.save();
-      if (!this.alive) ctx.globalAlpha = Math.max(0, 1 - this.deathTimer / 1200);
+      if (!this.alive) {
+        const holdMs = this.getConfig().deathHoldMs || 5000;
+        ctx.globalAlpha = Math.max(0, 1 - Math.max(0, this.deathTimer - holdMs) / 1200);
+      }
       else if (this.flash > 0) {
         this.flash = Math.max(0, this.flash - 16);
         ctx.globalAlpha = 0.55;
@@ -14307,7 +14346,7 @@ window.addEventListener('load', () => {
     LevelScene.prototype.startGundosVictoryDelay = function () {
       if (this.gundosVictoryPending) return;
       this.gundosVictoryPending = true;
-      this.gundosVictoryDelayMs = 3600;
+      this.gundosVictoryDelayMs = (GAME_CONFIG.enemies.gundos && GAME_CONFIG.enemies.gundos.victoryDelayMs) || 4800;
       this.encounterActive = false;
       this.encounterCleared = false;
       this.nonBlockingWaveTimer = 0;

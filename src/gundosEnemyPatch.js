@@ -31,7 +31,7 @@
     introDurationMs: INTRO_DURATION_MS,
     devilLeadMs: DEVIL_LEAD_MS,
     entranceTargetX: 1040,
-    entranceY: 620,
+    entranceY: 700,
     zetnikSpawnMinMs: 1450,
     zetnikSpawnMaxMs: 2450,
     maxZetniks: 3,
@@ -43,7 +43,9 @@
     zetnikHitDamage: 1,
     arenaMoveSpeed: 0,
     arenaTop: 540,
-    arenaBottom: 675
+    arenaBottom: 705,
+    deathHoldMs: 5000,
+    victoryDelayMs: 4800
   }, GAME_CONFIG.enemies.gundos || {});
 
   function migrateIntroSequence() {
@@ -56,7 +58,7 @@
       scale: 0.266,
       devilLeadMs: DEVIL_LEAD_MS,
       entranceTargetX: 1040,
-      entranceY: 620,
+      entranceY: 700,
       zetnikSpawnMinMs: 1450,
       zetnikSpawnMaxMs: 2450,
       maxZetniks: 3,
@@ -68,7 +70,9 @@
       zetnikHitDamage: 1,
       arenaMoveSpeed: 0,
       arenaTop: 540,
-      arenaBottom: 675
+      arenaBottom: 705,
+      deathHoldMs: 5000,
+      victoryDelayMs: 4800
     });
     delete config.swingLeadMs;
     delete config.patrolLeft;
@@ -406,7 +410,7 @@
     update(dt, scene) {
       if (!this.alive) {
         this.deathTimer += dt;
-        if (this.deathTimer > 1200) this.remove = true;
+        if (this.deathTimer > (this.getConfig().deathHoldMs || 5000) + 1200) this.remove = true;
         return;
       }
 
@@ -579,7 +583,10 @@
       const width = image.width * scale;
       const height = image.height * scale;
       ctx.save();
-      if (!this.alive) ctx.globalAlpha = Math.max(0, 1 - this.deathTimer / 1200);
+      if (!this.alive) {
+        const holdMs = this.getConfig().deathHoldMs || 5000;
+        ctx.globalAlpha = Math.max(0, 1 - Math.max(0, this.deathTimer - holdMs) / 1200);
+      }
       else if (this.flash > 0) {
         this.flash = Math.max(0, this.flash - 16);
         ctx.globalAlpha = 0.55;
@@ -746,7 +753,7 @@
     LevelScene.prototype.startGundosVictoryDelay = function () {
       if (this.gundosVictoryPending) return;
       this.gundosVictoryPending = true;
-      this.gundosVictoryDelayMs = 3600;
+      this.gundosVictoryDelayMs = (GAME_CONFIG.enemies.gundos && GAME_CONFIG.enemies.gundos.victoryDelayMs) || 4800;
       this.encounterActive = false;
       this.encounterCleared = false;
       this.nonBlockingWaveTimer = 0;

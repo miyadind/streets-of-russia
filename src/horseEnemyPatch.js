@@ -23,16 +23,18 @@
     speed: 2.025,
     damage: 14,
     scale: 0.17,
-    attackScale: 0.62,
+    attackScale: 0.57,
     attackWindupMs: 1000,
-    attackActiveMs: 180,
-    attackRecoveryMs: 360,
+    attackActiveMs: 560,
+    attackRecoveryMs: 520,
     bossMusic: false,
     bossMusicKey: 'bossTheme',
     minDistanceX: 46,
     preferredDistanceX: 84,
-    attackRangeX: 132,
+    attackRangeX: 180,
     attackRangeY: 38,
+    clubReachForward: 238,
+    clubReachBack: 24,
     maxAttackers: 1,
     decisionMinMs: 240,
     decisionMaxMs: 620,
@@ -128,5 +130,33 @@
     };
 
     GameApp.prototype.horseEnemyPatchApplied = true;
+  }
+
+  if (typeof DogRegimeEnemy !== 'undefined' && !DogRegimeEnemy.prototype.horseWhiplashFramePatchApplied) {
+    const previousGetFrameScale = DogRegimeEnemy.prototype.getFrameScale;
+    DogRegimeEnemy.prototype.getFrameScale = function (img, baseScale) {
+      if (this.enemyType !== 'horse') {
+        return previousGetFrameScale ? previousGetFrameScale.call(this, img, baseScale) : (
+          this.state === 'attack' ? baseScale * (this.attackScale || 1) : baseScale
+        );
+      }
+
+      if (this.state !== 'attack') return baseScale;
+      const windupMs = this.attackWindupMs || GAME_CONFIG.enemyWindupMs;
+      const isWhiplash = this.attackTimer >= windupMs;
+      return baseScale * (isWhiplash ? 0.78 : 0.57);
+    };
+
+    const previousGetDrawOffsetY = DogRegimeEnemy.prototype.getDrawOffsetY;
+    DogRegimeEnemy.prototype.getDrawOffsetY = function (img, frameScale) {
+      if (this.enemyType === 'horse' && this.state === 'attack') {
+        const windupMs = this.attackWindupMs || GAME_CONFIG.enemyWindupMs;
+        const isWhiplash = this.attackTimer >= windupMs;
+        return (isWhiplash ? 225 : 9) * frameScale;
+      }
+      return previousGetDrawOffsetY ? previousGetDrawOffsetY.call(this, img, frameScale) : 0;
+    };
+
+    DogRegimeEnemy.prototype.horseWhiplashFramePatchApplied = true;
   }
 })();
