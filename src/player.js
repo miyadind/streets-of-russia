@@ -305,6 +305,21 @@ class Player {
   }
 
   getBodyBox() {
+    const hero = GAME_CONFIG.heroes[this.heroKey] || {};
+    const knockdownBody = (this.state === 'knockdown' || this.state === 'pinned') ? hero.knockdownBody : null;
+    if (knockdownBody) {
+      const w = Math.max(1, knockdownBody.w || 160);
+      const h = Math.max(1, knockdownBody.h || 44);
+      const bodyOffset = Math.max(0, knockdownBody.bodyOffsetX || 0);
+      const bottomOffset = Math.max(0, knockdownBody.bottomOffsetY || 0);
+      const localLeft = this.facing === 1 ? bodyOffset : -bodyOffset - w;
+      return {
+        x: this.x + localLeft,
+        y: this.y - h - bottomOffset,
+        w,
+        h
+      };
+    }
     return { x: this.x - 34, y: this.y - 132, w: 68, h: 132 };
   }
 
@@ -410,12 +425,13 @@ class Player {
     const h = img.height * scale;
     const isKnockdown = this.state === 'knockdown' || this.state === 'pinned';
     const knockdownDraw = isKnockdown ? hero.knockdownDraw : null;
+    const drawFacing = knockdownDraw && knockdownDraw.facingMultiplier ? this.facing * knockdownDraw.facingMultiplier : this.facing;
     const drawX = knockdownDraw ? -(knockdownDraw.alphaCenterX || img.width / 2) * scale : -w / 2;
     const drawY = knockdownDraw ? -(knockdownDraw.alphaBottomY || img.height) * scale : -h;
 
     ctx.save();
     ctx.translate(this.x, this.y);
-    if (this.facing === -1) ctx.scale(-1, 1);
+    if (drawFacing === -1) ctx.scale(-1, 1);
     if (this.flash > 0 && Math.floor(this.flash / 55) % 2 === 0) ctx.globalAlpha = 0.48;
     ctx.drawImage(img, drawX, drawY, w, h);
     ctx.restore();
