@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.46',
+  buildVersion: '0.4.47',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -15308,8 +15308,11 @@ window.addEventListener('load', () => {
 
     DogRegimeEnemy.prototype.updateAttack = function (dt, scene) {
       this.attackTimer += dt;
-      const activeStart = GAME_CONFIG.enemyWindupMs;
-      const activeEnd = GAME_CONFIG.enemyWindupMs + GAME_CONFIG.enemyActiveMs;
+      const windupMs = this.attackWindupMs || GAME_CONFIG.enemyWindupMs;
+      const activeMs = this.attackActiveMs || GAME_CONFIG.enemyActiveMs;
+      const recoveryMs = this.attackRecoveryMs || GAME_CONFIG.enemyRecoveryMs;
+      const activeStart = windupMs;
+      const activeEnd = windupMs + activeMs;
 
       if (!this.attackHasHit && this.attackTimer >= activeStart && this.attackTimer <= activeEnd) {
         const player = scene.player;
@@ -15320,7 +15323,7 @@ window.addEventListener('load', () => {
         this.attackHasHit = true;
       }
 
-      if (this.attackTimer >= GAME_CONFIG.enemyWindupMs + GAME_CONFIG.enemyActiveMs + GAME_CONFIG.enemyRecoveryMs) {
+      if (this.attackTimer >= windupMs + activeMs + recoveryMs) {
         this.state = 'walk';
         this.intent = Math.random() < 0.58 ? 'retreat' : 'strafe';
         this.strafeDirection = Math.random() < 0.5 ? -1 : 1;
