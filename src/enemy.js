@@ -516,6 +516,7 @@ class DogRegimeEnemy {
     const w = img.width * frameScale;
     const h = img.height * frameScale;
     const baseH = img.height * baseScale;
+    const drawOffsetY = typeof this.getDrawOffsetY === 'function' ? this.getDrawOffsetY(img, frameScale) : 0;
 
     let alpha = 1;
     if (!this.alive) alpha = Math.max(0, 1 - this.deadTimer / GAME_CONFIG.enemyDeathFadeMs);
@@ -525,7 +526,7 @@ class DogRegimeEnemy {
     ctx.globalAlpha = alpha;
     ctx.translate(this.x, this.y);
     if (this.facing === -1) ctx.scale(-1, 1);
-    ctx.drawImage(img, -w / 2, -h, w, h);
+    ctx.drawImage(img, -w / 2, -h + drawOffsetY, w, h);
     ctx.restore();
     ctx.globalAlpha = 1;
 

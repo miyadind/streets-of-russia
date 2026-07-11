@@ -15,6 +15,7 @@ class SuckerEnemy extends DogRegimeEnemy {
     this.hitsSinceFastRetreat = 0;
     this.fastRetreatTimer = 0;
     this.fastRetreatDirection = -1;
+    this.pinBiteBottomGaps = [378, 361];
   }
 
   applyTuning(resetHp = false) {
@@ -397,6 +398,12 @@ class SuckerEnemy extends DogRegimeEnemy {
     if (this.state === 'interrupted') return enemyImages.dead || enemyImages.idle;
     if (this.hitStun > 0) return enemyImages.idle;
     return enemyImages.walk[this.walkFrame] || enemyImages.idle;
+  }
+
+  getDrawOffsetY(img, frameScale) {
+    if (this.state !== 'pinBite') return 0;
+    const bottomGap = this.pinBiteBottomGaps[this.biteFrame] || this.pinBiteBottomGaps[0] || 0;
+    return bottomGap * frameScale;
   }
 
   draw(ctx, debug = false) {

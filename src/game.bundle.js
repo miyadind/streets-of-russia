@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.40',
+  buildVersion: '0.4.41',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -2471,6 +2471,7 @@ class DogRegimeEnemy {
     const w = img.width * frameScale;
     const h = img.height * frameScale;
     const baseH = img.height * baseScale;
+    const drawOffsetY = typeof this.getDrawOffsetY === 'function' ? this.getDrawOffsetY(img, frameScale) : 0;
 
     let alpha = 1;
     if (!this.alive) alpha = Math.max(0, 1 - this.deadTimer / GAME_CONFIG.enemyDeathFadeMs);
@@ -2480,7 +2481,7 @@ class DogRegimeEnemy {
     ctx.globalAlpha = alpha;
     ctx.translate(this.x, this.y);
     if (this.facing === -1) ctx.scale(-1, 1);
-    ctx.drawImage(img, -w / 2, -h, w, h);
+    ctx.drawImage(img, -w / 2, -h + drawOffsetY, w, h);
     ctx.restore();
     ctx.globalAlpha = 1;
 
@@ -2980,6 +2981,7 @@ class SuckerEnemy extends DogRegimeEnemy {
     this.hitsSinceFastRetreat = 0;
     this.fastRetreatTimer = 0;
     this.fastRetreatDirection = -1;
+    this.pinBiteBottomGaps = [378, 361];
   }
 
   applyTuning(resetHp = false) {
@@ -3362,6 +3364,12 @@ class SuckerEnemy extends DogRegimeEnemy {
     if (this.state === 'interrupted') return enemyImages.dead || enemyImages.idle;
     if (this.hitStun > 0) return enemyImages.idle;
     return enemyImages.walk[this.walkFrame] || enemyImages.idle;
+  }
+
+  getDrawOffsetY(img, frameScale) {
+    if (this.state !== 'pinBite') return 0;
+    const bottomGap = this.pinBiteBottomGaps[this.biteFrame] || this.pinBiteBottomGaps[0] || 0;
+    return bottomGap * frameScale;
   }
 
   draw(ctx, debug = false) {
