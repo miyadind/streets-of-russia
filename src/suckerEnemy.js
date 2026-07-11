@@ -260,7 +260,10 @@ class SuckerEnemy extends DogRegimeEnemy {
     const player = scene.player;
     const hit = player.receiveDamage(this.damage, {
       source: 'ranged',
-      knockbackX: this.facing * 28
+      knockbackX: 0,
+      knockdownMs: 180,
+      forceKnockdown: true,
+      knockdownFacing: this.getImpactFallFacing(player)
     });
 
     if (!hit) {
@@ -270,8 +273,7 @@ class SuckerEnemy extends DogRegimeEnemy {
       return;
     }
 
-    player.knockDown(180);
-    if (!player.pinBy(this, this.pinHoldMs)) {
+    if (!player.pinBy(this, this.pinHoldMs, { force: true })) {
       this.state = 'recovery';
       this.recoveryTimer = this.slideRecoveryMs;
       this.hasPinnedPlayer = false;
@@ -285,8 +287,7 @@ class SuckerEnemy extends DogRegimeEnemy {
     this.biteCount = 0;
     this.biteFrame = 0;
     this.hasPinnedPlayer = true;
-    this.x = player.x - this.facing * 42;
-    this.y = player.y;
+    this.alignToPinnedPlayer(player);
     this.scatterOtherEnemies(scene);
     scene.hitStop = 55;
   }
@@ -301,8 +302,7 @@ class SuckerEnemy extends DogRegimeEnemy {
     this.pinTimer += dt;
     this.biteTimer += dt;
 
-    this.x = player.x - this.facing * 42;
-    this.y = player.y;
+    this.alignToPinnedPlayer(player);
 
     if (this.biteTimer >= this.biteTickMs) {
       this.biteTimer -= this.biteTickMs;
@@ -325,6 +325,21 @@ class SuckerEnemy extends DogRegimeEnemy {
 
   canEscapePin() {
     return this.state === 'pinBite' && this.biteCount >= this.pinEscapeMinBites;
+  }
+
+  getImpactFallFacing(player) {
+    if (player && Number.isFinite(player.x) && Number.isFinite(this.x) && Math.abs(player.x - this.x) > 1) {
+      return Math.sign(player.x - this.x);
+    }
+    return this.slideDirection || this.facing || 1;
+  }
+
+  alignToPinnedPlayer(player) {
+    if (!player) return;
+    const body = player.getBodyBox ? player.getBodyBox() : null;
+    const centerX = body ? body.x + body.w / 2 : player.x;
+    this.x = centerX;
+    this.y = player.y;
   }
 
   releasePinnedPlayer(player) {

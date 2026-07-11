@@ -361,8 +361,8 @@ class Player {
     return true;
   }
 
-  pinBy(enemy, durationMs) {
-    if (!this.canBeKnockedDown()) return false;
+  pinBy(enemy, durationMs, options = {}) {
+    if (!options.force && !this.canBeKnockedDown()) return false;
     AudioManager.playSfx('playerDown', 0.85);
     this.state = 'pinned';
     this.hitStunTimer = 0;
