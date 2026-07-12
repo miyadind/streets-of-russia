@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.50',
+  buildVersion: '0.4.51',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -9358,7 +9358,7 @@ window.addEventListener('load', () => {
   if (typeof GAME_CONFIG === 'undefined' || typeof Assets === 'undefined') return;
 
   const HORSE_FOLDER = 'assets/enemies/horse';
-  const HORSE_ASSET_VERSION = 'horse-rebuilt-3';
+  const HORSE_ASSET_VERSION = 'horse-rebuilt-4';
   const horseFrame = name => HORSE_FOLDER + '/' + name + '.png?v=' + HORSE_ASSET_VERSION;
 
   Assets.horse = Object.assign({
@@ -9616,7 +9616,7 @@ window.addEventListener('load', () => {
   if (typeof GAME_CONFIG === 'undefined' || typeof Assets === 'undefined') return;
 
   const FOLDER = 'assets/enemies/horse';
-  const HORSE_ASSET_VERSION = 'horse-rebuilt-3';
+  const HORSE_ASSET_VERSION = 'horse-rebuilt-4';
   const KO_KEY = 'horseKo';
   const KO_FILE = FOLDER + '/' + ['de', 'ath'].join('') + '.mp3';
 

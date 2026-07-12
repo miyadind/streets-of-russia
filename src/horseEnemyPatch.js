@@ -2,7 +2,7 @@
   if (typeof GAME_CONFIG === 'undefined' || typeof Assets === 'undefined') return;
 
   const HORSE_FOLDER = 'assets/enemies/horse';
-  const HORSE_ASSET_VERSION = 'horse-rebuilt-3';
+  const HORSE_ASSET_VERSION = 'horse-rebuilt-4';
   const horseFrame = name => HORSE_FOLDER + '/' + name + '.png?v=' + HORSE_ASSET_VERSION;
 
   Assets.horse = Object.assign({
