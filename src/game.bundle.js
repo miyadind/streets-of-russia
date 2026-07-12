@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.48',
+  buildVersion: '0.4.49',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -5902,8 +5902,10 @@ const DevPanel = {
       enemyOffscreenMargin: DEFAULT_GAME_CONFIG.enemyOffscreenMargin,
       'enemies.horse.speed': 2.025,
       'enemies.horse.scale': 0.13,
+      'enemies.horse.walkScale': 0.95,
       'enemies.horse.visibleHeight': 0,
       'enemies.horse.attackScale': 1,
+      'enemies.horse.attackActiveMs': 760,
       'enemies.horse.minDistanceX': 120,
       'enemies.horse.preferredDistanceX': 190,
       'enemies.horse.attackMinDistanceX': 115,
@@ -9355,7 +9357,7 @@ window.addEventListener('load', () => {
   if (typeof GAME_CONFIG === 'undefined' || typeof Assets === 'undefined') return;
 
   const HORSE_FOLDER = 'assets/enemies/horse';
-  const HORSE_ASSET_VERSION = 'horse-rebuilt-1';
+  const HORSE_ASSET_VERSION = 'horse-rebuilt-2';
   const horseFrame = name => HORSE_FOLDER + '/' + name + '.png?v=' + HORSE_ASSET_VERSION;
 
   Assets.horse = Object.assign({
@@ -9367,7 +9369,8 @@ window.addEventListener('load', () => {
     ],
     attack: [
       horseFrame('idle'),
-      horseFrame('Whiplash')
+      horseFrame('Whiplash'),
+      horseFrame('WhiplashFinal')
     ],
     dead: horseFrame('walk03')
   }, Assets.horse || {});
@@ -9378,10 +9381,11 @@ window.addEventListener('load', () => {
     speed: 2.025,
     damage: 14,
     scale: 0.13,
+    walkScale: 0.95,
     visibleHeight: 0,
     attackScale: 1,
     attackWindupMs: 1000,
-    attackActiveMs: 560,
+    attackActiveMs: 760,
     attackRecoveryMs: 520,
     bossMusic: false,
     bossMusicKey: 'bossTheme',
@@ -9470,6 +9474,7 @@ window.addEventListener('load', () => {
       const attack0 = await loadOptionalImage(horse.attack && horse.attack[0]);
       const attack1 = await loadOptionalImage(horse.attack && horse.attack[1]);
       const dead = await loadOptionalImage(horse.dead);
+      const attack2 = await loadOptionalImage(horse.attack && horse.attack[2]);
 
       if (!loaded.enemies) loaded.enemies = {};
       const dog = loaded.enemies.dogRegime || {};
@@ -9482,7 +9487,8 @@ window.addEventListener('load', () => {
         ],
         attack: [
           attack0 || idle || (dog.attack && dog.attack[0]) || dog.idle,
-          attack1 || attack0 || idle || (dog.attack && dog.attack[1]) || dog.idle
+          attack1 || attack0 || idle || (dog.attack && dog.attack[1]) || dog.idle,
+          attack2 || attack1 || attack0 || idle || (dog.attack && dog.attack[1]) || dog.idle
         ],
         dead: dead || idle || dog.dead || dog.idle
       };
@@ -9526,6 +9532,20 @@ window.addEventListener('load', () => {
   }
 
   if (typeof DogRegimeEnemy !== 'undefined' && !DogRegimeEnemy.prototype.horseWhiplashFramePatchApplied) {
+    const previousGetImage = DogRegimeEnemy.prototype.getImage;
+    DogRegimeEnemy.prototype.getImage = function () {
+      if (this.enemyType === 'horse' && this.state === 'attack') {
+        const enemyImages = this.getEnemyImages();
+        const attack = enemyImages.attack || [];
+        const windupMs = this.attackWindupMs || GAME_CONFIG.enemyWindupMs;
+        const activeMs = this.attackActiveMs || GAME_CONFIG.enemyActiveMs;
+        if (this.attackTimer < windupMs) return attack[0] || enemyImages.idle;
+        if (attack[2] && this.attackTimer >= windupMs + activeMs * 0.45) return attack[2];
+        return attack[1] || attack[0] || enemyImages.idle;
+      }
+      return previousGetImage.call(this);
+    };
+
     const previousGetFrameScale = DogRegimeEnemy.prototype.getFrameScale;
     DogRegimeEnemy.prototype.getFrameScale = function (img, baseScale) {
       if (this.enemyType !== 'horse') {
@@ -9534,6 +9554,7 @@ window.addEventListener('load', () => {
         );
       }
 
+      if (this.state === 'walk') return baseScale * ((GAME_CONFIG.enemies.horse && GAME_CONFIG.enemies.horse.walkScale) || 0.95);
       return baseScale;
     };
 
@@ -9588,7 +9609,7 @@ window.addEventListener('load', () => {
   if (typeof GAME_CONFIG === 'undefined' || typeof Assets === 'undefined') return;
 
   const FOLDER = 'assets/enemies/horse';
-  const HORSE_ASSET_VERSION = 'horse-rebuilt-1';
+  const HORSE_ASSET_VERSION = 'horse-rebuilt-2';
   const KO_KEY = 'horseKo';
   const KO_FILE = FOLDER + '/' + ['de', 'ath'].join('') + '.mp3';
 
@@ -9605,7 +9626,8 @@ window.addEventListener('load', () => {
     ],
     attack: [
       frame('idle'),
-      [frame('Whiplash'), frame('Whiplash2'), frame('Whiplash3')]
+      [frame('Whiplash'), frame('Whiplash2'), frame('Whiplash3')],
+      [frame('WhiplashFinal'), frame('Whiplash'), frame('Whiplash2'), frame('Whiplash3')]
     ]
   });
   Assets.horse.finalFrame = frame('walk03');
@@ -9666,6 +9688,7 @@ window.addEventListener('load', () => {
       const idle = await loadFirstExistingImage(horse.idle) || walk0;
       const action0 = await loadFirstExistingImage(horse.attack && horse.attack[0]);
       const action1 = await loadFirstExistingImage(horse.attack && horse.attack[1]);
+      const action2 = await loadFirstExistingImage(horse.attack && horse.attack[2]);
       const finalFrame = await loadFirstExistingImage(horse.finalFrame);
 
       if (!loaded.enemies) loaded.enemies = {};
@@ -9678,7 +9701,8 @@ window.addEventListener('load', () => {
         ],
         attack: [
           action0 || walk1 || walk0 || idle,
-          action1 || walk2 || walk1 || walk0 || idle
+          action1 || walk2 || walk1 || walk0 || idle,
+          action2 || action1 || walk2 || walk1 || walk0 || idle
         ]
       };
       loaded.enemies.horse['de' + 'ad'] = finalFrame || walk2 || walk1 || walk0 || idle;

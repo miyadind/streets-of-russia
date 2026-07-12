@@ -2,7 +2,7 @@
   if (typeof GAME_CONFIG === 'undefined' || typeof Assets === 'undefined') return;
 
   const FOLDER = 'assets/enemies/horse';
-  const HORSE_ASSET_VERSION = 'horse-rebuilt-1';
+  const HORSE_ASSET_VERSION = 'horse-rebuilt-2';
   const KO_KEY = 'horseKo';
   const KO_FILE = FOLDER + '/' + ['de', 'ath'].join('') + '.mp3';
 
@@ -19,7 +19,8 @@
     ],
     attack: [
       frame('idle'),
-      [frame('Whiplash'), frame('Whiplash2'), frame('Whiplash3')]
+      [frame('Whiplash'), frame('Whiplash2'), frame('Whiplash3')],
+      [frame('WhiplashFinal'), frame('Whiplash'), frame('Whiplash2'), frame('Whiplash3')]
     ]
   });
   Assets.horse.finalFrame = frame('walk03');
@@ -80,6 +81,7 @@
       const idle = await loadFirstExistingImage(horse.idle) || walk0;
       const action0 = await loadFirstExistingImage(horse.attack && horse.attack[0]);
       const action1 = await loadFirstExistingImage(horse.attack && horse.attack[1]);
+      const action2 = await loadFirstExistingImage(horse.attack && horse.attack[2]);
       const finalFrame = await loadFirstExistingImage(horse.finalFrame);
 
       if (!loaded.enemies) loaded.enemies = {};
@@ -92,7 +94,8 @@
         ],
         attack: [
           action0 || walk1 || walk0 || idle,
-          action1 || walk2 || walk1 || walk0 || idle
+          action1 || walk2 || walk1 || walk0 || idle,
+          action2 || action1 || walk2 || walk1 || walk0 || idle
         ]
       };
       loaded.enemies.horse['de' + 'ad'] = finalFrame || walk2 || walk1 || walk0 || idle;
