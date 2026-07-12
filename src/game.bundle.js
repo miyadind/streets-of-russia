@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.51',
+  buildVersion: '0.4.52',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -9619,6 +9619,8 @@ window.addEventListener('load', () => {
   const HORSE_ASSET_VERSION = 'horse-rebuilt-4';
   const KO_KEY = 'horseKo';
   const KO_FILE = FOLDER + '/' + ['de', 'ath'].join('') + '.mp3';
+  const WHIPLASH_FINAL_KEY = 'horseWhiplashFinal';
+  const WHIPLASH_FINAL_FILE = FOLDER + '/WhiplashFinal.mp3';
 
   function frame(name) {
     return FOLDER + '/' + name + '.png?v=' + HORSE_ASSET_VERSION;
@@ -9640,9 +9642,13 @@ window.addEventListener('load', () => {
   Assets.horse.finalFrame = frame('walk03');
   Assets.horse.appear = FOLDER + '/Appear.mp3';
   Assets.horse.koSound = KO_FILE;
+  Assets.horse.whiplashFinalSound = WHIPLASH_FINAL_FILE;
 
   if (Assets.enemyAppear) Assets.enemyAppear.horse = Assets.horse.appear;
-  if (Assets.audio && Assets.audio.sfx) Assets.audio.sfx[KO_KEY] = KO_FILE;
+  if (Assets.audio && Assets.audio.sfx) {
+    Assets.audio.sfx[KO_KEY] = KO_FILE;
+    Assets.audio.sfx[WHIPLASH_FINAL_KEY] = WHIPLASH_FINAL_FILE;
+  }
 
   function loadFirstExistingImage(srcOrList) {
     const list = Array.isArray(srcOrList) ? srcOrList : [srcOrList];
@@ -9666,6 +9672,9 @@ window.addEventListener('load', () => {
       previousInit.call(this);
       if (!this.sfx[KO_KEY] && this.createAudio) {
         this.sfx[KO_KEY] = this.createAudio(KO_FILE, false);
+      }
+      if (!this.sfx[WHIPLASH_FINAL_KEY] && this.createAudio) {
+        this.sfx[WHIPLASH_FINAL_KEY] = this.createAudio(WHIPLASH_FINAL_FILE, false);
       }
     };
     AudioManager.horseKoPatchApplied = true;
@@ -15344,6 +15353,12 @@ window.addEventListener('load', () => {
       const recoveryMs = this.attackRecoveryMs || GAME_CONFIG.enemyRecoveryMs;
       const activeStart = windupMs;
       const activeEnd = windupMs + activeMs;
+      const finalWhiplashAt = windupMs + activeMs * 0.45;
+
+      if (this.enemyType === 'horse' && !this.whiplashFinalSfxPlayed && this.attackTimer >= finalWhiplashAt) {
+        AudioManager.playSfx('horseWhiplashFinal', 0.9, { startAt: 0.01 });
+        this.whiplashFinalSfxPlayed = true;
+      }
 
       if (!this.attackHasHit && this.attackTimer >= activeStart && this.attackTimer <= activeEnd) {
         const player = scene.player;
@@ -15364,6 +15379,7 @@ window.addEventListener('load', () => {
         this.cooldown = min + Math.random() * Math.max(1, max - min);
         this.attackTimer = 0;
         this.attackHasHit = false;
+        this.whiplashFinalSfxPlayed = false;
       }
     };
 

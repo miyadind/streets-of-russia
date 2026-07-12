@@ -373,6 +373,12 @@
       const recoveryMs = this.attackRecoveryMs || GAME_CONFIG.enemyRecoveryMs;
       const activeStart = windupMs;
       const activeEnd = windupMs + activeMs;
+      const finalWhiplashAt = windupMs + activeMs * 0.45;
+
+      if (this.enemyType === 'horse' && !this.whiplashFinalSfxPlayed && this.attackTimer >= finalWhiplashAt) {
+        AudioManager.playSfx('horseWhiplashFinal', 0.9, { startAt: 0.01 });
+        this.whiplashFinalSfxPlayed = true;
+      }
 
       if (!this.attackHasHit && this.attackTimer >= activeStart && this.attackTimer <= activeEnd) {
         const player = scene.player;
@@ -393,6 +399,7 @@
         this.cooldown = min + Math.random() * Math.max(1, max - min);
         this.attackTimer = 0;
         this.attackHasHit = false;
+        this.whiplashFinalSfxPlayed = false;
       }
     };
 

@@ -5,6 +5,8 @@
   const HORSE_ASSET_VERSION = 'horse-rebuilt-4';
   const KO_KEY = 'horseKo';
   const KO_FILE = FOLDER + '/' + ['de', 'ath'].join('') + '.mp3';
+  const WHIPLASH_FINAL_KEY = 'horseWhiplashFinal';
+  const WHIPLASH_FINAL_FILE = FOLDER + '/WhiplashFinal.mp3';
 
   function frame(name) {
     return FOLDER + '/' + name + '.png?v=' + HORSE_ASSET_VERSION;
@@ -26,9 +28,13 @@
   Assets.horse.finalFrame = frame('walk03');
   Assets.horse.appear = FOLDER + '/Appear.mp3';
   Assets.horse.koSound = KO_FILE;
+  Assets.horse.whiplashFinalSound = WHIPLASH_FINAL_FILE;
 
   if (Assets.enemyAppear) Assets.enemyAppear.horse = Assets.horse.appear;
-  if (Assets.audio && Assets.audio.sfx) Assets.audio.sfx[KO_KEY] = KO_FILE;
+  if (Assets.audio && Assets.audio.sfx) {
+    Assets.audio.sfx[KO_KEY] = KO_FILE;
+    Assets.audio.sfx[WHIPLASH_FINAL_KEY] = WHIPLASH_FINAL_FILE;
+  }
 
   function loadFirstExistingImage(srcOrList) {
     const list = Array.isArray(srcOrList) ? srcOrList : [srcOrList];
@@ -52,6 +58,9 @@
       previousInit.call(this);
       if (!this.sfx[KO_KEY] && this.createAudio) {
         this.sfx[KO_KEY] = this.createAudio(KO_FILE, false);
+      }
+      if (!this.sfx[WHIPLASH_FINAL_KEY] && this.createAudio) {
+        this.sfx[WHIPLASH_FINAL_KEY] = this.createAudio(WHIPLASH_FINAL_FILE, false);
       }
     };
     AudioManager.horseKoPatchApplied = true;
