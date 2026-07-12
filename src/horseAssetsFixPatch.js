@@ -2,7 +2,7 @@
   if (typeof GAME_CONFIG === 'undefined' || typeof Assets === 'undefined') return;
 
   const FOLDER = 'assets/enemies/horse';
-  const HORSE_ASSET_VERSION = 'horse-rebuilt-2';
+  const HORSE_ASSET_VERSION = 'horse-rebuilt-3';
   const KO_KEY = 'horseKo';
   const KO_FILE = FOLDER + '/' + ['de', 'ath'].join('') + '.mp3';
 

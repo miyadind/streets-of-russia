@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.49',
+  buildVersion: '0.4.50',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -5905,6 +5905,7 @@ const DevPanel = {
       'enemies.horse.walkScale': 0.95,
       'enemies.horse.visibleHeight': 0,
       'enemies.horse.attackScale': 1,
+      'enemies.horse.finalAttackScale': 1.45,
       'enemies.horse.attackActiveMs': 760,
       'enemies.horse.minDistanceX': 120,
       'enemies.horse.preferredDistanceX': 190,
@@ -9357,7 +9358,7 @@ window.addEventListener('load', () => {
   if (typeof GAME_CONFIG === 'undefined' || typeof Assets === 'undefined') return;
 
   const HORSE_FOLDER = 'assets/enemies/horse';
-  const HORSE_ASSET_VERSION = 'horse-rebuilt-2';
+  const HORSE_ASSET_VERSION = 'horse-rebuilt-3';
   const horseFrame = name => HORSE_FOLDER + '/' + name + '.png?v=' + HORSE_ASSET_VERSION;
 
   Assets.horse = Object.assign({
@@ -9384,6 +9385,7 @@ window.addEventListener('load', () => {
     walkScale: 0.95,
     visibleHeight: 0,
     attackScale: 1,
+    finalAttackScale: 1.45,
     attackWindupMs: 1000,
     attackActiveMs: 760,
     attackRecoveryMs: 520,
@@ -9554,7 +9556,12 @@ window.addEventListener('load', () => {
         );
       }
 
-      if (this.state === 'walk') return baseScale * ((GAME_CONFIG.enemies.horse && GAME_CONFIG.enemies.horse.walkScale) || 0.95);
+      const horseConfig = GAME_CONFIG.enemies.horse || {};
+      if (this.state === 'walk') return baseScale * (horseConfig.walkScale || 0.95);
+      if (this.state === 'attack') {
+        const attack = (this.getEnemyImages().attack || []);
+        if (attack[2] && img === attack[2]) return baseScale * (horseConfig.finalAttackScale || 1.45);
+      }
       return baseScale;
     };
 
@@ -9609,7 +9616,7 @@ window.addEventListener('load', () => {
   if (typeof GAME_CONFIG === 'undefined' || typeof Assets === 'undefined') return;
 
   const FOLDER = 'assets/enemies/horse';
-  const HORSE_ASSET_VERSION = 'horse-rebuilt-2';
+  const HORSE_ASSET_VERSION = 'horse-rebuilt-3';
   const KO_KEY = 'horseKo';
   const KO_FILE = FOLDER + '/' + ['de', 'ath'].join('') + '.mp3';
 
