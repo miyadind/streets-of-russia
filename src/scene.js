@@ -32,17 +32,18 @@ class HealthPickup {
     if (this.floatTimer > 0) {
       this.floatTimer -= dt;
       if (this.floatTimer <= 0) this.remove = true;
-      return;
     }
+  }
 
-    const player = scene && scene.player;
+  canCollect(player) {
     if (!player || player.hp <= 0) return;
-    const cfg = this.getConfig();
-    if (this.age < (cfg.collectDelayMs || 0)) return;
     const dx = Math.abs(player.x - this.x);
     const dy = Math.abs(player.y - this.y);
-    if (dx > 58 || dy > 34) return;
+    return dx <= 44 && dy <= 26;
+  }
 
+  collect(player) {
+    if (!this.canCollect(player)) return false;
     const before = player.hp;
     const heal = this.getHealAmount(player);
     player.hp = Math.min(player.maxHp, player.hp + heal);
@@ -51,6 +52,7 @@ class HealthPickup {
     this.floatText = gained > 0 ? (cfg.label || ('+' + gained + ' HP')) : 'FULL';
     this.floatTimer = 650;
     AudioManager.playSfx('waveClear', 0.35, { playbackRate: 1.35 });
+    return true;
   }
 
   draw(ctx) {
@@ -359,6 +361,7 @@ class LevelScene {
 
   enemyHasPhysicalPresence(enemy) {
     if (!enemy || !enemy.alive || enemy.remove) return false;
+    if (enemy.attackPositionLocked) return false;
     return !['jump', 'crash', 'pinBite', 'knockdown', 'dead', 'fallen', 'interrupted'].includes(enemy.state);
   }
 
@@ -547,5 +550,14 @@ class LevelScene {
     const x = Math.max(70, Math.min(GAME_CONFIG.width - 70, enemy.x));
     const y = Math.max(GAME_CONFIG.laneTop + 35, Math.min(GAME_CONFIG.laneBottom, enemy.y));
     this.pickups.push(new HealthPickup(pickupType, x, y, this.images));
+  }
+
+  tryCollectPickup(player) {
+    if (!player || !this.pickups || !this.pickups.length) return false;
+    for (const pickup of this.pickups) {
+      if (!pickup || pickup.remove || pickup.floatTimer > 0) continue;
+      if (pickup.collect(player)) return true;
+    }
+    return false;
   }
 }

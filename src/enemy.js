@@ -145,6 +145,11 @@ class DogRegimeEnemy {
       this.state = 'attack';
       this.intent = 'attack';
       this.attackFacing = this.facing || 1;
+      if (this.enemyType === 'horse') {
+        this.attackLockX = this.x;
+        this.attackLockY = this.y;
+        this.attackPositionLocked = true;
+      }
       this.attackTimer = 0;
       this.attackHasHit = false;
       this.clampToScreen();
@@ -426,6 +431,9 @@ class DogRegimeEnemy {
       this.attackTimer = 0;
       this.attackHasHit = false;
       this.attackFacing = null;
+      this.attackPositionLocked = false;
+      this.attackLockX = null;
+      this.attackLockY = null;
     }
   }
 
@@ -441,6 +449,9 @@ class DogRegimeEnemy {
     this.attackTimer = 0;
     this.attackHasHit = false;
     this.attackFacing = null;
+    this.attackPositionLocked = false;
+    this.attackLockX = null;
+    this.attackLockY = null;
     this.facing = -direction;
   }
 
@@ -458,6 +469,9 @@ class DogRegimeEnemy {
     this.attackTimer = 0;
     this.attackHasHit = false;
     this.attackFacing = null;
+    this.attackPositionLocked = false;
+    this.attackLockX = null;
+    this.attackLockY = null;
 
     if (this.hp <= 0) {
       this.alive = false;

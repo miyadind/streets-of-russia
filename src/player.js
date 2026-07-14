@@ -224,6 +224,12 @@ class Player {
     const data = this.getAttackData();
 
     if (!this.attackHasHit && this.attackTimer >= data.activeStart && this.attackTimer <= data.activeEnd) {
+      if (scene.tryCollectPickup && scene.tryCollectPickup(this)) {
+        this.attackHasHit = true;
+        scene.hitStop = Math.max(scene.hitStop || 0, 20);
+        return;
+      }
+
       const hitbox = this.getHitbox();
       for (const enemy of scene.enemies) {
         if (!enemy.alive) continue;
