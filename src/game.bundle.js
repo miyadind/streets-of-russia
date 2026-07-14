@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.61',
+  buildVersion: '0.4.62',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -4958,33 +4958,21 @@ class HealthPickup {
     const popY = pop < 1 ? -bounce * 42 : 0;
 
     ctx.save();
-    if (this.floatTimer <= 0 && img) {
+    if (this.floatTimer <= 0 && img && img.complete !== false && img.naturalWidth !== 0) {
       const w = img.width * scale;
       const h = img.height * scale;
       ctx.globalAlpha = Math.min(1, 0.25 + pop * 0.75);
       ctx.shadowColor = 'rgba(255,255,210,0.7)';
       ctx.shadowBlur = 12;
-      ctx.drawImage(img, this.x - w / 2, this.y - h + popY, w, h);
+      try {
+        ctx.drawImage(img, this.x - w / 2, this.y - h + popY, w, h);
+      } catch (error) {
+        this.drawFallback(ctx, pop, appearScale, popY);
+      }
       ctx.shadowBlur = 0;
       ctx.globalAlpha = 1;
     } else if (this.floatTimer <= 0) {
-      const color = this.type === 'medkit' ? '#ff3f3f' : this.type === 'tea' ? '#d89641' : '#f7b23b';
-      ctx.globalAlpha = Math.min(1, 0.25 + pop * 0.75);
-      ctx.shadowColor = 'rgba(255,255,210,0.75)';
-      ctx.shadowBlur = 12;
-      ctx.fillStyle = color;
-      ctx.strokeStyle = '#fff1c0';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.ellipse(this.x, this.y - 22 + popY, 24 * appearScale, 16 * appearScale, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-      ctx.globalAlpha = 1;
-      ctx.font = 'bold 13px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillStyle = '#111';
-      ctx.fillText(this.type === 'medkit' ? '+' : this.type === 'tea' ? 'TEA' : 'HP', this.x, this.y - 18 + popY);
+      this.drawFallback(ctx, pop, appearScale, popY);
     }
 
     if (this.floatText) {
@@ -5000,6 +4988,26 @@ class HealthPickup {
       ctx.textAlign = 'left';
     }
     ctx.restore();
+  }
+
+  drawFallback(ctx, pop, appearScale, popY) {
+    const color = this.type === 'medkit' ? '#ff3f3f' : this.type === 'tea' ? '#d89641' : '#f7b23b';
+    ctx.globalAlpha = Math.min(1, 0.25 + pop * 0.75);
+    ctx.shadowColor = 'rgba(255,255,210,0.75)';
+    ctx.shadowBlur = 12;
+    ctx.fillStyle = color;
+    ctx.strokeStyle = '#fff1c0';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.ellipse(this.x, this.y - 22 + popY, 24 * appearScale, 16 * appearScale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
+    ctx.font = 'bold 13px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#111';
+    ctx.fillText(this.type === 'medkit' ? '+' : this.type === 'tea' ? 'TEA' : 'HP', this.x, this.y - 18 + popY);
   }
 }
 
@@ -8722,6 +8730,8 @@ class GameApp {
     this.images = {};
     this.scene = null;
     this.lastTime = performance.now();
+    this.runtimeError = null;
+    this.runtimeErrorTimer = 0;
   }
 
   async init() {
@@ -9135,6 +9145,31 @@ class GameApp {
     if (typeof MobileControls !== 'undefined') MobileControls.draw(ctx, this);
     this.drawSpeaker(ctx);
     DevPanel.draw(ctx);
+    this.drawRuntimeError(ctx);
+  }
+
+  reportRuntimeError(error, phase) {
+    const message = error && (error.stack || error.message) ? (error.stack || error.message) : String(error);
+    this.runtimeError = `${phase}: ${message}`;
+    this.runtimeErrorTimer = 6000;
+    console.error('[Streets runtime]', phase, error);
+  }
+
+  drawRuntimeError(ctx) {
+    if (!this.runtimeError || this.runtimeErrorTimer <= 0) return;
+    const text = this.runtimeError.split('\n')[0].slice(0, 140);
+    ctx.save();
+    ctx.fillStyle = 'rgba(20, 0, 0, 0.88)';
+    ctx.fillRect(18, GAME_CONFIG.height - 86, GAME_CONFIG.width - 36, 68);
+    ctx.strokeStyle = '#ff5c5c';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(18, GAME_CONFIG.height - 86, GAME_CONFIG.width - 36, 68);
+    ctx.fillStyle = '#ffd2d2';
+    ctx.font = 'bold 18px Arial';
+    ctx.fillText('Runtime error - игра продолжает кадры, смотри консоль', 34, GAME_CONFIG.height - 58);
+    ctx.font = '14px Arial';
+    ctx.fillText(text, 34, GAME_CONFIG.height - 34);
+    ctx.restore();
   }
 
   drawLoading(ctx) {
@@ -9162,9 +9197,20 @@ class GameApp {
   loop(time) {
     const dt = Math.min(45, time - this.lastTime);
     this.lastTime = time;
-    this.update(dt);
-    this.draw();
-    Input.endFrame();
+    try {
+      if (this.runtimeErrorTimer > 0) this.runtimeErrorTimer -= dt;
+      this.update(dt);
+      this.draw();
+      Input.endFrame();
+    } catch (error) {
+      this.reportRuntimeError(error, 'loop');
+      try {
+        this.draw();
+        Input.endFrame();
+      } catch (drawError) {
+        console.error('[Streets runtime] error overlay failed', drawError);
+      }
+    }
     requestAnimationFrame((nextTime) => this.loop(nextTime));
   }
 }
