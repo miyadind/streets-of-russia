@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.57',
+  buildVersion: '0.4.58',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -4935,6 +4935,7 @@ class HealthPickup {
 
   collect(player) {
     if (!this.canCollect(player)) return false;
+    const cfg = this.getConfig();
     const before = player.hp;
     const heal = this.getHealAmount(player);
     player.hp = Math.min(player.maxHp, player.hp + heal);
@@ -4966,6 +4967,24 @@ class HealthPickup {
       ctx.drawImage(img, this.x - w / 2, this.y - h + popY, w, h);
       ctx.shadowBlur = 0;
       ctx.globalAlpha = 1;
+    } else if (this.floatTimer <= 0) {
+      const color = this.type === 'medkit' ? '#ff3f3f' : this.type === 'tea' ? '#d89641' : '#f7b23b';
+      ctx.globalAlpha = Math.min(1, 0.25 + pop * 0.75);
+      ctx.shadowColor = 'rgba(255,255,210,0.75)';
+      ctx.shadowBlur = 12;
+      ctx.fillStyle = color;
+      ctx.strokeStyle = '#fff1c0';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.ellipse(this.x, this.y - 22 + popY, 24 * appearScale, 16 * appearScale, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.globalAlpha = 1;
+      ctx.font = 'bold 13px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#111';
+      ctx.fillText(this.type === 'medkit' ? '+' : this.type === 'tea' ? 'TEA' : 'HP', this.x, this.y - 18 + popY);
     }
 
     if (this.floatText) {
@@ -5436,7 +5455,7 @@ class LevelScene {
   }
 
   maybeDropPickup(enemy) {
-    if (!enemy || enemy.pickupDropped || enemy.gundosMinion || enemy.blocksWaveClear === false) return;
+    if (!enemy || enemy.pickupDropped || enemy.gundosMinion) return;
     const drops = GAME_CONFIG.enemyPickupDrops || {};
     const pickupType = drops[enemy.enemyType];
     if (!pickupType) return;
@@ -9605,6 +9624,7 @@ window.addEventListener('load', () => {
     visibleHeight: 0,
     attackScale: 1,
     finalAttackScale: 1.31,
+    finalAttackFootAlign: 0.5,
     attackWindupMs: 820,
     attackActiveMs: 560,
     attackRecoveryMs: 400,
@@ -9653,6 +9673,7 @@ window.addEventListener('load', () => {
       { label: 'Strafe chance', path: 'enemies.horse.strafeChance', min: 0, max: 1, step: 0.05 },
       { label: 'Retreat chance', path: 'enemies.horse.retreatChance', min: 0, max: 1, step: 0.05 },
       { label: 'Attack chance', path: 'enemies.horse.attackChance', min: 0, max: 1, step: 0.05 },
+      { label: 'Final foot align', path: 'enemies.horse.finalAttackFootAlign', min: 0, max: 1, step: 0.05 },
       { label: 'Slot spacing X', path: 'enemies.horse.slotSpacingX', min: 0, max: 200, step: 4 },
       { label: 'Slot spacing Y', path: 'enemies.horse.slotSpacingY', min: 0, max: 140, step: 4 },
       { label: 'Flank distance X', path: 'enemies.horse.flankDistanceX', min: 60, max: 280, step: 4 },
@@ -9827,7 +9848,8 @@ window.addEventListener('load', () => {
           const referenceScale = reference === img ? frameScale : this.getFrameScale(reference, baseScale);
           const targetFootX = (getFootCenterX(reference) - reference.width / 2) * referenceScale;
           const currentFootX = (getFootCenterX(img) - img.width / 2) * frameScale;
-          return targetFootX - currentFootX;
+          const align = Math.max(0, Math.min(1, (GAME_CONFIG.enemies.horse || {}).finalAttackFootAlign == null ? 0.5 : (GAME_CONFIG.enemies.horse || {}).finalAttackFootAlign));
+          return (targetFootX - currentFootX) * align;
         }
       }
       return 0;
@@ -17551,5 +17573,55 @@ window.addEventListener('load', () => {
   CampaignMapScreen.setDevRegionIndex = function (index) {
     setRegionIndex(this, index);
   };
+})();
+
+
+
+/* ===== src/pickupDropPatch.js ===== */
+(function () {
+  if (typeof LevelScene === 'undefined') return;
+
+  function ensurePickupList(scene) {
+    if (!scene.pickups) scene.pickups = [];
+    return scene.pickups;
+  }
+
+  if (!LevelScene.prototype.pickupDropFinalPatchApplied) {
+    const previousDraw = LevelScene.prototype.draw;
+    LevelScene.prototype.draw = function (ctx) {
+      previousDraw.call(this, ctx);
+      const pickups = ensurePickupList(this);
+      if (!pickups.length) return;
+      for (const pickup of pickups) {
+        if (!pickup || pickup.remove || typeof pickup.draw !== 'function') continue;
+        pickup.draw(ctx);
+      }
+    };
+
+    const previousMaybeDropPickup = LevelScene.prototype.maybeDropPickup;
+    LevelScene.prototype.maybeDropPickup = function (enemy) {
+      if (!enemy || enemy.pickupDropped || enemy.gundosMinion) return;
+
+      if (previousMaybeDropPickup) {
+        previousMaybeDropPickup.call(this, enemy);
+      }
+
+      if (enemy.pickupDropped) return;
+      const drops = GAME_CONFIG.enemyPickupDrops || {};
+      const pickupType = drops[enemy.enemyType];
+      if (!pickupType || typeof HealthPickup === 'undefined') return;
+
+      const cfg = (GAME_CONFIG.pickups && GAME_CONFIG.pickups[pickupType]) || {};
+      const chance = cfg.dropChance == null ? 1 : cfg.dropChance;
+      enemy.pickupDropped = true;
+      if (Math.random() > chance) return;
+
+      const x = Math.max(70, Math.min(GAME_CONFIG.width - 70, enemy.x || GAME_CONFIG.width / 2));
+      const y = Math.max(GAME_CONFIG.laneTop + 35, Math.min(GAME_CONFIG.laneBottom, enemy.y || GAME_CONFIG.laneBottom));
+      ensurePickupList(this).push(new HealthPickup(pickupType, x, y, this.images));
+    };
+
+    LevelScene.prototype.pickupDropFinalPatchApplied = true;
+  }
 })();
 

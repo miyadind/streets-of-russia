@@ -45,6 +45,7 @@ class HealthPickup {
 
   collect(player) {
     if (!this.canCollect(player)) return false;
+    const cfg = this.getConfig();
     const before = player.hp;
     const heal = this.getHealAmount(player);
     player.hp = Math.min(player.maxHp, player.hp + heal);
@@ -76,6 +77,24 @@ class HealthPickup {
       ctx.drawImage(img, this.x - w / 2, this.y - h + popY, w, h);
       ctx.shadowBlur = 0;
       ctx.globalAlpha = 1;
+    } else if (this.floatTimer <= 0) {
+      const color = this.type === 'medkit' ? '#ff3f3f' : this.type === 'tea' ? '#d89641' : '#f7b23b';
+      ctx.globalAlpha = Math.min(1, 0.25 + pop * 0.75);
+      ctx.shadowColor = 'rgba(255,255,210,0.75)';
+      ctx.shadowBlur = 12;
+      ctx.fillStyle = color;
+      ctx.strokeStyle = '#fff1c0';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.ellipse(this.x, this.y - 22 + popY, 24 * appearScale, 16 * appearScale, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.globalAlpha = 1;
+      ctx.font = 'bold 13px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#111';
+      ctx.fillText(this.type === 'medkit' ? '+' : this.type === 'tea' ? 'TEA' : 'HP', this.x, this.y - 18 + popY);
     }
 
     if (this.floatText) {
@@ -546,7 +565,7 @@ class LevelScene {
   }
 
   maybeDropPickup(enemy) {
-    if (!enemy || enemy.pickupDropped || enemy.gundosMinion || enemy.blocksWaveClear === false) return;
+    if (!enemy || enemy.pickupDropped || enemy.gundosMinion) return;
     const drops = GAME_CONFIG.enemyPickupDrops || {};
     const pickupType = drops[enemy.enemyType];
     if (!pickupType) return;

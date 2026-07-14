@@ -30,6 +30,7 @@
     visibleHeight: 0,
     attackScale: 1,
     finalAttackScale: 1.31,
+    finalAttackFootAlign: 0.5,
     attackWindupMs: 820,
     attackActiveMs: 560,
     attackRecoveryMs: 400,
@@ -78,6 +79,7 @@
       { label: 'Strafe chance', path: 'enemies.horse.strafeChance', min: 0, max: 1, step: 0.05 },
       { label: 'Retreat chance', path: 'enemies.horse.retreatChance', min: 0, max: 1, step: 0.05 },
       { label: 'Attack chance', path: 'enemies.horse.attackChance', min: 0, max: 1, step: 0.05 },
+      { label: 'Final foot align', path: 'enemies.horse.finalAttackFootAlign', min: 0, max: 1, step: 0.05 },
       { label: 'Slot spacing X', path: 'enemies.horse.slotSpacingX', min: 0, max: 200, step: 4 },
       { label: 'Slot spacing Y', path: 'enemies.horse.slotSpacingY', min: 0, max: 140, step: 4 },
       { label: 'Flank distance X', path: 'enemies.horse.flankDistanceX', min: 60, max: 280, step: 4 },
@@ -252,7 +254,8 @@
           const referenceScale = reference === img ? frameScale : this.getFrameScale(reference, baseScale);
           const targetFootX = (getFootCenterX(reference) - reference.width / 2) * referenceScale;
           const currentFootX = (getFootCenterX(img) - img.width / 2) * frameScale;
-          return targetFootX - currentFootX;
+          const align = Math.max(0, Math.min(1, (GAME_CONFIG.enemies.horse || {}).finalAttackFootAlign == null ? 0.5 : (GAME_CONFIG.enemies.horse || {}).finalAttackFootAlign));
+          return (targetFootX - currentFootX) * align;
         }
       }
       return 0;
