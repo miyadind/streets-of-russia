@@ -162,6 +162,10 @@
     for (const enemy of this.enemies) entities.push({ type: 'enemy', y: enemy.y, ref: enemy });
     entities.sort((a, b) => a.y - b.y);
     for (const entity of entities) entity.ref.draw(ctx, this.debug);
+    for (const pickup of this.pickups || []) {
+      if (!pickup || pickup.remove || typeof pickup.draw !== 'function') continue;
+      pickup.draw(ctx);
+    }
 
     if (this.encounterCleared) {
       const phase = performance.now() / 260;
