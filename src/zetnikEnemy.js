@@ -398,6 +398,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
     this.flash = 180;
     this.hp = 0;
     AudioManager.playSfx('zetnikCrash', 1, { playbackRate: 1, startAt: 0.01 });
+    if (scene && scene.maybeDropPickup) scene.maybeDropPickup(this);
     scene.hitStop = Math.max(scene.hitStop || 0, 55);
   }
 

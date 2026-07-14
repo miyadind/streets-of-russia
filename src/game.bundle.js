@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.55',
+  buildVersion: '0.4.56',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -254,9 +254,9 @@ const GAME_CONFIG = {
   },
 
   pickups: {
-    medkit: { image: 'medkit', heal: 1, fullHeal: true, dropChance: 0.7, scale: 0.34, label: 'FULL HP', collectDelayMs: 500 },
-    pirozhok: { image: 'pirozhok', healPercent: 0.2, dropChance: 0.6, scale: 0.32, label: '+20% HP', collectDelayMs: 500 },
-    tea: { image: 'tea', healPercent: 0.5, dropChance: 0.5, scale: 0.3, label: '+50% HP', collectDelayMs: 500 }
+    medkit: { image: 'medkit', heal: 1, fullHeal: true, dropChance: 0.7, scale: 0.34, label: 'FULL HP' },
+    pirozhok: { image: 'pirozhok', healPercent: 0.2, dropChance: 0.6, scale: 0.32, label: '+20% HP' },
+    tea: { image: 'tea', healPercent: 0.5, dropChance: 0.5, scale: 0.3, label: '+50% HP' }
   },
 
   enemyPickupDrops: {
@@ -1749,7 +1749,9 @@ class Player {
         })) {
           this.attackHasHit = true;
           this.playComboHitSound();
+          const wasAlive = enemy.alive;
           enemy.takeHit(data.damage, this.facing, data.knockback);
+          if (wasAlive && !enemy.alive && scene.maybeDropPickup) scene.maybeDropPickup(enemy);
           if (enemy.enemyType === 'bastard') {
             if (enemy.grantGundosMedicHeal) {
               enemy.grantGundosMedicHeal(this, scene);
@@ -2964,6 +2966,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
     this.flash = 180;
     this.hp = 0;
     AudioManager.playSfx('zetnikCrash', 1, { playbackRate: 1, startAt: 0.01 });
+    if (scene && scene.maybeDropPickup) scene.maybeDropPickup(this);
     scene.hitStop = Math.max(scene.hitStop || 0, 55);
   }
 
@@ -5402,10 +5405,10 @@ class LevelScene {
 
     const entities = [{ type: 'player', y: this.player.y, ref: this.player }];
     for (const enemy of this.enemies) entities.push({ type: 'enemy', y: enemy.y, ref: enemy });
-    for (const pickup of this.pickups) entities.push({ type: 'pickup', y: pickup.y - 1, ref: pickup });
     entities.sort((a, b) => a.y - b.y);
 
     for (const entity of entities) entity.ref.draw(ctx, this.debug);
+    for (const pickup of this.pickups) pickup.draw(ctx);
 
     if (this.encounterCleared) {
       ctx.font = 'bold 42px Arial';
@@ -9780,7 +9783,7 @@ window.addEventListener('load', () => {
         if (attack[2] && img === attack[2]) {
           const bounds = getAlphaBounds(img);
           const centerOffset = bounds ? ((bounds.minX + bounds.maxX) / 2 - img.width / 2) : 0;
-          return -centerOffset * frameScale * 0.5;
+          return -centerOffset * frameScale * 0.25;
         }
       }
       return 0;

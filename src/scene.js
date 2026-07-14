@@ -515,10 +515,10 @@ class LevelScene {
 
     const entities = [{ type: 'player', y: this.player.y, ref: this.player }];
     for (const enemy of this.enemies) entities.push({ type: 'enemy', y: enemy.y, ref: enemy });
-    for (const pickup of this.pickups) entities.push({ type: 'pickup', y: pickup.y - 1, ref: pickup });
     entities.sort((a, b) => a.y - b.y);
 
     for (const entity of entities) entity.ref.draw(ctx, this.debug);
+    for (const pickup of this.pickups) pickup.draw(ctx);
 
     if (this.encounterCleared) {
       ctx.font = 'bold 42px Arial';

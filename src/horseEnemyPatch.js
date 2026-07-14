@@ -215,7 +215,7 @@
         if (attack[2] && img === attack[2]) {
           const bounds = getAlphaBounds(img);
           const centerOffset = bounds ? ((bounds.minX + bounds.maxX) / 2 - img.width / 2) : 0;
-          return -centerOffset * frameScale * 0.5;
+          return -centerOffset * frameScale * 0.25;
         }
       }
       return 0;
