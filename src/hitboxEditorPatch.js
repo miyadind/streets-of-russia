@@ -367,6 +367,10 @@
     };
 
     DogRegimeEnemy.prototype.updateAttack = function (dt, scene) {
+      if (this.enemyType === 'horse') {
+        if (!this.attackFacing) this.attackFacing = this.facing || 1;
+        this.facing = this.attackFacing;
+      }
       this.attackTimer += dt;
       const windupMs = this.attackWindupMs || GAME_CONFIG.enemyWindupMs;
       const activeMs = this.attackActiveMs || GAME_CONFIG.enemyActiveMs;
@@ -400,6 +404,7 @@
         this.attackTimer = 0;
         this.attackHasHit = false;
         this.whiplashFinalSfxPlayed = false;
+        this.attackFacing = null;
       }
     };
 

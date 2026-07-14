@@ -84,7 +84,11 @@ class GameApp {
       bastardFall: Assets.bastard.fall,
       bastardWalk0: Assets.bastard.walk[0],
       bastardWalk1: Assets.bastard.walk[1],
-      bastardWalk2: Assets.bastard.walk[2]
+      bastardWalk2: Assets.bastard.walk[2],
+
+      pickupMedkit: Assets.pickups && Assets.pickups.medkit,
+      pickupPirozhok: Assets.pickups && Assets.pickups.pirozhok,
+      pickupTea: Assets.pickups && Assets.pickups.tea
     };
 
     const loaded = {};
@@ -163,6 +167,12 @@ class GameApp {
           loaded.bastardWalk2 || loaded.bastardIdle || loaded.dogWalk0
         ]
       }
+    };
+
+    loaded.pickups = {
+      medkit: loaded.pickupMedkit,
+      pirozhok: loaded.pickupPirozhok,
+      tea: loaded.pickupTea
     };
 
     return loaded;

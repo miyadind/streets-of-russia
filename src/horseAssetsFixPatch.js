@@ -2,7 +2,7 @@
   if (typeof GAME_CONFIG === 'undefined' || typeof Assets === 'undefined') return;
 
   const FOLDER = 'assets/enemies/horse';
-  const HORSE_ASSET_VERSION = 'horse-rebuilt-4';
+  const HORSE_ASSET_VERSION = 'horse-rebuilt-5';
   const KO_KEY = 'horseKo';
   const KO_FILE = FOLDER + '/' + ['de', 'ath'].join('') + '.mp3';
   const WHIPLASH_FINAL_KEY = 'horseWhiplashFinal';
@@ -25,7 +25,7 @@
       [frame('WhiplashFinal'), frame('Whiplash'), frame('Whiplash2'), frame('Whiplash3')]
     ]
   });
-  Assets.horse.finalFrame = frame('walk03');
+  Assets.horse.finalFrame = frame('knockdown');
   Assets.horse.appear = FOLDER + '/Appear.mp3';
   Assets.horse.koSound = KO_FILE;
   Assets.horse.whiplashFinalSound = WHIPLASH_FINAL_FILE;

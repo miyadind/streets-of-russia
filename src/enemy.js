@@ -144,6 +144,7 @@ class DogRegimeEnemy {
     if (canAttackNow && this.cooldown <= 0) {
       this.state = 'attack';
       this.intent = 'attack';
+      this.attackFacing = this.facing || 1;
       this.attackTimer = 0;
       this.attackHasHit = false;
       this.clampToScreen();
@@ -424,6 +425,7 @@ class DogRegimeEnemy {
       this.cooldown = this.attackCooldownMinMs + Math.random() * Math.max(1, this.attackCooldownMaxMs - this.attackCooldownMinMs);
       this.attackTimer = 0;
       this.attackHasHit = false;
+      this.attackFacing = null;
     }
   }
 
@@ -438,6 +440,7 @@ class DogRegimeEnemy {
     this.retreatTimer = 0;
     this.attackTimer = 0;
     this.attackHasHit = false;
+    this.attackFacing = null;
     this.facing = -direction;
   }
 
@@ -454,6 +457,7 @@ class DogRegimeEnemy {
     this.retreatTimer = 0;
     this.attackTimer = 0;
     this.attackHasHit = false;
+    this.attackFacing = null;
 
     if (this.hp <= 0) {
       this.alive = false;
@@ -520,6 +524,7 @@ class DogRegimeEnemy {
     const h = img.height * frameScale;
     const baseH = img.height * baseScale;
     const drawOffsetY = typeof this.getDrawOffsetY === 'function' ? this.getDrawOffsetY(img, frameScale) : 0;
+    const drawOffsetX = typeof this.getDrawOffsetX === 'function' ? this.getDrawOffsetX(img, frameScale) : 0;
 
     let alpha = 1;
     if (!this.alive) alpha = Math.max(0, 1 - this.deadTimer / GAME_CONFIG.enemyDeathFadeMs);
@@ -529,7 +534,7 @@ class DogRegimeEnemy {
     ctx.globalAlpha = alpha;
     ctx.translate(this.x, this.y);
     if (this.facing === -1) ctx.scale(-1, 1);
-    ctx.drawImage(img, -w / 2, -h + drawOffsetY, w, h);
+    ctx.drawImage(img, -w / 2 + drawOffsetX, -h + drawOffsetY, w, h);
     ctx.restore();
     ctx.globalAlpha = 1;
 

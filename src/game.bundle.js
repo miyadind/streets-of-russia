@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.52',
+  buildVersion: '0.4.53',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -251,6 +251,18 @@ const GAME_CONFIG = {
       bodyRadiusX: 44,
       bodyRadiusY: 20
     }
+  },
+
+  pickups: {
+    medkit: { image: 'medkit', heal: 1, fullHeal: true, dropChance: 0.7, scale: 0.34, label: 'FULL HP' },
+    pirozhok: { image: 'pirozhok', healPercent: 0.2, dropChance: 0.6, scale: 0.32, label: '+20% HP' },
+    tea: { image: 'tea', healPercent: 0.5, dropChance: 0.5, scale: 0.3, label: '+50% HP' }
+  },
+
+  enemyPickupDrops: {
+    zetnik: 'medkit',
+    dogRegime: 'pirozhok',
+    horse: 'tea'
   },
 
   levelOrder: [
@@ -655,6 +667,11 @@ window.Assets = {
     idle:'assets/enemies/bastard/idle.png',
     fall:'assets/enemies/bastard/fall.png',
     walk:['assets/enemies/bastard/idle.png','assets/enemies/bastard/walk1.png','assets/enemies/bastard/walk2.png']
+  },
+  pickups:{
+    medkit:'assets/pickups/medkit.png',
+    pirozhok:'assets/pickups/pirozhok.png',
+    tea:'assets/pickups/tea.png'
   }
 };
 
@@ -2099,6 +2116,7 @@ class DogRegimeEnemy {
     if (canAttackNow && this.cooldown <= 0) {
       this.state = 'attack';
       this.intent = 'attack';
+      this.attackFacing = this.facing || 1;
       this.attackTimer = 0;
       this.attackHasHit = false;
       this.clampToScreen();
@@ -2379,6 +2397,7 @@ class DogRegimeEnemy {
       this.cooldown = this.attackCooldownMinMs + Math.random() * Math.max(1, this.attackCooldownMaxMs - this.attackCooldownMinMs);
       this.attackTimer = 0;
       this.attackHasHit = false;
+      this.attackFacing = null;
     }
   }
 
@@ -2393,6 +2412,7 @@ class DogRegimeEnemy {
     this.retreatTimer = 0;
     this.attackTimer = 0;
     this.attackHasHit = false;
+    this.attackFacing = null;
     this.facing = -direction;
   }
 
@@ -2409,6 +2429,7 @@ class DogRegimeEnemy {
     this.retreatTimer = 0;
     this.attackTimer = 0;
     this.attackHasHit = false;
+    this.attackFacing = null;
 
     if (this.hp <= 0) {
       this.alive = false;
@@ -2475,6 +2496,7 @@ class DogRegimeEnemy {
     const h = img.height * frameScale;
     const baseH = img.height * baseScale;
     const drawOffsetY = typeof this.getDrawOffsetY === 'function' ? this.getDrawOffsetY(img, frameScale) : 0;
+    const drawOffsetX = typeof this.getDrawOffsetX === 'function' ? this.getDrawOffsetX(img, frameScale) : 0;
 
     let alpha = 1;
     if (!this.alive) alpha = Math.max(0, 1 - this.deadTimer / GAME_CONFIG.enemyDeathFadeMs);
@@ -2484,7 +2506,7 @@ class DogRegimeEnemy {
     ctx.globalAlpha = alpha;
     ctx.translate(this.x, this.y);
     if (this.facing === -1) ctx.scale(-1, 1);
-    ctx.drawImage(img, -w / 2, -h + drawOffsetY, w, h);
+    ctx.drawImage(img, -w / 2 + drawOffsetX, -h + drawOffsetY, w, h);
     ctx.restore();
     ctx.globalAlpha = 1;
 
@@ -2546,6 +2568,18 @@ class ZetnikEnemy extends DogRegimeEnemy {
     this.gundosGuarding = false;
     this.gundosGuardX = x;
     this.gundosGuardY = y;
+    this.chargeLaneY = this.pickChargeLane(y);
+    this.y = this.chargeLaneY;
+    this.chargeDirection = x < GAME_CONFIG.width / 2 ? 1 : -1;
+  }
+
+  pickChargeLane(fallbackY) {
+    const lanes = [
+      GAME_CONFIG.laneTop + 46,
+      (GAME_CONFIG.laneTop + GAME_CONFIG.laneBottom) / 2,
+      GAME_CONFIG.laneBottom - 34
+    ];
+    return lanes[Math.floor(Math.random() * lanes.length)] || fallbackY;
   }
 
   applyTuning(resetHp = false) {
@@ -2600,7 +2634,11 @@ class ZetnikEnemy extends DogRegimeEnemy {
     const dy = player.y - this.y;
     const absX = Math.abs(dx);
     const absY = Math.abs(dy);
-    this.facing = dx >= 0 ? 1 : -1;
+    if (!Number.isFinite(this.chargeLaneY)) this.chargeLaneY = this.y;
+    if (!Number.isFinite(this.chargeDirection) || this.chargeDirection === 0) {
+      this.chargeDirection = this.x < GAME_CONFIG.width / 2 ? 1 : -1;
+    }
+    this.facing = this.chargeDirection >= 0 ? 1 : -1;
 
     this.updateCharge(dt, scene, player, dx, dy, absX, absY);
     this.clampToScreen();
@@ -2610,9 +2648,25 @@ class ZetnikEnemy extends DogRegimeEnemy {
     this.state = 'charge';
     this.intent = 'attack';
 
-    let moveX = Math.sign(dx || this.facing || 1);
-    let moveY = absY > 10 ? Math.sign(dy) : 0;
-    this.applyMovement(moveX, moveY, dt);
+    let moveX = this.chargeDirection || this.facing || 1;
+    let laneDelta = (this.chargeLaneY || this.y) - this.y;
+    let dtScale = Math.max(0.65, Math.min(1.55, dt / 16.67));
+    this.x += Math.sign(moveX || 1) * this.speed * dtScale;
+    if (Math.abs(laneDelta) > 2) {
+      this.y += Math.sign(laneDelta) * Math.min(Math.abs(laneDelta), this.speed * GAME_CONFIG.ySpeedMultiplier * dtScale);
+    }
+    this.y = Math.max(GAME_CONFIG.laneTop, Math.min(GAME_CONFIG.laneBottom, this.chargeLaneY || this.y));
+    this.facing = moveX >= 0 ? 1 : -1;
+    this.walkTimer += dt;
+    if (this.walkTimer >= GAME_CONFIG.enemyWalkFrameMs) {
+      this.walkTimer -= GAME_CONFIG.enemyWalkFrameMs;
+      this.walkFrame = (this.walkFrame + 1) % this.getWalkFrameCount();
+    }
+
+    if (this.x < -(GAME_CONFIG.enemyOffscreenMargin || 180) || this.x > GAME_CONFIG.width + (GAME_CONFIG.enemyOffscreenMargin || 180)) {
+      this.remove = true;
+      return;
+    }
 
     if (player.state === 'knockdown' || player.state === 'pinned') return;
     if (!Combat.canProjectileHit(this, player, {
@@ -4811,6 +4865,91 @@ const CharacterSelect = {
 
 
 /* ===== src/scene.js ===== */
+class HealthPickup {
+  constructor(type, x, y, images) {
+    this.type = type;
+    this.x = x;
+    this.y = y;
+    this.images = images;
+    this.age = 0;
+    this.remove = false;
+    this.floatText = null;
+    this.floatTimer = 0;
+  }
+
+  getConfig() {
+    return (GAME_CONFIG.pickups && GAME_CONFIG.pickups[this.type]) || {};
+  }
+
+  getImage() {
+    const cfg = this.getConfig();
+    return this.images && this.images.pickups && this.images.pickups[cfg.image || this.type];
+  }
+
+  getHealAmount(player) {
+    const cfg = this.getConfig();
+    if (!player) return 0;
+    if (cfg.fullHeal) return Math.max(0, player.maxHp - player.hp);
+    if (cfg.healPercent != null) return Math.ceil(player.maxHp * cfg.healPercent);
+    return Math.max(0, Number(cfg.heal) || 0);
+  }
+
+  update(dt, scene) {
+    this.age += dt;
+    if (this.floatTimer > 0) {
+      this.floatTimer -= dt;
+      if (this.floatTimer <= 0) this.remove = true;
+      return;
+    }
+
+    const player = scene && scene.player;
+    if (!player || player.hp <= 0) return;
+    const dx = Math.abs(player.x - this.x);
+    const dy = Math.abs(player.y - this.y);
+    if (dx > 58 || dy > 34) return;
+
+    const before = player.hp;
+    const heal = this.getHealAmount(player);
+    player.hp = Math.min(player.maxHp, player.hp + heal);
+    const gained = Math.max(0, player.hp - before);
+    const cfg = this.getConfig();
+    this.floatText = gained > 0 ? (cfg.label || ('+' + gained + ' HP')) : 'FULL';
+    this.floatTimer = 650;
+    AudioManager.playSfx('waveClear', 0.35, { playbackRate: 1.35 });
+  }
+
+  draw(ctx) {
+    const img = this.getImage();
+    const cfg = this.getConfig();
+    const pulse = 1 + Math.sin(this.age / 130) * 0.045;
+    const scale = (cfg.scale || 0.32) * pulse;
+
+    ctx.save();
+    if (this.floatTimer <= 0 && img) {
+      const w = img.width * scale;
+      const h = img.height * scale;
+      ctx.shadowColor = 'rgba(255,255,210,0.7)';
+      ctx.shadowBlur = 12;
+      ctx.drawImage(img, this.x - w / 2, this.y - h, w, h);
+      ctx.shadowBlur = 0;
+    }
+
+    if (this.floatText) {
+      const t = 1 - Math.max(0, this.floatTimer) / 650;
+      ctx.globalAlpha = Math.max(0, 1 - t * 0.55);
+      ctx.font = 'bold 18px Arial';
+      ctx.textAlign = 'center';
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = '#10260f';
+      ctx.fillStyle = '#87ff8f';
+      ctx.strokeText(this.floatText, this.x, this.y - 58 - t * 24);
+      ctx.fillText(this.floatText, this.x, this.y - 58 - t * 24);
+      ctx.textAlign = 'left';
+    }
+    ctx.restore();
+  }
+}
+
 class LevelScene {
   constructor(game, images) {
     this.game = game;
@@ -4818,6 +4957,7 @@ class LevelScene {
     this.screenIndex = 0;
     this.player = new Player(game.selectedHero || 'boris', images);
     this.enemies = [];
+    this.pickups = [];
     this.hitStop = 0;
     this.encounterActive = false;
     this.encounterCleared = false;
@@ -4851,6 +4991,7 @@ class LevelScene {
   spawnInitialWave() {
     this.currentWaveIndex = -1;
     this.enemies = [];
+    this.pickups = [];
     this.encounterActive = false;
     this.encounterCleared = false;
     this.nonBlockingWaveTimer = 0;
@@ -5181,9 +5322,16 @@ class LevelScene {
 
     this.updateScheduledGroups(dt);
 
-    for (const enemy of this.enemies) enemy.update(dt, this);
+    for (const enemy of this.enemies) {
+      const wasAlive = enemy.alive;
+      if (!wasAlive) this.maybeDropPickup(enemy);
+      enemy.update(dt, this);
+      if (wasAlive && !enemy.alive) this.maybeDropPickup(enemy);
+    }
+    for (const pickup of this.pickups) pickup.update(dt, this);
     this.separateEnemies(dt);
     this.enemies = this.enemies.filter(enemy => !enemy.remove);
+    this.pickups = this.pickups.filter(pickup => !pickup.remove);
 
     if (this.nonBlockingWaveTimer > 0) {
       this.nonBlockingWaveTimer -= dt;
@@ -5229,6 +5377,7 @@ class LevelScene {
 
     const entities = [{ type: 'player', y: this.player.y, ref: this.player }];
     for (const enemy of this.enemies) entities.push({ type: 'enemy', y: enemy.y, ref: enemy });
+    for (const pickup of this.pickups) entities.push({ type: 'pickup', y: pickup.y - 1, ref: pickup });
     entities.sort((a, b) => a.y - b.y);
 
     for (const entity of entities) entity.ref.draw(ctx, this.debug);
@@ -5249,6 +5398,20 @@ class LevelScene {
       ctx.lineWidth = 2;
       ctx.strokeRect(0, GAME_CONFIG.laneTop, GAME_CONFIG.width - 0, GAME_CONFIG.laneBottom - GAME_CONFIG.laneTop);
     }
+  }
+
+  maybeDropPickup(enemy) {
+    if (!enemy || enemy.pickupDropped || enemy.gundosMinion || enemy.blocksWaveClear === false) return;
+    const drops = GAME_CONFIG.enemyPickupDrops || {};
+    const pickupType = drops[enemy.enemyType];
+    if (!pickupType) return;
+    const cfg = (GAME_CONFIG.pickups && GAME_CONFIG.pickups[pickupType]) || {};
+    const chance = cfg.dropChance == null ? 0 : cfg.dropChance;
+    enemy.pickupDropped = true;
+    if (Math.random() > chance) return;
+    const x = Math.max(70, Math.min(GAME_CONFIG.width - 70, enemy.x));
+    const y = Math.max(GAME_CONFIG.laneTop + 35, Math.min(GAME_CONFIG.laneBottom, enemy.y));
+    this.pickups.push(new HealthPickup(pickupType, x, y, this.images));
   }
 }
 
@@ -5905,8 +6068,10 @@ const DevPanel = {
       'enemies.horse.walkScale': 0.95,
       'enemies.horse.visibleHeight': 0,
       'enemies.horse.attackScale': 1,
-      'enemies.horse.finalAttackScale': 1.45,
-      'enemies.horse.attackActiveMs': 760,
+      'enemies.horse.finalAttackScale': 1.38,
+      'enemies.horse.attackWindupMs': 820,
+      'enemies.horse.attackActiveMs': 560,
+      'enemies.horse.attackRecoveryMs': 400,
       'enemies.horse.minDistanceX': 120,
       'enemies.horse.preferredDistanceX': 190,
       'enemies.horse.attackMinDistanceX': 115,
@@ -8556,7 +8721,11 @@ class GameApp {
       bastardFall: Assets.bastard.fall,
       bastardWalk0: Assets.bastard.walk[0],
       bastardWalk1: Assets.bastard.walk[1],
-      bastardWalk2: Assets.bastard.walk[2]
+      bastardWalk2: Assets.bastard.walk[2],
+
+      pickupMedkit: Assets.pickups && Assets.pickups.medkit,
+      pickupPirozhok: Assets.pickups && Assets.pickups.pirozhok,
+      pickupTea: Assets.pickups && Assets.pickups.tea
     };
 
     const loaded = {};
@@ -8635,6 +8804,12 @@ class GameApp {
           loaded.bastardWalk2 || loaded.bastardIdle || loaded.dogWalk0
         ]
       }
+    };
+
+    loaded.pickups = {
+      medkit: loaded.pickupMedkit,
+      pirozhok: loaded.pickupPirozhok,
+      tea: loaded.pickupTea
     };
 
     return loaded;
@@ -9358,7 +9533,7 @@ window.addEventListener('load', () => {
   if (typeof GAME_CONFIG === 'undefined' || typeof Assets === 'undefined') return;
 
   const HORSE_FOLDER = 'assets/enemies/horse';
-  const HORSE_ASSET_VERSION = 'horse-rebuilt-4';
+  const HORSE_ASSET_VERSION = 'horse-rebuilt-5';
   const horseFrame = name => HORSE_FOLDER + '/' + name + '.png?v=' + HORSE_ASSET_VERSION;
 
   Assets.horse = Object.assign({
@@ -9373,7 +9548,7 @@ window.addEventListener('load', () => {
       horseFrame('Whiplash'),
       horseFrame('WhiplashFinal')
     ],
-    dead: horseFrame('walk03')
+    dead: horseFrame('knockdown')
   }, Assets.horse || {});
 
   GAME_CONFIG.enemies.horse = Object.assign({
@@ -9385,10 +9560,10 @@ window.addEventListener('load', () => {
     walkScale: 0.95,
     visibleHeight: 0,
     attackScale: 1,
-    finalAttackScale: 1.45,
-    attackWindupMs: 1000,
-    attackActiveMs: 760,
-    attackRecoveryMs: 520,
+    finalAttackScale: 1.38,
+    attackWindupMs: 820,
+    attackActiveMs: 560,
+    attackRecoveryMs: 400,
     bossMusic: false,
     bossMusicKey: 'bossTheme',
     minDistanceX: 120,
@@ -9492,7 +9667,7 @@ window.addEventListener('load', () => {
           attack1 || attack0 || idle || (dog.attack && dog.attack[1]) || dog.idle,
           attack2 || attack1 || attack0 || idle || (dog.attack && dog.attack[1]) || dog.idle
         ],
-        dead: dead || idle || dog.dead || dog.idle
+        dead: dead || walk2 || idle || dog.dead || dog.idle
       };
 
       return loaded;
@@ -9560,14 +9735,33 @@ window.addEventListener('load', () => {
       if (this.state === 'walk') return baseScale * (horseConfig.walkScale || 0.95);
       if (this.state === 'attack') {
         const attack = (this.getEnemyImages().attack || []);
-        if (attack[2] && img === attack[2]) return baseScale * (horseConfig.finalAttackScale || 1.45);
+        if (attack[2] && img === attack[2]) return baseScale * (horseConfig.finalAttackScale || 1.38);
       }
       return baseScale;
+    };
+
+    DogRegimeEnemy.prototype.getDrawOffsetX = function (img, frameScale) {
+      if (this.enemyType === 'horse' && this.state === 'attack') {
+        const attack = this.getEnemyImages().attack || [];
+        if (attack[2] && img === attack[2]) {
+          const bounds = getAlphaBounds(img);
+          const centerOffset = bounds ? ((bounds.minX + bounds.maxX) / 2 - img.width / 2) : 0;
+          return -centerOffset * frameScale;
+        }
+      }
+      return 0;
     };
 
     const previousGetDrawOffsetY = DogRegimeEnemy.prototype.getDrawOffsetY;
     DogRegimeEnemy.prototype.getDrawOffsetY = function (img, frameScale) {
       if (this.enemyType === 'horse') {
+        if (this.state === 'attack') {
+          const attack = this.getEnemyImages().attack || [];
+          if (attack[2] && img === attack[2]) {
+            const bounds = getAlphaBounds(img);
+            return bounds ? bounds.bottomGap * frameScale : 0;
+          }
+        }
         return 0;
       }
       return previousGetDrawOffsetY ? previousGetDrawOffsetY.call(this, img, frameScale) : 0;
@@ -9616,7 +9810,7 @@ window.addEventListener('load', () => {
   if (typeof GAME_CONFIG === 'undefined' || typeof Assets === 'undefined') return;
 
   const FOLDER = 'assets/enemies/horse';
-  const HORSE_ASSET_VERSION = 'horse-rebuilt-4';
+  const HORSE_ASSET_VERSION = 'horse-rebuilt-5';
   const KO_KEY = 'horseKo';
   const KO_FILE = FOLDER + '/' + ['de', 'ath'].join('') + '.mp3';
   const WHIPLASH_FINAL_KEY = 'horseWhiplashFinal';
@@ -9639,7 +9833,7 @@ window.addEventListener('load', () => {
       [frame('WhiplashFinal'), frame('Whiplash'), frame('Whiplash2'), frame('Whiplash3')]
     ]
   });
-  Assets.horse.finalFrame = frame('walk03');
+  Assets.horse.finalFrame = frame('knockdown');
   Assets.horse.appear = FOLDER + '/Appear.mp3';
   Assets.horse.koSound = KO_FILE;
   Assets.horse.whiplashFinalSound = WHIPLASH_FINAL_FILE;
@@ -15347,6 +15541,10 @@ window.addEventListener('load', () => {
     };
 
     DogRegimeEnemy.prototype.updateAttack = function (dt, scene) {
+      if (this.enemyType === 'horse') {
+        if (!this.attackFacing) this.attackFacing = this.facing || 1;
+        this.facing = this.attackFacing;
+      }
       this.attackTimer += dt;
       const windupMs = this.attackWindupMs || GAME_CONFIG.enemyWindupMs;
       const activeMs = this.attackActiveMs || GAME_CONFIG.enemyActiveMs;
@@ -15380,6 +15578,7 @@ window.addEventListener('load', () => {
         this.attackTimer = 0;
         this.attackHasHit = false;
         this.whiplashFinalSfxPlayed = false;
+        this.attackFacing = null;
       }
     };
 

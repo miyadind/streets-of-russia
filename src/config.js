@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  buildVersion: '0.4.52',
+  buildVersion: '0.4.53',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -244,6 +244,18 @@ const GAME_CONFIG = {
       bodyRadiusX: 44,
       bodyRadiusY: 20
     }
+  },
+
+  pickups: {
+    medkit: { image: 'medkit', heal: 1, fullHeal: true, dropChance: 0.7, scale: 0.34, label: 'FULL HP' },
+    pirozhok: { image: 'pirozhok', healPercent: 0.2, dropChance: 0.6, scale: 0.32, label: '+20% HP' },
+    tea: { image: 'tea', healPercent: 0.5, dropChance: 0.5, scale: 0.3, label: '+50% HP' }
+  },
+
+  enemyPickupDrops: {
+    zetnik: 'medkit',
+    dogRegime: 'pirozhok',
+    horse: 'tea'
   },
 
   levelOrder: [

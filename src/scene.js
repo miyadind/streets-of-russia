@@ -1,3 +1,88 @@
+class HealthPickup {
+  constructor(type, x, y, images) {
+    this.type = type;
+    this.x = x;
+    this.y = y;
+    this.images = images;
+    this.age = 0;
+    this.remove = false;
+    this.floatText = null;
+    this.floatTimer = 0;
+  }
+
+  getConfig() {
+    return (GAME_CONFIG.pickups && GAME_CONFIG.pickups[this.type]) || {};
+  }
+
+  getImage() {
+    const cfg = this.getConfig();
+    return this.images && this.images.pickups && this.images.pickups[cfg.image || this.type];
+  }
+
+  getHealAmount(player) {
+    const cfg = this.getConfig();
+    if (!player) return 0;
+    if (cfg.fullHeal) return Math.max(0, player.maxHp - player.hp);
+    if (cfg.healPercent != null) return Math.ceil(player.maxHp * cfg.healPercent);
+    return Math.max(0, Number(cfg.heal) || 0);
+  }
+
+  update(dt, scene) {
+    this.age += dt;
+    if (this.floatTimer > 0) {
+      this.floatTimer -= dt;
+      if (this.floatTimer <= 0) this.remove = true;
+      return;
+    }
+
+    const player = scene && scene.player;
+    if (!player || player.hp <= 0) return;
+    const dx = Math.abs(player.x - this.x);
+    const dy = Math.abs(player.y - this.y);
+    if (dx > 58 || dy > 34) return;
+
+    const before = player.hp;
+    const heal = this.getHealAmount(player);
+    player.hp = Math.min(player.maxHp, player.hp + heal);
+    const gained = Math.max(0, player.hp - before);
+    const cfg = this.getConfig();
+    this.floatText = gained > 0 ? (cfg.label || ('+' + gained + ' HP')) : 'FULL';
+    this.floatTimer = 650;
+    AudioManager.playSfx('waveClear', 0.35, { playbackRate: 1.35 });
+  }
+
+  draw(ctx) {
+    const img = this.getImage();
+    const cfg = this.getConfig();
+    const pulse = 1 + Math.sin(this.age / 130) * 0.045;
+    const scale = (cfg.scale || 0.32) * pulse;
+
+    ctx.save();
+    if (this.floatTimer <= 0 && img) {
+      const w = img.width * scale;
+      const h = img.height * scale;
+      ctx.shadowColor = 'rgba(255,255,210,0.7)';
+      ctx.shadowBlur = 12;
+      ctx.drawImage(img, this.x - w / 2, this.y - h, w, h);
+      ctx.shadowBlur = 0;
+    }
+
+    if (this.floatText) {
+      const t = 1 - Math.max(0, this.floatTimer) / 650;
+      ctx.globalAlpha = Math.max(0, 1 - t * 0.55);
+      ctx.font = 'bold 18px Arial';
+      ctx.textAlign = 'center';
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = '#10260f';
+      ctx.fillStyle = '#87ff8f';
+      ctx.strokeText(this.floatText, this.x, this.y - 58 - t * 24);
+      ctx.fillText(this.floatText, this.x, this.y - 58 - t * 24);
+      ctx.textAlign = 'left';
+    }
+    ctx.restore();
+  }
+}
+
 class LevelScene {
   constructor(game, images) {
     this.game = game;
@@ -5,6 +90,7 @@ class LevelScene {
     this.screenIndex = 0;
     this.player = new Player(game.selectedHero || 'boris', images);
     this.enemies = [];
+    this.pickups = [];
     this.hitStop = 0;
     this.encounterActive = false;
     this.encounterCleared = false;
@@ -38,6 +124,7 @@ class LevelScene {
   spawnInitialWave() {
     this.currentWaveIndex = -1;
     this.enemies = [];
+    this.pickups = [];
     this.encounterActive = false;
     this.encounterCleared = false;
     this.nonBlockingWaveTimer = 0;
@@ -368,9 +455,16 @@ class LevelScene {
 
     this.updateScheduledGroups(dt);
 
-    for (const enemy of this.enemies) enemy.update(dt, this);
+    for (const enemy of this.enemies) {
+      const wasAlive = enemy.alive;
+      if (!wasAlive) this.maybeDropPickup(enemy);
+      enemy.update(dt, this);
+      if (wasAlive && !enemy.alive) this.maybeDropPickup(enemy);
+    }
+    for (const pickup of this.pickups) pickup.update(dt, this);
     this.separateEnemies(dt);
     this.enemies = this.enemies.filter(enemy => !enemy.remove);
+    this.pickups = this.pickups.filter(pickup => !pickup.remove);
 
     if (this.nonBlockingWaveTimer > 0) {
       this.nonBlockingWaveTimer -= dt;
@@ -416,6 +510,7 @@ class LevelScene {
 
     const entities = [{ type: 'player', y: this.player.y, ref: this.player }];
     for (const enemy of this.enemies) entities.push({ type: 'enemy', y: enemy.y, ref: enemy });
+    for (const pickup of this.pickups) entities.push({ type: 'pickup', y: pickup.y - 1, ref: pickup });
     entities.sort((a, b) => a.y - b.y);
 
     for (const entity of entities) entity.ref.draw(ctx, this.debug);
@@ -436,5 +531,19 @@ class LevelScene {
       ctx.lineWidth = 2;
       ctx.strokeRect(0, GAME_CONFIG.laneTop, GAME_CONFIG.width - 0, GAME_CONFIG.laneBottom - GAME_CONFIG.laneTop);
     }
+  }
+
+  maybeDropPickup(enemy) {
+    if (!enemy || enemy.pickupDropped || enemy.gundosMinion || enemy.blocksWaveClear === false) return;
+    const drops = GAME_CONFIG.enemyPickupDrops || {};
+    const pickupType = drops[enemy.enemyType];
+    if (!pickupType) return;
+    const cfg = (GAME_CONFIG.pickups && GAME_CONFIG.pickups[pickupType]) || {};
+    const chance = cfg.dropChance == null ? 0 : cfg.dropChance;
+    enemy.pickupDropped = true;
+    if (Math.random() > chance) return;
+    const x = Math.max(70, Math.min(GAME_CONFIG.width - 70, enemy.x));
+    const y = Math.max(GAME_CONFIG.laneTop + 35, Math.min(GAME_CONFIG.laneBottom, enemy.y));
+    this.pickups.push(new HealthPickup(pickupType, x, y, this.images));
   }
 }

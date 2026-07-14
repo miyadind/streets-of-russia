@@ -22,6 +22,18 @@ class ZetnikEnemy extends DogRegimeEnemy {
     this.gundosGuarding = false;
     this.gundosGuardX = x;
     this.gundosGuardY = y;
+    this.chargeLaneY = this.pickChargeLane(y);
+    this.y = this.chargeLaneY;
+    this.chargeDirection = x < GAME_CONFIG.width / 2 ? 1 : -1;
+  }
+
+  pickChargeLane(fallbackY) {
+    const lanes = [
+      GAME_CONFIG.laneTop + 46,
+      (GAME_CONFIG.laneTop + GAME_CONFIG.laneBottom) / 2,
+      GAME_CONFIG.laneBottom - 34
+    ];
+    return lanes[Math.floor(Math.random() * lanes.length)] || fallbackY;
   }
 
   applyTuning(resetHp = false) {
@@ -76,7 +88,11 @@ class ZetnikEnemy extends DogRegimeEnemy {
     const dy = player.y - this.y;
     const absX = Math.abs(dx);
     const absY = Math.abs(dy);
-    this.facing = dx >= 0 ? 1 : -1;
+    if (!Number.isFinite(this.chargeLaneY)) this.chargeLaneY = this.y;
+    if (!Number.isFinite(this.chargeDirection) || this.chargeDirection === 0) {
+      this.chargeDirection = this.x < GAME_CONFIG.width / 2 ? 1 : -1;
+    }
+    this.facing = this.chargeDirection >= 0 ? 1 : -1;
 
     this.updateCharge(dt, scene, player, dx, dy, absX, absY);
     this.clampToScreen();
@@ -86,9 +102,25 @@ class ZetnikEnemy extends DogRegimeEnemy {
     this.state = 'charge';
     this.intent = 'attack';
 
-    let moveX = Math.sign(dx || this.facing || 1);
-    let moveY = absY > 10 ? Math.sign(dy) : 0;
-    this.applyMovement(moveX, moveY, dt);
+    let moveX = this.chargeDirection || this.facing || 1;
+    let laneDelta = (this.chargeLaneY || this.y) - this.y;
+    let dtScale = Math.max(0.65, Math.min(1.55, dt / 16.67));
+    this.x += Math.sign(moveX || 1) * this.speed * dtScale;
+    if (Math.abs(laneDelta) > 2) {
+      this.y += Math.sign(laneDelta) * Math.min(Math.abs(laneDelta), this.speed * GAME_CONFIG.ySpeedMultiplier * dtScale);
+    }
+    this.y = Math.max(GAME_CONFIG.laneTop, Math.min(GAME_CONFIG.laneBottom, this.chargeLaneY || this.y));
+    this.facing = moveX >= 0 ? 1 : -1;
+    this.walkTimer += dt;
+    if (this.walkTimer >= GAME_CONFIG.enemyWalkFrameMs) {
+      this.walkTimer -= GAME_CONFIG.enemyWalkFrameMs;
+      this.walkFrame = (this.walkFrame + 1) % this.getWalkFrameCount();
+    }
+
+    if (this.x < -(GAME_CONFIG.enemyOffscreenMargin || 180) || this.x > GAME_CONFIG.width + (GAME_CONFIG.enemyOffscreenMargin || 180)) {
+      this.remove = true;
+      return;
+    }
 
     if (player.state === 'knockdown' || player.state === 'pinned') return;
     if (!Combat.canProjectileHit(this, player, {

@@ -2,7 +2,7 @@
   if (typeof GAME_CONFIG === 'undefined' || typeof Assets === 'undefined') return;
 
   const HORSE_FOLDER = 'assets/enemies/horse';
-  const HORSE_ASSET_VERSION = 'horse-rebuilt-4';
+  const HORSE_ASSET_VERSION = 'horse-rebuilt-5';
   const horseFrame = name => HORSE_FOLDER + '/' + name + '.png?v=' + HORSE_ASSET_VERSION;
 
   Assets.horse = Object.assign({
@@ -17,7 +17,7 @@
       horseFrame('Whiplash'),
       horseFrame('WhiplashFinal')
     ],
-    dead: horseFrame('walk03')
+    dead: horseFrame('knockdown')
   }, Assets.horse || {});
 
   GAME_CONFIG.enemies.horse = Object.assign({
@@ -29,10 +29,10 @@
     walkScale: 0.95,
     visibleHeight: 0,
     attackScale: 1,
-    finalAttackScale: 1.45,
-    attackWindupMs: 1000,
-    attackActiveMs: 760,
-    attackRecoveryMs: 520,
+    finalAttackScale: 1.38,
+    attackWindupMs: 820,
+    attackActiveMs: 560,
+    attackRecoveryMs: 400,
     bossMusic: false,
     bossMusicKey: 'bossTheme',
     minDistanceX: 120,
@@ -136,7 +136,7 @@
           attack1 || attack0 || idle || (dog.attack && dog.attack[1]) || dog.idle,
           attack2 || attack1 || attack0 || idle || (dog.attack && dog.attack[1]) || dog.idle
         ],
-        dead: dead || idle || dog.dead || dog.idle
+        dead: dead || walk2 || idle || dog.dead || dog.idle
       };
 
       return loaded;
@@ -204,14 +204,33 @@
       if (this.state === 'walk') return baseScale * (horseConfig.walkScale || 0.95);
       if (this.state === 'attack') {
         const attack = (this.getEnemyImages().attack || []);
-        if (attack[2] && img === attack[2]) return baseScale * (horseConfig.finalAttackScale || 1.45);
+        if (attack[2] && img === attack[2]) return baseScale * (horseConfig.finalAttackScale || 1.38);
       }
       return baseScale;
+    };
+
+    DogRegimeEnemy.prototype.getDrawOffsetX = function (img, frameScale) {
+      if (this.enemyType === 'horse' && this.state === 'attack') {
+        const attack = this.getEnemyImages().attack || [];
+        if (attack[2] && img === attack[2]) {
+          const bounds = getAlphaBounds(img);
+          const centerOffset = bounds ? ((bounds.minX + bounds.maxX) / 2 - img.width / 2) : 0;
+          return -centerOffset * frameScale;
+        }
+      }
+      return 0;
     };
 
     const previousGetDrawOffsetY = DogRegimeEnemy.prototype.getDrawOffsetY;
     DogRegimeEnemy.prototype.getDrawOffsetY = function (img, frameScale) {
       if (this.enemyType === 'horse') {
+        if (this.state === 'attack') {
+          const attack = this.getEnemyImages().attack || [];
+          if (attack[2] && img === attack[2]) {
+            const bounds = getAlphaBounds(img);
+            return bounds ? bounds.bottomGap * frameScale : 0;
+          }
+        }
         return 0;
       }
       return previousGetDrawOffsetY ? previousGetDrawOffsetY.call(this, img, frameScale) : 0;
