@@ -121,6 +121,7 @@ class LevelScene {
     this.player = new Player(game.selectedHero || 'boris', images);
     this.enemies = [];
     this.pickups = [];
+    this.pendingPickupDrops = [];
     this.hitStop = 0;
     this.encounterActive = false;
     this.encounterCleared = false;
@@ -155,6 +156,7 @@ class LevelScene {
     this.currentWaveIndex = -1;
     this.enemies = [];
     this.pickups = [];
+    this.pendingPickupDrops = [];
     this.encounterActive = false;
     this.encounterCleared = false;
     this.nonBlockingWaveTimer = 0;
@@ -492,6 +494,7 @@ class LevelScene {
       enemy.update(dt, this);
       if (wasAlive && !enemy.alive) this.maybeDropPickup(enemy);
     }
+    this.flushPickupDrops();
     for (const pickup of this.pickups) pickup.update(dt, this);
     this.separateEnemies(dt);
     this.enemies = this.enemies.filter(enemy => !enemy.remove);
@@ -573,9 +576,21 @@ class LevelScene {
     const cfg = (GAME_CONFIG.pickups && GAME_CONFIG.pickups[pickupType]) || {};
     const chance = cfg.dropChance == null ? 1 : cfg.dropChance;
     if (Math.random() > chance) return;
-    const x = Math.max(70, Math.min(GAME_CONFIG.width - 70, enemy.x));
-    const y = Math.max(GAME_CONFIG.laneTop + 35, Math.min(GAME_CONFIG.laneBottom, enemy.y));
-    this.pickups.push(new HealthPickup(pickupType, x, y, this.images));
+    const rawX = Number.isFinite(enemy.x) ? enemy.x : GAME_CONFIG.width / 2;
+    const rawY = Number.isFinite(enemy.y) ? enemy.y : GAME_CONFIG.laneBottom;
+    const x = Math.max(70, Math.min(GAME_CONFIG.width - 70, rawX));
+    const y = Math.max(GAME_CONFIG.laneTop + 35, Math.min(GAME_CONFIG.laneBottom, rawY));
+    if (!this.pendingPickupDrops) this.pendingPickupDrops = [];
+    this.pendingPickupDrops.push({ type: pickupType, x, y });
+  }
+
+  flushPickupDrops() {
+    if (!this.pendingPickupDrops || !this.pendingPickupDrops.length) return;
+    for (const drop of this.pendingPickupDrops) {
+      if (!drop || !drop.type) continue;
+      this.pickups.push(new HealthPickup(drop.type, drop.x, drop.y, this.images));
+    }
+    this.pendingPickupDrops.length = 0;
   }
 
   tryCollectPickup(player) {
