@@ -2,7 +2,7 @@
   if (typeof GAME_CONFIG === 'undefined' || typeof Assets === 'undefined') return;
 
   const HORSE_FOLDER = 'assets/enemies/horse';
-  const HORSE_ASSET_VERSION = 'horse-rebuilt-5';
+  const HORSE_ASSET_VERSION = 'horse-rebuilt-6';
   const horseFrame = name => HORSE_FOLDER + '/' + name + '.png?v=' + HORSE_ASSET_VERSION;
 
   Assets.horse = Object.assign({
@@ -29,7 +29,7 @@
     walkScale: 0.95,
     visibleHeight: 0,
     attackScale: 1,
-    finalAttackScale: 1.38,
+    finalAttackScale: 1.31,
     attackWindupMs: 820,
     attackActiveMs: 560,
     attackRecoveryMs: 400,
@@ -204,7 +204,7 @@
       if (this.state === 'walk') return baseScale * (horseConfig.walkScale || 0.95);
       if (this.state === 'attack') {
         const attack = (this.getEnemyImages().attack || []);
-        if (attack[2] && img === attack[2]) return baseScale * (horseConfig.finalAttackScale || 1.38);
+        if (attack[2] && img === attack[2]) return baseScale * (horseConfig.finalAttackScale || 1.31);
       }
       return baseScale;
     };
@@ -215,7 +215,7 @@
         if (attack[2] && img === attack[2]) {
           const bounds = getAlphaBounds(img);
           const centerOffset = bounds ? ((bounds.minX + bounds.maxX) / 2 - img.width / 2) : 0;
-          return -centerOffset * frameScale;
+          return -centerOffset * frameScale * 0.5;
         }
       }
       return 0;

@@ -37,6 +37,8 @@ class HealthPickup {
 
     const player = scene && scene.player;
     if (!player || player.hp <= 0) return;
+    const cfg = this.getConfig();
+    if (this.age < (cfg.collectDelayMs || 0)) return;
     const dx = Math.abs(player.x - this.x);
     const dy = Math.abs(player.y - this.y);
     if (dx > 58 || dy > 34) return;
@@ -45,7 +47,7 @@ class HealthPickup {
     const heal = this.getHealAmount(player);
     player.hp = Math.min(player.maxHp, player.hp + heal);
     const gained = Math.max(0, player.hp - before);
-    const cfg = this.getConfig();
+    if (gained <= 0) return;
     this.floatText = gained > 0 ? (cfg.label || ('+' + gained + ' HP')) : 'FULL';
     this.floatTimer = 650;
     AudioManager.playSfx('waveClear', 0.35, { playbackRate: 1.35 });

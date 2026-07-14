@@ -648,7 +648,7 @@ const DevPanel = {
       'enemies.horse.walkScale': 0.95,
       'enemies.horse.visibleHeight': 0,
       'enemies.horse.attackScale': 1,
-      'enemies.horse.finalAttackScale': 1.38,
+      'enemies.horse.finalAttackScale': 1.31,
       'enemies.horse.attackWindupMs': 820,
       'enemies.horse.attackActiveMs': 560,
       'enemies.horse.attackRecoveryMs': 400,

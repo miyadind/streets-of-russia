@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.53',
+  buildVersion: '0.4.54',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -254,9 +254,9 @@ const GAME_CONFIG = {
   },
 
   pickups: {
-    medkit: { image: 'medkit', heal: 1, fullHeal: true, dropChance: 0.7, scale: 0.34, label: 'FULL HP' },
-    pirozhok: { image: 'pirozhok', healPercent: 0.2, dropChance: 0.6, scale: 0.32, label: '+20% HP' },
-    tea: { image: 'tea', healPercent: 0.5, dropChance: 0.5, scale: 0.3, label: '+50% HP' }
+    medkit: { image: 'medkit', heal: 1, fullHeal: true, dropChance: 0.7, scale: 0.34, label: 'FULL HP', collectDelayMs: 500 },
+    pirozhok: { image: 'pirozhok', healPercent: 0.2, dropChance: 0.6, scale: 0.32, label: '+20% HP', collectDelayMs: 500 },
+    tea: { image: 'tea', healPercent: 0.5, dropChance: 0.5, scale: 0.3, label: '+50% HP', collectDelayMs: 500 }
   },
 
   enemyPickupDrops: {
@@ -4904,6 +4904,8 @@ class HealthPickup {
 
     const player = scene && scene.player;
     if (!player || player.hp <= 0) return;
+    const cfg = this.getConfig();
+    if (this.age < (cfg.collectDelayMs || 0)) return;
     const dx = Math.abs(player.x - this.x);
     const dy = Math.abs(player.y - this.y);
     if (dx > 58 || dy > 34) return;
@@ -4912,7 +4914,7 @@ class HealthPickup {
     const heal = this.getHealAmount(player);
     player.hp = Math.min(player.maxHp, player.hp + heal);
     const gained = Math.max(0, player.hp - before);
-    const cfg = this.getConfig();
+    if (gained <= 0) return;
     this.floatText = gained > 0 ? (cfg.label || ('+' + gained + ' HP')) : 'FULL';
     this.floatTimer = 650;
     AudioManager.playSfx('waveClear', 0.35, { playbackRate: 1.35 });
@@ -6068,7 +6070,7 @@ const DevPanel = {
       'enemies.horse.walkScale': 0.95,
       'enemies.horse.visibleHeight': 0,
       'enemies.horse.attackScale': 1,
-      'enemies.horse.finalAttackScale': 1.38,
+      'enemies.horse.finalAttackScale': 1.31,
       'enemies.horse.attackWindupMs': 820,
       'enemies.horse.attackActiveMs': 560,
       'enemies.horse.attackRecoveryMs': 400,
@@ -9533,7 +9535,7 @@ window.addEventListener('load', () => {
   if (typeof GAME_CONFIG === 'undefined' || typeof Assets === 'undefined') return;
 
   const HORSE_FOLDER = 'assets/enemies/horse';
-  const HORSE_ASSET_VERSION = 'horse-rebuilt-5';
+  const HORSE_ASSET_VERSION = 'horse-rebuilt-6';
   const horseFrame = name => HORSE_FOLDER + '/' + name + '.png?v=' + HORSE_ASSET_VERSION;
 
   Assets.horse = Object.assign({
@@ -9560,7 +9562,7 @@ window.addEventListener('load', () => {
     walkScale: 0.95,
     visibleHeight: 0,
     attackScale: 1,
-    finalAttackScale: 1.38,
+    finalAttackScale: 1.31,
     attackWindupMs: 820,
     attackActiveMs: 560,
     attackRecoveryMs: 400,
@@ -9735,7 +9737,7 @@ window.addEventListener('load', () => {
       if (this.state === 'walk') return baseScale * (horseConfig.walkScale || 0.95);
       if (this.state === 'attack') {
         const attack = (this.getEnemyImages().attack || []);
-        if (attack[2] && img === attack[2]) return baseScale * (horseConfig.finalAttackScale || 1.38);
+        if (attack[2] && img === attack[2]) return baseScale * (horseConfig.finalAttackScale || 1.31);
       }
       return baseScale;
     };
@@ -9746,7 +9748,7 @@ window.addEventListener('load', () => {
         if (attack[2] && img === attack[2]) {
           const bounds = getAlphaBounds(img);
           const centerOffset = bounds ? ((bounds.minX + bounds.maxX) / 2 - img.width / 2) : 0;
-          return -centerOffset * frameScale;
+          return -centerOffset * frameScale * 0.5;
         }
       }
       return 0;
@@ -9810,7 +9812,7 @@ window.addEventListener('load', () => {
   if (typeof GAME_CONFIG === 'undefined' || typeof Assets === 'undefined') return;
 
   const FOLDER = 'assets/enemies/horse';
-  const HORSE_ASSET_VERSION = 'horse-rebuilt-5';
+  const HORSE_ASSET_VERSION = 'horse-rebuilt-6';
   const KO_KEY = 'horseKo';
   const KO_FILE = FOLDER + '/' + ['de', 'ath'].join('') + '.mp3';
   const WHIPLASH_FINAL_KEY = 'horseWhiplashFinal';
