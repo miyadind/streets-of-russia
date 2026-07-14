@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  buildVersion: '0.4.56',
+  buildVersion: '0.4.57',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -247,9 +247,9 @@ const GAME_CONFIG = {
   },
 
   pickups: {
-    medkit: { image: 'medkit', heal: 1, fullHeal: true, dropChance: 0.7, scale: 0.34, label: 'FULL HP' },
-    pirozhok: { image: 'pirozhok', healPercent: 0.2, dropChance: 0.6, scale: 0.32, label: '+20% HP' },
-    tea: { image: 'tea', healPercent: 0.5, dropChance: 0.5, scale: 0.3, label: '+50% HP' }
+    medkit: { image: 'medkit', heal: 1, fullHeal: true, dropChance: 1, scale: 0.34, label: 'FULL HP' },
+    pirozhok: { image: 'pirozhok', healPercent: 0.2, dropChance: 1, scale: 0.32, label: '+20% HP' },
+    tea: { image: 'tea', healPercent: 0.5, dropChance: 1, scale: 0.3, label: '+50% HP' }
   },
 
   enemyPickupDrops: {

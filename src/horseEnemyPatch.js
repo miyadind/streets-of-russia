@@ -177,6 +177,39 @@
     return img.__alphaBounds;
   }
 
+  function getFootCenterX(img) {
+    if (!img) return 0;
+    if (img.__footCenterX != null) return img.__footCenterX;
+    const bounds = getAlphaBounds(img);
+    if (!bounds) {
+      img.__footCenterX = img.width / 2;
+      return img.__footCenterX;
+    }
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth || img.width;
+      canvas.height = img.naturalHeight || img.height;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(img, 0, 0);
+      const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+      const startY = Math.max(bounds.minY, bounds.maxY - Math.max(18, Math.round(bounds.h * 0.08)));
+      let weightedX = 0;
+      let weight = 0;
+      for (let y = startY; y <= bounds.maxY; y++) {
+        for (let x = bounds.minX; x <= bounds.maxX; x++) {
+          const alpha = data[(y * canvas.width + x) * 4 + 3];
+          if (alpha <= 20) continue;
+          weightedX += x * alpha;
+          weight += alpha;
+        }
+      }
+      img.__footCenterX = weight > 0 ? weightedX / weight : (bounds.minX + bounds.maxX) / 2;
+    } catch (error) {
+      img.__footCenterX = (bounds.minX + bounds.maxX) / 2;
+    }
+    return img.__footCenterX;
+  }
+
   if (typeof DogRegimeEnemy !== 'undefined' && !DogRegimeEnemy.prototype.horseWhiplashFramePatchApplied) {
     const previousGetImage = DogRegimeEnemy.prototype.getImage;
     DogRegimeEnemy.prototype.getImage = function () {
@@ -214,8 +247,12 @@
         const attack = this.getEnemyImages().attack || [];
         if (attack[2] && img === attack[2]) {
           const bounds = getAlphaBounds(img);
-          const centerOffset = bounds ? ((bounds.minX + bounds.maxX) / 2 - img.width / 2) : 0;
-          return -centerOffset * frameScale * 0.25;
+          const reference = attack[1] || attack[0] || img;
+          const baseScale = this.scale || GAME_CONFIG.enemyScale;
+          const referenceScale = reference === img ? frameScale : this.getFrameScale(reference, baseScale);
+          const targetFootX = (getFootCenterX(reference) - reference.width / 2) * referenceScale;
+          const currentFootX = (getFootCenterX(img) - img.width / 2) * frameScale;
+          return targetFootX - currentFootX;
         }
       }
       return 0;

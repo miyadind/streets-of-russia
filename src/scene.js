@@ -8,6 +8,7 @@ class HealthPickup {
     this.remove = false;
     this.floatText = null;
     this.floatTimer = 0;
+    this.popDuration = 420;
   }
 
   getConfig() {
@@ -58,17 +59,23 @@ class HealthPickup {
   draw(ctx) {
     const img = this.getImage();
     const cfg = this.getConfig();
+    const pop = Math.min(1, this.age / this.popDuration);
+    const bounce = Math.sin(pop * Math.PI);
     const pulse = 1 + Math.sin(this.age / 130) * 0.045;
-    const scale = (cfg.scale || 0.32) * pulse;
+    const appearScale = pop < 1 ? (0.35 + 0.65 * pop) : 1;
+    const scale = (cfg.scale || 0.32) * pulse * appearScale;
+    const popY = pop < 1 ? -bounce * 42 : 0;
 
     ctx.save();
     if (this.floatTimer <= 0 && img) {
       const w = img.width * scale;
       const h = img.height * scale;
+      ctx.globalAlpha = Math.min(1, 0.25 + pop * 0.75);
       ctx.shadowColor = 'rgba(255,255,210,0.7)';
       ctx.shadowBlur = 12;
-      ctx.drawImage(img, this.x - w / 2, this.y - h, w, h);
+      ctx.drawImage(img, this.x - w / 2, this.y - h + popY, w, h);
       ctx.shadowBlur = 0;
+      ctx.globalAlpha = 1;
     }
 
     if (this.floatText) {
@@ -544,7 +551,7 @@ class LevelScene {
     const pickupType = drops[enemy.enemyType];
     if (!pickupType) return;
     const cfg = (GAME_CONFIG.pickups && GAME_CONFIG.pickups[pickupType]) || {};
-    const chance = cfg.dropChance == null ? 0 : cfg.dropChance;
+    const chance = cfg.dropChance == null ? 1 : cfg.dropChance;
     enemy.pickupDropped = true;
     if (Math.random() > chance) return;
     const x = Math.max(70, Math.min(GAME_CONFIG.width - 70, enemy.x));
