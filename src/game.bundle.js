@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.74',
+  buildVersion: '0.4.75',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -2674,7 +2674,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
     this.facing = this.chargeDirection >= 0 ? 1 : -1;
 
     this.updateCharge(dt, scene, player, dx, dy, absX, absY);
-    this.clampToScreen();
+    if (!this.remove) this.clampToScreen();
   }
 
   updateCharge(dt, scene, player, dx, dy, absX, absY) {
@@ -2696,7 +2696,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
       this.walkFrame = (this.walkFrame + 1) % this.getWalkFrameCount();
     }
 
-    if (this.x < -(GAME_CONFIG.enemyOffscreenMargin || 180) || this.x > GAME_CONFIG.width + (GAME_CONFIG.enemyOffscreenMargin || 180)) {
+    if (this.isPastEscapeMargin()) {
       this.escapeOffscreen();
       return;
     }
@@ -2841,8 +2841,8 @@ class ZetnikEnemy extends DogRegimeEnemy {
       return;
     }
 
-    if (this.x < -140 || this.x > GAME_CONFIG.width + 180) {
-      this.remove = true;
+    if (this.isPastEscapeMargin()) {
+      this.escapeOffscreen();
     }
   }
 
@@ -2988,6 +2988,14 @@ class ZetnikEnemy extends DogRegimeEnemy {
     this.blocksWaveClear = false;
     this.pickupDropped = true;
     this.state = 'escaped';
+    this.hitStun = 0;
+    this.deadTimer = 0;
+    this.flash = 0;
+    this.gundosHitPlayer = true;
+  }
+
+  isPastEscapeMargin(margin = GAME_CONFIG.enemyOffscreenMargin || 180) {
+    return this.x < -margin || this.x > GAME_CONFIG.width + margin;
   }
 
   updateCrash(dt) {
