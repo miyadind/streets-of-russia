@@ -118,7 +118,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
     }
 
     if (this.x < -(GAME_CONFIG.enemyOffscreenMargin || 180) || this.x > GAME_CONFIG.width + (GAME_CONFIG.enemyOffscreenMargin || 180)) {
-      this.remove = true;
+      this.escapeOffscreen();
       return;
     }
 
@@ -400,6 +400,15 @@ class ZetnikEnemy extends DogRegimeEnemy {
     AudioManager.playSfx('zetnikCrash', 1, { playbackRate: 1, startAt: 0.01 });
     if (scene && scene.maybeDropPickup) scene.maybeDropPickup(this);
     scene.hitStop = Math.max(scene.hitStop || 0, 55);
+  }
+
+  escapeOffscreen() {
+    this.alive = false;
+    this.hp = 0;
+    this.remove = true;
+    this.blocksWaveClear = false;
+    this.pickupDropped = true;
+    this.state = 'escaped';
   }
 
   updateCrash(dt) {
