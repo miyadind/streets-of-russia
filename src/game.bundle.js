@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.70',
+  buildVersion: '0.4.71',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -216,8 +216,9 @@ const GAME_CONFIG = {
       fastRetreatSpeed: 14.5,
       fastRetreatMs: 620,
       hitsBeforeFastRetreat: 2,
-      counterRangeX: 150,
+      counterRangeX: 74,
       counterRangeY: 58,
+      counterForgiveness: 10,
       pinDurationMs: 1700,
       pinEscapeMinBites: 3,
       pinHoldMs: 120000,
@@ -1826,7 +1827,7 @@ class Player {
     if (this.attackTimer < data.activeStart || this.attackTimer > data.activeEnd) return false;
 
     const config = (GAME_CONFIG.enemies && GAME_CONFIG.enemies.sucker) || {};
-    const rangeX = config.counterRangeX || 150;
+    const rangeX = config.counterRangeX || 74;
     const rangeY = config.counterRangeY || GAME_CONFIG.enemyAttackRangeY || 58;
     const counterZone = {
       x: this.facing === 1 ? this.x : this.x - rangeX,
@@ -1834,7 +1835,7 @@ class Player {
       w: rangeX,
       h: rangeY * 2
     };
-    const forgiveness = 26;
+    const forgiveness = config.counterForgiveness == null ? 10 : config.counterForgiveness;
     const targets = [];
     if (enemy.state === 'slide' && typeof enemy.getSlideHitbox === 'function') targets.push(enemy.getSlideHitbox());
     if (typeof enemy.getHurtbox === 'function') targets.push(enemy.getHurtbox());
@@ -15733,7 +15734,7 @@ window.addEventListener('load', () => {
       if (this.attackTimer < data.activeStart || this.attackTimer > data.activeEnd) return false;
 
       const config = (GAME_CONFIG.enemies && GAME_CONFIG.enemies.sucker) || {};
-      const rangeX = config.counterRangeX || 150;
+      const rangeX = config.counterRangeX || 74;
       const rangeY = config.counterRangeY || GAME_CONFIG.enemyAttackRangeY || 58;
       const counterZone = {
         x: this.facing === 1 ? this.x : this.x - rangeX,
@@ -15741,7 +15742,7 @@ window.addEventListener('load', () => {
         w: rangeX,
         h: rangeY * 2
       };
-      const forgiveness = 26;
+      const forgiveness = config.counterForgiveness == null ? 10 : config.counterForgiveness;
       const targets = [];
       if (enemy.state === 'slide' && typeof enemy.getSlideHitbox === 'function') targets.push(enemy.getSlideHitbox());
       if (typeof enemy.getHurtbox === 'function') targets.push(enemy.getHurtbox());

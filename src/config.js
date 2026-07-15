@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  buildVersion: '0.4.70',
+  buildVersion: '0.4.71',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -209,8 +209,9 @@ const GAME_CONFIG = {
       fastRetreatSpeed: 14.5,
       fastRetreatMs: 620,
       hitsBeforeFastRetreat: 2,
-      counterRangeX: 150,
+      counterRangeX: 74,
       counterRangeY: 58,
+      counterForgiveness: 10,
       pinDurationMs: 1700,
       pinEscapeMinBites: 3,
       pinHoldMs: 120000,

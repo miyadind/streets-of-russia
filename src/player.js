@@ -341,7 +341,7 @@ class Player {
     if (this.attackTimer < data.activeStart || this.attackTimer > data.activeEnd) return false;
 
     const config = (GAME_CONFIG.enemies && GAME_CONFIG.enemies.sucker) || {};
-    const rangeX = config.counterRangeX || 150;
+    const rangeX = config.counterRangeX || 74;
     const rangeY = config.counterRangeY || GAME_CONFIG.enemyAttackRangeY || 58;
     const counterZone = {
       x: this.facing === 1 ? this.x : this.x - rangeX,
@@ -349,7 +349,7 @@ class Player {
       w: rangeX,
       h: rangeY * 2
     };
-    const forgiveness = 26;
+    const forgiveness = config.counterForgiveness == null ? 10 : config.counterForgiveness;
     const targets = [];
     if (enemy.state === 'slide' && typeof enemy.getSlideHitbox === 'function') targets.push(enemy.getSlideHitbox());
     if (typeof enemy.getHurtbox === 'function') targets.push(enemy.getHurtbox());
