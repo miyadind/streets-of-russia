@@ -1,7 +1,7 @@
 {
   "project": "Streets of Russia",
   "lastUpdated": "2026-07-07",
-  "buildVersion": "0.4.65",
+  "buildVersion": "0.4.66",
   "repository": "miyadind/streets-of-russia",
   "currentPriority": "Playable run-based vertical slice: Main Menu -> New Game -> Character Select -> Far East 01 -> Far East 02 -> Far East 03 -> first boss -> victory/results -> restart from New Game after closing or refreshing the tab. Cache-busting loader added and character movement speed increased by 1.5x.",
   "designRules": [

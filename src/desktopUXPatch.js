@@ -179,6 +179,9 @@
       if (this.drawSupportButtons) {
         this.drawSupportButtons(ctx, scene, 745, 22);
       }
+      if (this.drawLowHpSwitchHint) {
+        this.drawLowHpSwitchHint(ctx, scene);
+      }
     };
   }
 

@@ -99,6 +99,14 @@
     AudioManager.playSfx('menuSelect', 0.75);
   }
 
+  function canQuickHeroSwitch(game) {
+    if (!game || !game.scene || !game.scene.player) return false;
+    const player = game.scene.player;
+    if (player.hp <= 0 || player.dead) return false;
+    const heroes = (typeof CharacterSelect !== 'undefined' && CharacterSelect.heroes) || Object.keys(GAME_CONFIG.heroes || {});
+    return heroes.some((key) => key !== player.heroKey && !(game.defeatedHeroes && game.defeatedHeroes[key]));
+  }
+
   function openDeveloperPanel(game) {
     if (typeof DevPanel === 'undefined') return;
     setPaused(game, false);
@@ -194,6 +202,11 @@
       }
 
       if (this.paused) return;
+
+      if (Input.consume('c') && canQuickHeroSwitch(this)) {
+        startQuickHeroSwitch(this);
+        return;
+      }
     }
 
     originalUpdate.call(this, dt);

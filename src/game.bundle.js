@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.65',
+  buildVersion: '0.4.66',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -3853,6 +3853,7 @@ const HUD = {
     }
 
     this.drawSupportButtons(ctx, scene, 745, 22);
+    this.drawLowHpSwitchHint(ctx, scene);
 
     this.drawEnemyRoster(ctx, scene);
   },
@@ -3901,6 +3902,53 @@ const HUD = {
       ctx.fillText(button.key, bx + 43, by + 23);
     }
 
+    ctx.restore();
+  },
+
+  shouldShowLowHpSwitchHint(scene) {
+    const game = scene && scene.game;
+    const player = scene && scene.player;
+    if (!game || !player || player.hp <= 0 || player.dead || player.state === 'knockdown') return false;
+    if (game.state && game.state !== 'level') return false;
+    if (game.paused || game.devPanelOpen || (typeof DevPanel !== 'undefined' && DevPanel.open)) return false;
+
+    const maxHp = player.maxHp || (GAME_CONFIG.heroes[player.heroKey] && GAME_CONFIG.heroes[player.heroKey].hp) || 1;
+    if (player.hp / maxHp > 0.3) return false;
+
+    const heroes = (typeof CharacterSelect !== 'undefined' && CharacterSelect.heroes) || Object.keys(GAME_CONFIG.heroes || {});
+    return heroes.some((key) => key !== player.heroKey && !(game.defeatedHeroes && game.defeatedHeroes[key]));
+  },
+
+  drawLowHpSwitchHint(ctx, scene) {
+    if (!this.shouldShowLowHpSwitchHint(scene)) return;
+
+    const now = performance.now();
+    const pulse = 0.55 + 0.45 * Math.sin(now / 135);
+    const x = GAME_CONFIG.width / 2 - 215;
+    const y = 94;
+    const w = 430;
+    const h = 44;
+
+    ctx.save();
+    ctx.globalAlpha = 0.72 + pulse * 0.28;
+    ctx.fillStyle = 'rgba(120,0,0,0.86)';
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = '#ffd15a';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+
+    ctx.fillStyle = '#ffd15a';
+    ctx.font = 'bold 18px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('МАЛО ЖИЗНЕЙ', x + 112, y + h / 2);
+
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 20px Arial';
+    ctx.fillText('C', x + 226, y + h / 2);
+
+    ctx.font = 'bold 16px Arial';
+    ctx.fillText('СМЕНИТЬ ПЕРСОНАЖА', x + 326, y + h / 2);
     ctx.restore();
   },
 
@@ -12036,6 +12084,14 @@ window.addEventListener('load', () => {
     AudioManager.playSfx('menuSelect', 0.75);
   }
 
+  function canQuickHeroSwitch(game) {
+    if (!game || !game.scene || !game.scene.player) return false;
+    const player = game.scene.player;
+    if (player.hp <= 0 || player.dead) return false;
+    const heroes = (typeof CharacterSelect !== 'undefined' && CharacterSelect.heroes) || Object.keys(GAME_CONFIG.heroes || {});
+    return heroes.some((key) => key !== player.heroKey && !(game.defeatedHeroes && game.defeatedHeroes[key]));
+  }
+
   function openDeveloperPanel(game) {
     if (typeof DevPanel === 'undefined') return;
     setPaused(game, false);
@@ -12131,6 +12187,11 @@ window.addEventListener('load', () => {
       }
 
       if (this.paused) return;
+
+      if (Input.consume('c') && canQuickHeroSwitch(this)) {
+        startQuickHeroSwitch(this);
+        return;
+      }
     }
 
     originalUpdate.call(this, dt);
@@ -12352,6 +12413,9 @@ window.addEventListener('load', () => {
 
       if (this.drawSupportButtons) {
         this.drawSupportButtons(ctx, scene, 745, 22);
+      }
+      if (this.drawLowHpSwitchHint) {
+        this.drawLowHpSwitchHint(ctx, scene);
       }
     };
   }
@@ -13117,6 +13181,9 @@ window.addEventListener('load', () => {
       if (this.drawSupportButtons) {
         this.drawSupportButtons(ctx, scene, 755, 22);
       }
+      if (this.drawLowHpSwitchHint) {
+        this.drawLowHpSwitchHint(ctx, scene);
+      }
     };
   }
 
@@ -13607,6 +13674,9 @@ window.addEventListener('load', () => {
 
       if (this.drawSupportButtons) {
         this.drawSupportButtons(ctx, scene, 755, 22);
+      }
+      if (this.drawLowHpSwitchHint) {
+        this.drawLowHpSwitchHint(ctx, scene);
       }
     };
   }
