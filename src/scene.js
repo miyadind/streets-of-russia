@@ -484,7 +484,7 @@ class LevelScene {
   }
 
   update(dt) {
-    if (Input.consume('h')) this.debug = !this.debug;
+    if (Input.consume('q')) this.debug = !this.debug;
     if (Input.consume('escape')) this.game.setState('mainMenu');
 
     if (this.hitStop > 0) {

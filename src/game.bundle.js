@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.68',
+  buildVersion: '0.4.69',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -5475,7 +5475,7 @@ class LevelScene {
   }
 
   update(dt) {
-    if (Input.consume('h')) this.debug = !this.debug;
+    if (Input.consume('q')) this.debug = !this.debug;
     if (Input.consume('escape')) this.game.setState('mainMenu');
 
     if (this.hitStop > 0) {
