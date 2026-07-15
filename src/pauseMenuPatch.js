@@ -3,8 +3,8 @@
 
   const PAUSE_ITEMS = ['resume', 'switchHero', 'bestiary', 'developer', 'menu'];
   const GOIDA_SFX = {
-    z: { key: 'goidaZ', src: 'assets/enemies/4ort/uss3.mp3' },
-    x: { key: 'goidaX', src: 'assets/enemies/4ort/uss2.mp3' }
+    z: { key: 'hotkeyZ', src: 'assets/sounds/Z.mp3' },
+    x: { key: 'hotkeyX', src: 'assets/sounds/X.mp3' }
   };
 
   function pauseRect() {
