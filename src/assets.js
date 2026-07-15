@@ -76,8 +76,8 @@ window.Assets = {
     walk:['assets/enemies/bastard/idle.png','assets/enemies/bastard/walk1.png','assets/enemies/bastard/walk2.png']
   },
   pickups:{
-    medkit:'assets/pickups/medkit.png',
-    pirozhok:'assets/pickups/pirozhok.png',
-    tea:'assets/pickups/tea.png'
+    medkit:'assets/pickups/medkit.png?v=pickup-rebuilt-2',
+    pirozhok:'assets/pickups/pirozhok.png?v=pickup-rebuilt-2',
+    tea:'assets/pickups/tea.png?v=pickup-rebuilt-2'
   }
 };

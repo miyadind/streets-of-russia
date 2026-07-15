@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.62',
+  buildVersion: '0.4.63',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -263,6 +263,12 @@ const GAME_CONFIG = {
     zetnik: 'medkit',
     dogRegime: 'pirozhok',
     horse: 'tea'
+  },
+
+  levelPickupDrops: {
+    street01: { enemyType: 'zetnik', pickup: 'medkit' },
+    street02: { enemyType: 'dogRegime', pickup: 'pirozhok' },
+    street03: null
   },
 
   levelOrder: [
@@ -669,9 +675,9 @@ window.Assets = {
     walk:['assets/enemies/bastard/idle.png','assets/enemies/bastard/walk1.png','assets/enemies/bastard/walk2.png']
   },
   pickups:{
-    medkit:'assets/pickups/medkit.png',
-    pirozhok:'assets/pickups/pirozhok.png',
-    tea:'assets/pickups/tea.png'
+    medkit:'assets/pickups/medkit.png?v=pickup-rebuilt-2',
+    pirozhok:'assets/pickups/pirozhok.png?v=pickup-rebuilt-2',
+    tea:'assets/pickups/tea.png?v=pickup-rebuilt-2'
   }
 };
 
@@ -1751,7 +1757,7 @@ class Player {
           this.playComboHitSound();
           const wasAlive = enemy.alive;
           enemy.takeHit(data.damage, this.facing, data.knockback);
-          if (wasAlive && !enemy.alive && scene.maybeDropPickup) scene.maybeDropPickup(enemy);
+          if (wasAlive && !enemy.alive && scene.maybeDropPickup) scene.maybeDropPickup(enemy, { source: 'player' });
           if (enemy.enemyType === 'bastard') {
             if (enemy.grantGundosMedicHeal) {
               enemy.grantGundosMedicHeal(this, scene);
@@ -4898,6 +4904,8 @@ class HealthPickup {
     this.remove = false;
     this.floatText = null;
     this.floatTimer = 0;
+    this.floatTextX = x;
+    this.floatTextY = y - 58;
     this.popDuration = 420;
   }
 
@@ -4928,9 +4936,12 @@ class HealthPickup {
 
   canCollect(player) {
     if (!player || player.hp <= 0) return;
+    const cfg = this.getConfig();
     const dx = Math.abs(player.x - this.x);
     const dy = Math.abs(player.y - this.y);
-    return dx <= 44 && dy <= 26;
+    const radiusX = cfg.collectRadiusX == null ? 58 : cfg.collectRadiusX;
+    const laneTolerance = cfg.collectLaneTolerance == null ? 42 : cfg.collectLaneTolerance;
+    return dx <= radiusX && dy <= laneTolerance;
   }
 
   collect(player) {
@@ -4942,6 +4953,8 @@ class HealthPickup {
     const gained = Math.max(0, player.hp - before);
     if (gained <= 0) return;
     this.floatText = gained > 0 ? (cfg.label || ('+' + gained + ' HP')) : 'FULL';
+    this.floatTextX = player.x;
+    this.floatTextY = player.y - 136;
     this.floatTimer = 650;
     AudioManager.playSfx('waveClear', 0.35, { playbackRate: 1.35 });
     return true;
@@ -4983,8 +4996,8 @@ class HealthPickup {
       ctx.lineWidth = 4;
       ctx.strokeStyle = '#10260f';
       ctx.fillStyle = '#87ff8f';
-      ctx.strokeText(this.floatText, this.x, this.y - 58 - t * 24);
-      ctx.fillText(this.floatText, this.x, this.y - 58 - t * 24);
+      ctx.strokeText(this.floatText, this.floatTextX, this.floatTextY - t * 24);
+      ctx.fillText(this.floatText, this.floatTextX, this.floatTextY - t * 24);
       ctx.textAlign = 'left';
     }
     ctx.restore();
@@ -5020,6 +5033,7 @@ class LevelScene {
     this.enemies = [];
     this.pickups = [];
     this.pendingPickupDrops = [];
+    this.levelPickupDropped = false;
     this.hitStop = 0;
     this.encounterActive = false;
     this.encounterCleared = false;
@@ -5055,6 +5069,7 @@ class LevelScene {
     this.enemies = [];
     this.pickups = [];
     this.pendingPickupDrops = [];
+    this.levelPickupDropped = false;
     this.encounterActive = false;
     this.encounterCleared = false;
     this.nonBlockingWaveTimer = 0;
@@ -5388,9 +5403,9 @@ class LevelScene {
 
     for (const enemy of this.enemies) {
       const wasAlive = enemy.alive;
-      if (!wasAlive) this.maybeDropPickup(enemy);
+      if (!wasAlive) this.maybeDropPickup(enemy, { source: 'system' });
       enemy.update(dt, this);
-      if (wasAlive && !enemy.alive) this.maybeDropPickup(enemy);
+      if (wasAlive && !enemy.alive) this.maybeDropPickup(enemy, { source: 'system' });
     }
     this.flushPickupDrops();
     for (const pickup of this.pickups) pickup.update(dt, this);
@@ -5465,15 +5480,27 @@ class LevelScene {
     }
   }
 
-  maybeDropPickup(enemy) {
+  getLevelPickupRule() {
+    const rules = GAME_CONFIG.levelPickupDrops || {};
+    const key = this.getLevelKey ? this.getLevelKey() : null;
+    return key ? rules[key] : null;
+  }
+
+  maybeDropPickup(enemy, options = {}) {
     if (!enemy || enemy.pickupDropped || enemy.gundosMinion) return;
-    const drops = GAME_CONFIG.enemyPickupDrops || {};
-    const pickupType = drops[enemy.enemyType];
     enemy.pickupDropped = true;
-    if (!pickupType) return;
-    const cfg = (GAME_CONFIG.pickups && GAME_CONFIG.pickups[pickupType]) || {};
-    const chance = cfg.dropChance == null ? 1 : cfg.dropChance;
-    if (Math.random() > chance) return;
+    if (options.source !== 'player') return;
+    if (this.levelPickupDropped) return;
+
+    const rule = this.getLevelPickupRule();
+    if (!rule || !rule.pickup) return;
+    const allowedTypes = Array.isArray(rule.enemyTypes)
+      ? rule.enemyTypes
+      : [rule.enemyType].filter(Boolean);
+    if (allowedTypes.length && !allowedTypes.includes(enemy.enemyType)) return;
+
+    this.levelPickupDropped = true;
+    const pickupType = rule.pickup;
     const rawX = Number.isFinite(enemy.x) ? enemy.x : GAME_CONFIG.width / 2;
     const rawY = Number.isFinite(enemy.y) ? enemy.y : GAME_CONFIG.laneBottom;
     const x = Math.max(70, Math.min(GAME_CONFIG.width - 70, rawX));

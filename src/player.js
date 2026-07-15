@@ -272,7 +272,7 @@ class Player {
           this.playComboHitSound();
           const wasAlive = enemy.alive;
           enemy.takeHit(data.damage, this.facing, data.knockback);
-          if (wasAlive && !enemy.alive && scene.maybeDropPickup) scene.maybeDropPickup(enemy);
+          if (wasAlive && !enemy.alive && scene.maybeDropPickup) scene.maybeDropPickup(enemy, { source: 'player' });
           if (enemy.enemyType === 'bastard') {
             if (enemy.grantGundosMedicHeal) {
               enemy.grantGundosMedicHeal(this, scene);

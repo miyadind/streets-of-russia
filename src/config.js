@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  buildVersion: '0.4.62',
+  buildVersion: '0.4.63',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -256,6 +256,12 @@ const GAME_CONFIG = {
     zetnik: 'medkit',
     dogRegime: 'pirozhok',
     horse: 'tea'
+  },
+
+  levelPickupDrops: {
+    street01: { enemyType: 'zetnik', pickup: 'medkit' },
+    street02: { enemyType: 'dogRegime', pickup: 'pirozhok' },
+    street03: null
   },
 
   levelOrder: [
