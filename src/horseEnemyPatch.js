@@ -34,6 +34,8 @@
     attackWindupMs: 680,
     attackActiveMs: 430,
     attackRecoveryMs: 320,
+    whiplashFinalSfxLeadMs: 80,
+    whiplashFinalSfxStartAt: 0.24,
     bossMusic: false,
     bossMusicKey: 'bossTheme',
     minDistanceX: 120,

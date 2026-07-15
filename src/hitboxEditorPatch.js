@@ -386,9 +386,14 @@
       const activeEnd = windupMs + activeMs;
       const finalWhiplashAt = windupMs + activeMs * 0.45;
 
-      if (this.enemyType === 'horse' && !this.whiplashFinalSfxPlayed && this.attackTimer >= finalWhiplashAt) {
-        AudioManager.playSfx('horseWhiplashFinal', 0.9, { startAt: 0.01 });
-        this.whiplashFinalSfxPlayed = true;
+      if (this.enemyType === 'horse' && !this.whiplashFinalSfxPlayed) {
+        const horseConfig = GAME_CONFIG.enemies.horse || {};
+        const leadMs = horseConfig.whiplashFinalSfxLeadMs == null ? 80 : horseConfig.whiplashFinalSfxLeadMs;
+        const startAt = horseConfig.whiplashFinalSfxStartAt == null ? 0.24 : horseConfig.whiplashFinalSfxStartAt;
+        if (this.attackTimer >= Math.max(windupMs, finalWhiplashAt - leadMs)) {
+          AudioManager.playSfx('horseWhiplashFinal', 0.9, { startAt });
+          this.whiplashFinalSfxPlayed = true;
+        }
       }
 
       if (!this.attackHasHit && this.attackTimer >= activeStart && this.attackTimer <= activeEnd) {

@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.67',
+  buildVersion: '0.4.68',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -9811,6 +9811,8 @@ window.addEventListener('load', () => {
     attackWindupMs: 680,
     attackActiveMs: 430,
     attackRecoveryMs: 320,
+    whiplashFinalSfxLeadMs: 80,
+    whiplashFinalSfxStartAt: 0.24,
     bossMusic: false,
     bossMusicKey: 'bossTheme',
     minDistanceX: 120,
@@ -15801,9 +15803,14 @@ window.addEventListener('load', () => {
       const activeEnd = windupMs + activeMs;
       const finalWhiplashAt = windupMs + activeMs * 0.45;
 
-      if (this.enemyType === 'horse' && !this.whiplashFinalSfxPlayed && this.attackTimer >= finalWhiplashAt) {
-        AudioManager.playSfx('horseWhiplashFinal', 0.9, { startAt: 0.01 });
-        this.whiplashFinalSfxPlayed = true;
+      if (this.enemyType === 'horse' && !this.whiplashFinalSfxPlayed) {
+        const horseConfig = GAME_CONFIG.enemies.horse || {};
+        const leadMs = horseConfig.whiplashFinalSfxLeadMs == null ? 80 : horseConfig.whiplashFinalSfxLeadMs;
+        const startAt = horseConfig.whiplashFinalSfxStartAt == null ? 0.24 : horseConfig.whiplashFinalSfxStartAt;
+        if (this.attackTimer >= Math.max(windupMs, finalWhiplashAt - leadMs)) {
+          AudioManager.playSfx('horseWhiplashFinal', 0.9, { startAt });
+          this.whiplashFinalSfxPlayed = true;
+        }
       }
 
       if (!this.attackHasHit && this.attackTimer >= activeStart && this.attackTimer <= activeEnd) {
