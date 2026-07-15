@@ -27,6 +27,29 @@
     } catch (error) { }
   }
 
+  function getRunDateParts(now = new Date()) {
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return {
+      year,
+      month,
+      day,
+      dateKey: `${year}${month}${day}`,
+      isoDate: `${year}-${month}-${day}`
+    };
+  }
+
+  function makeAutoPlayerName(stats) {
+    const parts = getRunDateParts();
+    if (stats.autoNameDateKey !== parts.dateKey) {
+      stats.autoNameDateKey = parts.dateKey;
+      stats.autoNameCounter = 0;
+    }
+    stats.autoNameCounter = (Number(stats.autoNameCounter) || 0) + 1;
+    return `user-${parts.dateKey}-${String(stats.autoNameCounter).padStart(2, '0')}`;
+  }
+
   function inRect(point, rect) {
     return point && point.x >= rect.x && point.x <= rect.x + rect.w && point.y >= rect.y && point.y <= rect.y + rect.h;
   }
@@ -42,14 +65,20 @@
     return { x: 490, y: 612, w: 300, h: 54 };
   }
 
-  function beginCampaignAfterName(game) {
+  function beginCampaignAfterName(game, options = {}) {
     const stats = game.profileStats || loadStats();
     stats.totalNewGames = (Number(stats.totalNewGames) || 0) + 1;
-    game.playerName = sanitizeName(game.nameEntryValue);
+    const runDate = getRunDateParts();
+    game.playerName = options.autoName ? makeAutoPlayerName(stats) : sanitizeName(game.nameEntryValue);
     stats.lastPlayerName = game.playerName;
+    stats.lastRunYear = runDate.year;
+    stats.lastRunMonth = runDate.month;
+    stats.lastRunDay = runDate.day;
+    stats.lastRunDate = runDate.isoDate;
     game.profileStats = stats;
     game.currentRunId = 'run-' + Date.now();
     game.currentRunStartedAt = Date.now();
+    game.currentRunDate = runDate.isoDate;
     game.currentRunPlaySeconds = 0;
     if (game.clearCampaignSave) game.clearCampaignSave();
     saveStats(stats);
@@ -160,13 +189,9 @@
   GameApp.prototype.startNewCampaign = function () {
     const stats = this.profileStats || loadStats();
     this.profileStats = stats;
-    this.nameEntryValue = '';
-    this.nameEntryCaretVisible = true;
-    this.nameEntryLastBlink = performance.now();
-    this.nameEntryReturnState = this.state || 'mainMenu';
     AudioManager.unlock();
     AudioManager.playSfx('menuSelect', 0.85);
-    this.setState('playerNameEntry');
+    beginCampaignAfterName(this, { autoName: true });
   };
 
   GameApp.prototype.updatePlayerNameEntry = function () {

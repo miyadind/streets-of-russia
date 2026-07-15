@@ -316,9 +316,7 @@
   }
 
   function askPlayerName(previousName) {
-    const typed = window.prompt('Введите имя или никнейм для статистики. Можно оставить пустым.', previousName || '');
-    if (typed === null) return sanitizeName(previousName || DEFAULT_NAME);
-    return sanitizeName(typed);
+    return sanitizeName(previousName || DEFAULT_NAME);
   }
 
   GameApp.prototype.loadCampaignSave = readCampaignSave;
