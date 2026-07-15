@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.69',
+  buildVersion: '0.4.70',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -11998,6 +11998,10 @@ window.addEventListener('load', () => {
   if (typeof GameApp === 'undefined') return;
 
   const PAUSE_ITEMS = ['resume', 'switchHero', 'bestiary', 'developer', 'menu'];
+  const GOIDA_SFX = {
+    z: { key: 'goidaZ', src: 'assets/enemies/4ort/uss3.mp3' },
+    x: { key: 'goidaX', src: 'assets/enemies/4ort/uss2.mp3' }
+  };
 
   function pauseRect() {
     return { x: 14, y: 16, w: 88, h: 52 };
@@ -12103,6 +12107,21 @@ window.addEventListener('load', () => {
     return heroes.some((key) => key !== player.heroKey && !(game.defeatedHeroes && game.defeatedHeroes[key]));
   }
 
+  function playGoidaSfx(game, buttonKey) {
+    const sound = GOIDA_SFX[buttonKey];
+    if (!sound || typeof AudioManager === 'undefined') return false;
+
+    const now = performance.now();
+    if (game.lastGoidaSfxAt && now - game.lastGoidaSfxAt < 450) return true;
+    game.lastGoidaSfxAt = now;
+
+    AudioManager.playOptionalSfx(sound.key, 1, {
+      src: sound.src,
+      startAt: 0.01
+    });
+    return true;
+  }
+
   function openDeveloperPanel(game) {
     if (typeof DevPanel === 'undefined') return;
     setPaused(game, false);
@@ -12201,6 +12220,16 @@ window.addEventListener('load', () => {
 
       if (Input.consume('c') && canQuickHeroSwitch(this)) {
         startQuickHeroSwitch(this);
+        return;
+      }
+
+      if (Input.consume('z')) {
+        playGoidaSfx(this, 'z');
+        return;
+      }
+
+      if (Input.consume('x')) {
+        playGoidaSfx(this, 'x');
         return;
       }
     }
