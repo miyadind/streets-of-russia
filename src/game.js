@@ -9,6 +9,7 @@ class GameApp {
     this.lastTime = performance.now();
     this.runtimeError = null;
     this.runtimeErrorTimer = 0;
+    this.suckerPinHintShown = false;
   }
 
   async init() {

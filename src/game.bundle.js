@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.73',
+  buildVersion: '0.4.74',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -3349,11 +3349,16 @@ class SuckerEnemy extends DogRegimeEnemy {
     }
 
     this.state = 'pinBite';
+    this.pinScene = scene;
     this.pinTimer = 0;
     this.biteTimer = 0;
     this.biteCount = 0;
     this.biteFrame = 0;
     this.hasPinnedPlayer = true;
+    if (scene && scene.game && !scene.game.suckerPinHintShown) {
+      scene.game.suckerPinHintShown = true;
+      scene.suckerPinHintActive = true;
+    }
     this.alignToPinnedPlayer(player);
     this.scatterOtherEnemies(scene);
     scene.hitStop = 55;
@@ -3412,6 +3417,9 @@ class SuckerEnemy extends DogRegimeEnemy {
 
   releasePinnedPlayer(player) {
     if (player && player.pinnedBy === this) player.releaseFromPin();
+    const scene = this.pinScene || this.__scene;
+    if (scene) scene.suckerPinHintActive = false;
+    this.pinScene = null;
     this.state = 'recovery';
     this.recoveryTimer = this.slideRecoveryMs;
     this.hasPinnedPlayer = false;
@@ -3868,6 +3876,7 @@ const HUD = {
 
     this.drawSupportButtons(ctx, scene, 745, 22);
     this.drawLowHpSwitchHint(ctx, scene);
+    this.drawSuckerPinHint(ctx, scene);
 
     this.drawEnemyRoster(ctx, scene);
   },
@@ -3963,6 +3972,34 @@ const HUD = {
 
     ctx.font = 'bold 16px Arial';
     ctx.fillText('ЧТОБЫ СМЕНИТЬ ПЕРСОНАЖА', x + 445, y + h / 2);
+    ctx.restore();
+  },
+
+  drawSuckerPinHint(ctx, scene) {
+    const player = scene && scene.player;
+    if (!scene || !scene.suckerPinHintActive || !player || player.state !== 'pinned') return;
+    if (!player.pinnedBy || player.pinnedBy.enemyType !== 'sucker') return;
+
+    const pulse = 0.72 + 0.28 * Math.sin(performance.now() / 95);
+    const text = 'НАЖМИ УДАР';
+    const x = GAME_CONFIG.width / 2;
+    const y = 152;
+
+    ctx.save();
+    ctx.globalAlpha = 0.78 + pulse * 0.22;
+    ctx.font = 'bold 56px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineWidth = 9;
+    ctx.strokeStyle = 'rgba(0,0,0,0.92)';
+    ctx.fillStyle = '#ffd15a';
+    ctx.strokeText(text, x, y);
+    ctx.fillText(text, x, y);
+
+    ctx.globalAlpha = 0.22 + pulse * 0.24;
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.strokeText(text, x, y);
     ctx.restore();
   },
 
@@ -8859,6 +8896,7 @@ class GameApp {
     this.lastTime = performance.now();
     this.runtimeError = null;
     this.runtimeErrorTimer = 0;
+    this.suckerPinHintShown = false;
   }
 
   async init() {
@@ -12572,6 +12610,9 @@ window.addEventListener('load', () => {
       if (this.drawLowHpSwitchHint) {
         this.drawLowHpSwitchHint(ctx, scene);
       }
+      if (this.drawSuckerPinHint) {
+        this.drawSuckerPinHint(ctx, scene);
+      }
     };
   }
 
@@ -13339,6 +13380,9 @@ window.addEventListener('load', () => {
       if (this.drawLowHpSwitchHint) {
         this.drawLowHpSwitchHint(ctx, scene);
       }
+      if (this.drawSuckerPinHint) {
+        this.drawSuckerPinHint(ctx, scene);
+      }
     };
   }
 
@@ -13832,6 +13876,9 @@ window.addEventListener('load', () => {
       }
       if (this.drawLowHpSwitchHint) {
         this.drawLowHpSwitchHint(ctx, scene);
+      }
+      if (this.drawSuckerPinHint) {
+        this.drawSuckerPinHint(ctx, scene);
       }
     };
   }

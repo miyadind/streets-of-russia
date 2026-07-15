@@ -434,6 +434,9 @@
       if (this.drawLowHpSwitchHint) {
         this.drawLowHpSwitchHint(ctx, scene);
       }
+      if (this.drawSuckerPinHint) {
+        this.drawSuckerPinHint(ctx, scene);
+      }
     };
   }
 

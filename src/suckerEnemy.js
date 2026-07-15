@@ -283,11 +283,16 @@ class SuckerEnemy extends DogRegimeEnemy {
     }
 
     this.state = 'pinBite';
+    this.pinScene = scene;
     this.pinTimer = 0;
     this.biteTimer = 0;
     this.biteCount = 0;
     this.biteFrame = 0;
     this.hasPinnedPlayer = true;
+    if (scene && scene.game && !scene.game.suckerPinHintShown) {
+      scene.game.suckerPinHintShown = true;
+      scene.suckerPinHintActive = true;
+    }
     this.alignToPinnedPlayer(player);
     this.scatterOtherEnemies(scene);
     scene.hitStop = 55;
@@ -346,6 +351,9 @@ class SuckerEnemy extends DogRegimeEnemy {
 
   releasePinnedPlayer(player) {
     if (player && player.pinnedBy === this) player.releaseFromPin();
+    const scene = this.pinScene || this.__scene;
+    if (scene) scene.suckerPinHintActive = false;
+    this.pinScene = null;
     this.state = 'recovery';
     this.recoveryTimer = this.slideRecoveryMs;
     this.hasPinnedPlayer = false;
