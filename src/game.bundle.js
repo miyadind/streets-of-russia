@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.71',
+  buildVersion: '0.4.72',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -938,12 +938,9 @@ const Input = {
   },
 
   normalizeKey(event) {
-    if (event.code === 'KeyW') return 'w';
-    if (event.code === 'KeyA') return 'a';
-    if (event.code === 'KeyS') return 's';
-    if (event.code === 'KeyD') return 'd';
     if (event.code === 'Space') return 'space';
     if (event.code === 'Backquote') return 'dev';
+    if (/^Key[A-Z]$/.test(event.code || '')) return event.code.slice(3).toLowerCase();
     if (event.key === 'Escape') return 'escape';
     if (event.key === 'Enter') return 'enter';
     return String(event.key || '').toLowerCase();
@@ -3934,9 +3931,9 @@ const HUD = {
 
     const now = performance.now();
     const pulse = 0.55 + 0.45 * Math.sin(now / 135);
-    const x = GAME_CONFIG.width / 2 - 215;
+    const x = GAME_CONFIG.width / 2 - 300;
     const y = 94;
-    const w = 430;
+    const w = 600;
     const h = 44;
 
     ctx.save();
@@ -3948,17 +3945,17 @@ const HUD = {
     ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
 
     ctx.fillStyle = '#ffd15a';
-    ctx.font = 'bold 18px Arial';
+    ctx.font = 'bold 17px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('МАЛО ЖИЗНЕЙ', x + 112, y + h / 2);
+    ctx.fillText('МАЛО ЖИЗНЕЙ', x + 110, y + h / 2);
 
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 20px Arial';
-    ctx.fillText('C', x + 226, y + h / 2);
+    ctx.fillText('НАЖМИ C', x + 255, y + h / 2);
 
     ctx.font = 'bold 16px Arial';
-    ctx.fillText('СМЕНИТЬ ПЕРСОНАЖА', x + 326, y + h / 2);
+    ctx.fillText('ЧТОБЫ СМЕНИТЬ ПЕРСОНАЖА', x + 445, y + h / 2);
     ctx.restore();
   },
 

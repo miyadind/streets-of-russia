@@ -107,9 +107,9 @@ const HUD = {
 
     const now = performance.now();
     const pulse = 0.55 + 0.45 * Math.sin(now / 135);
-    const x = GAME_CONFIG.width / 2 - 215;
+    const x = GAME_CONFIG.width / 2 - 300;
     const y = 94;
-    const w = 430;
+    const w = 600;
     const h = 44;
 
     ctx.save();
@@ -121,17 +121,17 @@ const HUD = {
     ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
 
     ctx.fillStyle = '#ffd15a';
-    ctx.font = 'bold 18px Arial';
+    ctx.font = 'bold 17px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('МАЛО ЖИЗНЕЙ', x + 112, y + h / 2);
+    ctx.fillText('МАЛО ЖИЗНЕЙ', x + 110, y + h / 2);
 
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 20px Arial';
-    ctx.fillText('C', x + 226, y + h / 2);
+    ctx.fillText('НАЖМИ C', x + 255, y + h / 2);
 
     ctx.font = 'bold 16px Arial';
-    ctx.fillText('СМЕНИТЬ ПЕРСОНАЖА', x + 326, y + h / 2);
+    ctx.fillText('ЧТОБЫ СМЕНИТЬ ПЕРСОНАЖА', x + 445, y + h / 2);
     ctx.restore();
   },
 

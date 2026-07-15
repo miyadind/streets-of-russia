@@ -121,12 +121,9 @@ const Input = {
   },
 
   normalizeKey(event) {
-    if (event.code === 'KeyW') return 'w';
-    if (event.code === 'KeyA') return 'a';
-    if (event.code === 'KeyS') return 's';
-    if (event.code === 'KeyD') return 'd';
     if (event.code === 'Space') return 'space';
     if (event.code === 'Backquote') return 'dev';
+    if (/^Key[A-Z]$/.test(event.code || '')) return event.code.slice(3).toLowerCase();
     if (event.key === 'Escape') return 'escape';
     if (event.key === 'Enter') return 'enter';
     return String(event.key || '').toLowerCase();
