@@ -176,21 +176,9 @@
         ctx.strokeRect(x + 54, 38, 98, 12);
       }
 
-      const progressX = 745;
-      const progressY = 28;
-      const progressW = 300;
-      const progressH = 17;
-      ctx.fillStyle = '#222';
-      ctx.fillRect(progressX, progressY, progressW, progressH);
-      ctx.fillStyle = 'cyan';
-      ctx.fillRect(progressX, progressY, progressW * this.getLevelProgress(scene), progressH);
-      ctx.strokeStyle = '#ddd';
-      ctx.strokeRect(progressX, progressY, progressW, progressH);
-      ctx.font = 'bold 13px Arial';
-      ctx.fillStyle = '#fff';
-      ctx.textAlign = 'center';
-      ctx.fillText('ПРОГРЕСС НАПРАВЛЕНИЯ', progressX + progressW / 2, progressY + 36);
-      ctx.textAlign = 'left';
+      if (this.drawSupportButtons) {
+        this.drawSupportButtons(ctx, scene, 745, 22);
+      }
     };
   }
 

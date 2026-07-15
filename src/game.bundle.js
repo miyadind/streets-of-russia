@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.64',
+  buildVersion: '0.4.65',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -3852,19 +3852,56 @@ const HUD = {
       ctx.strokeRect(x + 58, 38, 108, 12);
     }
 
-    ctx.fillStyle = '#222';
-    ctx.fillRect(875, 30, 330, 16);
-    ctx.fillStyle = 'cyan';
-    const progress = ((scene.screenIndex + (scene.encounterCleared ? 1 : 0.35)) / scene.images.streets.length);
-    ctx.fillRect(875, 30, 330 * Math.min(1, progress), 16);
-    ctx.strokeStyle = '#ddd';
-    ctx.strokeRect(875, 30, 330, 16);
-
-    ctx.fillStyle = '#aaa';
-    ctx.font = '12px Arial';
-    ctx.fillText('H debug', 1138, 66);
+    this.drawSupportButtons(ctx, scene, 745, 22);
 
     this.drawEnemyRoster(ctx, scene);
+  },
+
+  supportButtons: [
+    { key: 'F', id: 'fact', icon: '!', color: '#4fc3ff' },
+    { key: 'G', id: 'damage', icon: '*', color: '#ff5a58' },
+    { key: 'H', id: 'heal', icon: '+', color: '#58e37b' },
+    { key: 'J', id: 'special', icon: '?', color: '#ffd15a' },
+    { key: 'K', id: 'stun', icon: '~', color: '#b58cff' }
+  ],
+
+  drawSupportButtons(ctx, scene, x = 745, y = 22) {
+    const buttons = this.supportButtons || [];
+    const buttonW = 58;
+    const buttonH = 44;
+    const gap = 8;
+
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    for (let i = 0; i < buttons.length; i++) {
+      const button = buttons[i];
+      const bx = x + i * (buttonW + gap);
+      const by = y;
+      const active = scene && scene.pendingSupportCategory === button.id;
+
+      ctx.fillStyle = active ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.44)';
+      ctx.fillRect(bx, by, buttonW, buttonH);
+      ctx.strokeStyle = active ? '#fff' : 'rgba(255,255,255,0.28)';
+      ctx.lineWidth = active ? 2 : 1;
+      ctx.strokeRect(bx + 0.5, by + 0.5, buttonW - 1, buttonH - 1);
+
+      ctx.fillStyle = button.color;
+      ctx.fillRect(bx + 8, by + 8, 24, 28);
+      ctx.strokeStyle = 'rgba(0,0,0,0.38)';
+      ctx.strokeRect(bx + 8.5, by + 8.5, 23, 27);
+
+      ctx.fillStyle = '#111';
+      ctx.font = 'bold 18px Arial';
+      ctx.fillText(button.icon, bx + 20, by + 23);
+
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 17px Arial';
+      ctx.fillText(button.key, bx + 43, by + 23);
+    }
+
+    ctx.restore();
   },
 
   drawEnemyRoster(ctx, scene) {
@@ -3947,6 +3984,7 @@ const HUD = {
     return safe.slice(0, Math.max(1, maxLength - 1)) + '…';
   }
 };
+
 
 
 /* ===== src/menu.js ===== */
@@ -12312,21 +12350,9 @@ window.addEventListener('load', () => {
         ctx.strokeRect(x + 54, 38, 98, 12);
       }
 
-      const progressX = 745;
-      const progressY = 28;
-      const progressW = 300;
-      const progressH = 17;
-      ctx.fillStyle = '#222';
-      ctx.fillRect(progressX, progressY, progressW, progressH);
-      ctx.fillStyle = 'cyan';
-      ctx.fillRect(progressX, progressY, progressW * this.getLevelProgress(scene), progressH);
-      ctx.strokeStyle = '#ddd';
-      ctx.strokeRect(progressX, progressY, progressW, progressH);
-      ctx.font = 'bold 13px Arial';
-      ctx.fillStyle = '#fff';
-      ctx.textAlign = 'center';
-      ctx.fillText('ПРОГРЕСС НАПРАВЛЕНИЯ', progressX + progressW / 2, progressY + 36);
-      ctx.textAlign = 'left';
+      if (this.drawSupportButtons) {
+        this.drawSupportButtons(ctx, scene, 745, 22);
+      }
     };
   }
 
@@ -12393,6 +12419,7 @@ window.addEventListener('load', () => {
     };
   }
 })();
+
 
 
 /* ===== src/desktopRefinementPatch.js ===== */
@@ -12650,20 +12677,10 @@ window.addEventListener('load', () => {
     const previousDraw = HUD.draw;
     HUD.draw = function (ctx, scene) {
       previousDraw.call(this, ctx, scene);
-      const progressX = 745;
-      const progressY = 28;
-      const progressW = 300;
-      ctx.save();
-      ctx.fillStyle = 'rgba(0,0,0,0.62)';
-      ctx.fillRect(progressX - 10, progressY + 24, progressW + 20, 22);
-      ctx.font = 'bold 13px Arial';
-      ctx.fillStyle = '#fff';
-      ctx.textAlign = 'center';
-      ctx.fillText('ПРОГРЕСС ПРОХОЖДЕНИЯ', progressX + progressW / 2, progressY + 36);
-      ctx.restore();
     };
   }
 })();
+
 
 
 /* ===== src/exitArrowPatch.js ===== */
@@ -13097,34 +13114,9 @@ window.addEventListener('load', () => {
         }
       }
 
-      const barX = 875;
-      const barW = 330;
-      ctx.textAlign = 'left';
-      ctx.font = 'bold 12px Arial';
-      ctx.fillStyle = 'rgba(255,255,255,0.72)';
-      ctx.fillText('ПРОГРЕСС ПРОХОЖДЕНИЯ', barX, 20);
-      ctx.fillStyle = '#222';
-      ctx.fillRect(barX, 26, barW, 14);
-      const progress = ((scene.screenIndex + (scene.encounterCleared ? 1 : 0.35)) / scene.images.streets.length);
-      ctx.fillStyle = 'cyan';
-      ctx.fillRect(barX, 26, barW * Math.min(1, progress), 14);
-      ctx.strokeStyle = '#ddd';
-      ctx.strokeRect(barX, 26, barW, 14);
-
-      const support = game && game.peopleSupport != null ? game.peopleSupport : 25;
-      ctx.fillStyle = 'rgba(255,255,255,0.72)';
-      ctx.fillText('ПОДДЕРЖКА НАРОДА', barX, 58);
-      ctx.fillStyle = '#222';
-      ctx.fillRect(barX, 64, barW, 14);
-      ctx.fillStyle = '#f2c46d';
-      ctx.fillRect(barX, 64, barW * clampValue(support / 100, 0, 1), 14);
-      ctx.strokeStyle = '#ddd';
-      ctx.strokeRect(barX, 64, barW, 14);
-      ctx.fillStyle = 'rgba(255,255,255,0.72)';
-      ctx.font = 'bold 12px Arial';
-      ctx.textAlign = 'right';
-      ctx.fillText(Math.round(support) + '%', barX + barW, 58);
-      ctx.textAlign = 'left';
+      if (this.drawSupportButtons) {
+        this.drawSupportButtons(ctx, scene, 755, 22);
+      }
     };
   }
 
@@ -13613,34 +13605,9 @@ window.addEventListener('load', () => {
         }
       }
 
-      const barX = 875;
-      const barW = 330;
-      ctx.textAlign = 'left';
-      ctx.font = 'bold 12px Arial';
-      ctx.fillStyle = 'rgba(255,255,255,0.72)';
-      ctx.fillText('ПРОГРЕСС ПРОХОЖДЕНИЯ', barX, 20);
-      ctx.fillStyle = '#222';
-      ctx.fillRect(barX, 26, barW, 14);
-      const progress = ((scene.screenIndex + (scene.encounterCleared ? 1 : 0.35)) / scene.images.streets.length);
-      ctx.fillStyle = 'cyan';
-      ctx.fillRect(barX, 26, barW * Math.min(1, progress), 14);
-      ctx.strokeStyle = '#ddd';
-      ctx.strokeRect(barX, 26, barW, 14);
-
-      const support = game && game.peopleSupport != null ? game.peopleSupport : 25;
-      ctx.fillStyle = 'rgba(255,255,255,0.72)';
-      ctx.fillText('ПОДДЕРЖКА НАРОДА', barX, 58);
-      ctx.fillStyle = '#222';
-      ctx.fillRect(barX, 64, barW, 14);
-      ctx.fillStyle = '#f2c46d';
-      ctx.fillRect(barX, 64, barW * clamp(support / 100, 0, 1), 14);
-      ctx.strokeStyle = '#ddd';
-      ctx.strokeRect(barX, 64, barW, 14);
-      ctx.fillStyle = 'rgba(255,255,255,0.72)';
-      ctx.font = 'bold 12px Arial';
-      ctx.textAlign = 'right';
-      ctx.fillText(Math.round(support) + '%', barX + barW, 58);
-      ctx.textAlign = 'left';
+      if (this.drawSupportButtons) {
+        this.drawSupportButtons(ctx, scene, 755, 22);
+      }
     };
   }
 })();

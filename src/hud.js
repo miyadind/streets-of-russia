@@ -35,19 +35,56 @@ const HUD = {
       ctx.strokeRect(x + 58, 38, 108, 12);
     }
 
-    ctx.fillStyle = '#222';
-    ctx.fillRect(875, 30, 330, 16);
-    ctx.fillStyle = 'cyan';
-    const progress = ((scene.screenIndex + (scene.encounterCleared ? 1 : 0.35)) / scene.images.streets.length);
-    ctx.fillRect(875, 30, 330 * Math.min(1, progress), 16);
-    ctx.strokeStyle = '#ddd';
-    ctx.strokeRect(875, 30, 330, 16);
-
-    ctx.fillStyle = '#aaa';
-    ctx.font = '12px Arial';
-    ctx.fillText('H debug', 1138, 66);
+    this.drawSupportButtons(ctx, scene, 745, 22);
 
     this.drawEnemyRoster(ctx, scene);
+  },
+
+  supportButtons: [
+    { key: 'F', id: 'fact', icon: '!', color: '#4fc3ff' },
+    { key: 'G', id: 'damage', icon: '*', color: '#ff5a58' },
+    { key: 'H', id: 'heal', icon: '+', color: '#58e37b' },
+    { key: 'J', id: 'special', icon: '?', color: '#ffd15a' },
+    { key: 'K', id: 'stun', icon: '~', color: '#b58cff' }
+  ],
+
+  drawSupportButtons(ctx, scene, x = 745, y = 22) {
+    const buttons = this.supportButtons || [];
+    const buttonW = 58;
+    const buttonH = 44;
+    const gap = 8;
+
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    for (let i = 0; i < buttons.length; i++) {
+      const button = buttons[i];
+      const bx = x + i * (buttonW + gap);
+      const by = y;
+      const active = scene && scene.pendingSupportCategory === button.id;
+
+      ctx.fillStyle = active ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.44)';
+      ctx.fillRect(bx, by, buttonW, buttonH);
+      ctx.strokeStyle = active ? '#fff' : 'rgba(255,255,255,0.28)';
+      ctx.lineWidth = active ? 2 : 1;
+      ctx.strokeRect(bx + 0.5, by + 0.5, buttonW - 1, buttonH - 1);
+
+      ctx.fillStyle = button.color;
+      ctx.fillRect(bx + 8, by + 8, 24, 28);
+      ctx.strokeStyle = 'rgba(0,0,0,0.38)';
+      ctx.strokeRect(bx + 8.5, by + 8.5, 23, 27);
+
+      ctx.fillStyle = '#111';
+      ctx.font = 'bold 18px Arial';
+      ctx.fillText(button.icon, bx + 20, by + 23);
+
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 17px Arial';
+      ctx.fillText(button.key, bx + 43, by + 23);
+    }
+
+    ctx.restore();
   },
 
   drawEnemyRoster(ctx, scene) {

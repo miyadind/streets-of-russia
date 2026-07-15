@@ -252,17 +252,6 @@
     const previousDraw = HUD.draw;
     HUD.draw = function (ctx, scene) {
       previousDraw.call(this, ctx, scene);
-      const progressX = 745;
-      const progressY = 28;
-      const progressW = 300;
-      ctx.save();
-      ctx.fillStyle = 'rgba(0,0,0,0.62)';
-      ctx.fillRect(progressX - 10, progressY + 24, progressW + 20, 22);
-      ctx.font = 'bold 13px Arial';
-      ctx.fillStyle = '#fff';
-      ctx.textAlign = 'center';
-      ctx.fillText('ПРОГРЕСС ПРОХОЖДЕНИЯ', progressX + progressW / 2, progressY + 36);
-      ctx.restore();
     };
   }
 })();
