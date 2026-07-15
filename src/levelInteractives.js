@@ -22,6 +22,14 @@
     return Array.isArray(level && level.interactives) ? level.interactives : [];
   }
 
+  function isVehicleObstacle(item) {
+    return item && item.type === 'vehicleObstacle';
+  }
+
+  function getVehicleObstacles(level) {
+    return getInteractivesForLevel(level).filter(isVehicleObstacle);
+  }
+
   function getPosterState(scene, item) {
     if (!scene.levelInteractiveState) scene.levelInteractiveState = {};
     const key = scene.getLevelKey() + ':' + item.id;
@@ -133,6 +141,7 @@
   GameApp.prototype.loadImages = async function () {
     const loaded = await previousLoadImages.call(this);
     loaded.levelInteractiveBackgrounds = loaded.levelInteractiveBackgrounds || {};
+    loaded.levelInteractiveImages = loaded.levelInteractiveImages || {};
 
     const requests = [];
     const levels = GAME_CONFIG.levels || {};
@@ -143,10 +152,80 @@
           loaded.levelInteractiveBackgrounds[item.altBackground] = image;
         }));
       }
+      for (const item of getInteractivesForLevel(levels[key])) {
+        if (!item.image || loaded.levelInteractiveImages[item.image]) continue;
+        requests.push(loadImage(item.image).then((image) => {
+          loaded.levelInteractiveImages[item.image] = image;
+        }));
+      }
     }
 
     await Promise.all(requests);
     return loaded;
+  };
+
+  function getActorObstacleBox(actor) {
+    if (!actor) return null;
+    if (typeof actor.getPushbox === 'function') {
+      const box = actor.getPushbox();
+      if (box && Number.isFinite(box.x) && Number.isFinite(box.y) && Number.isFinite(box.w) && Number.isFinite(box.h)) return box;
+    }
+
+    const radiusX = actor.bodyRadiusX || GAME_CONFIG.enemyBodyRadiusX || 42;
+    const radiusY = actor.bodyRadiusY || GAME_CONFIG.enemyBodyRadiusY || 20;
+    return {
+      x: actor.x - radiusX,
+      y: actor.y - radiusY,
+      w: radiusX * 2,
+      h: radiusY * 2
+    };
+  }
+
+  function resolveActorFromObstacle(scene, actor, obstacle) {
+    if (!scene || !actor || !obstacle || !obstacle.blockBox) return;
+    const actorBox = getActorObstacleBox(actor);
+    const block = obstacle.blockBox;
+    if (!actorBox || !Combat.overlap(actorBox, block)) return;
+
+    const leftPush = block.x - (actorBox.x + actorBox.w);
+    const rightPush = block.x + block.w - actorBox.x;
+    const upPush = block.y - (actorBox.y + actorBox.h);
+    const downPush = block.y + block.h - actorBox.y;
+    const options = [
+      { dx: leftPush, dy: 0, amount: Math.abs(leftPush), axis: 'x' },
+      { dx: rightPush, dy: 0, amount: Math.abs(rightPush), axis: 'x' },
+      { dx: 0, dy: upPush, amount: Math.abs(upPush), axis: 'y' },
+      { dx: 0, dy: downPush, amount: Math.abs(downPush), axis: 'y' }
+    ];
+
+    let chosen = options.sort((a, b) => a.amount - b.amount)[0];
+    if (actor !== scene.player && scene.player && actor.alive !== false) {
+      const obstacleCenterY = block.y + block.h / 2;
+      const preferUp = scene.player.y < obstacleCenterY;
+      const vertical = preferUp ? options[2] : options[3];
+      const zone = scene.getWalkZone ? scene.getWalkZone() : { top: GAME_CONFIG.laneTop, bottom: GAME_CONFIG.laneBottom };
+      const nextY = actor.y + vertical.dy;
+      if (nextY >= zone.top && nextY <= zone.bottom) chosen = vertical;
+    }
+
+    actor.x += chosen.dx;
+    actor.y += chosen.dy;
+  }
+
+  LevelScene.prototype.resolveObstacleCollisions = function (actor) {
+    const level = this.getLevelConfig();
+    for (const obstacle of getVehicleObstacles(level)) {
+      resolveActorFromObstacle(this, actor, obstacle);
+    }
+  };
+
+  const previousUpdate = LevelScene.prototype.update;
+  LevelScene.prototype.update = function (dt) {
+    previousUpdate.call(this, dt);
+    if (this.player) this.resolveObstacleCollisions(this.player);
+    for (const enemy of this.enemies || []) {
+      if (enemy && !enemy.remove) this.resolveObstacleCollisions(enemy);
+    }
   };
 
   LevelScene.prototype.getLevelBackgroundImage = function () {
@@ -177,6 +256,33 @@
     const level = this.getLevelConfig();
     const showObjectEditor = typeof DevPanel !== 'undefined' && DevPanel.open && DevPanel.tab === 'OBJECTS';
     for (const item of getInteractivesForLevel(level)) {
+      if (isVehicleObstacle(item)) {
+        const rect = item.drawRect;
+        const image = item.image && this.images.levelInteractiveImages && this.images.levelInteractiveImages[item.image];
+        if (rect && image) {
+          ctx.drawImage(image, rect.x, rect.y, rect.w, rect.h);
+        } else if (rect) {
+          ctx.fillStyle = 'rgba(20,45,75,0.82)';
+          ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+        }
+
+        if (this.debug || showObjectEditor) {
+          ctx.save();
+          if (rect) {
+            ctx.strokeStyle = 'rgba(80, 190, 255, 0.9)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
+          }
+          if (item.blockBox) {
+            ctx.strokeStyle = 'rgba(255, 230, 90, 0.95)';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(item.blockBox.x, item.blockBox.y, item.blockBox.w, item.blockBox.h);
+          }
+          ctx.restore();
+        }
+        continue;
+      }
+
       if (item.type !== 'breakablePoster') continue;
       const state = getPosterState(this, item);
       if (!state.replaced) drawPosterDamage(ctx, item, state);
@@ -261,9 +367,13 @@
     };
 
     DevPanel.objectBoxKeys = function (item) {
-      const keys = ['hitbox'];
+      const keys = [];
+      if (item && item.hitbox) keys.push('hitbox');
+      if (item && item.drawRect) keys.push('drawRect');
+      if (item && item.blockBox) keys.push('blockBox');
       if (item && item.effectRect) keys.push('effectRect');
       if (item && Number.isFinite(item.laneY)) keys.push('lane');
+      if (!keys.length) keys.push('hitbox');
       return keys;
     };
 
