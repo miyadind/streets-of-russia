@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.76',
+  buildVersion: '0.4.77',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -3989,25 +3989,31 @@ const HUD = {
     if (!player.pinnedBy || player.pinnedBy.enemyType !== 'sucker') return;
 
     const pulse = 0.72 + 0.28 * Math.sin(performance.now() / 95);
+    const scale = 1 + pulse * 0.045;
     const text = 'НАЖМИ УДАР';
     const x = GAME_CONFIG.width / 2;
     const y = 152;
 
     ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
     ctx.globalAlpha = 0.78 + pulse * 0.22;
     ctx.font = 'bold 56px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    ctx.shadowColor = 'rgba(255,0,0,0.9)';
+    ctx.shadowBlur = 18 + pulse * 18;
     ctx.lineWidth = 9;
     ctx.strokeStyle = 'rgba(0,0,0,0.92)';
-    ctx.fillStyle = '#ffd15a';
-    ctx.strokeText(text, x, y);
-    ctx.fillText(text, x, y);
+    ctx.fillStyle = '#ff1d1d';
+    ctx.strokeText(text, 0, 0);
+    ctx.fillText(text, 0, 0);
 
-    ctx.globalAlpha = 0.22 + pulse * 0.24;
-    ctx.strokeStyle = '#fff';
+    ctx.globalAlpha = 0.32 + pulse * 0.32;
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = '#ffb0b0';
     ctx.lineWidth = 2;
-    ctx.strokeText(text, x, y);
+    ctx.strokeText(text, 0, 0);
     ctx.restore();
   },
 
