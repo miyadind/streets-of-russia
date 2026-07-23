@@ -31,6 +31,8 @@ const AudioManager = {
       this.sfx[key] = this.createAudio(src, false);
     }
 
+    this.registerCharacterSfx();
+
     for (const [key, src] of Object.entries((Assets.audio && Assets.audio.music) || {})) {
       if (!src) continue;
       this.music[key] = this.createAudio(src, true);
@@ -138,6 +140,45 @@ const AudioManager = {
     audio.addEventListener('ended', cleanup, { once: true });
     audio.addEventListener('error', cleanup, { once: true });
     return audio;
+  },
+
+  getAssetDirectory(src) {
+    if (!src || typeof src !== 'string' || src.indexOf('/') === -1) return null;
+    return src.slice(0, src.lastIndexOf('/'));
+  },
+
+  getHeroHitSrc(heroKey) {
+    const heroAssets = Assets && Assets[heroKey];
+    const dir = this.getAssetDirectory(heroAssets && heroAssets.idle);
+    return dir ? dir + '/Hit.mp3' : null;
+  },
+
+  getEnemyAppearSrc(enemyType) {
+    if (enemyType === 'dogRegime') return null;
+    const enemyConfig = (GAME_CONFIG.enemies && GAME_CONFIG.enemies[enemyType]) || {};
+    if (enemyConfig.appearSoundPath) return enemyConfig.appearSoundPath;
+    if (Assets.enemyAppear && Assets.enemyAppear[enemyType]) return Assets.enemyAppear[enemyType];
+    const folder = String(enemyType || 'enemy').replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
+    return 'assets/enemies/' + folder + '/Appear.mp3';
+  },
+
+  registerCharacterSfx() {
+    for (const enemyType of Object.keys((GAME_CONFIG && GAME_CONFIG.enemies) || {})) {
+      const src = this.getEnemyAppearSrc(enemyType);
+      if (!src) continue;
+      this.sfx[enemyType + 'Appear'] = this.createAudio(src, false);
+    }
+
+    for (const heroKey of Object.keys((GAME_CONFIG && GAME_CONFIG.heroes) || {})) {
+      const src = this.getHeroHitSrc(heroKey);
+      if (!src) continue;
+      this.sfx[heroKey + 'Hit'] = this.createAudio(src, false);
+    }
+  },
+
+  isUsableSfxKey(key) {
+    const audio = this.sfx && this.sfx[key];
+    return !!audio && (!audio.dataset || audio.dataset.failed !== 'true');
   },
 
   playSfx(key, volume = 1, options = {}) {

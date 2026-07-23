@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.88',
+  buildVersion: '0.4.89',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -1193,6 +1193,8 @@ const AudioManager = {
       this.sfx[key] = this.createAudio(src, false);
     }
 
+    this.registerCharacterSfx();
+
     for (const [key, src] of Object.entries((Assets.audio && Assets.audio.music) || {})) {
       if (!src) continue;
       this.music[key] = this.createAudio(src, true);
@@ -1300,6 +1302,45 @@ const AudioManager = {
     audio.addEventListener('ended', cleanup, { once: true });
     audio.addEventListener('error', cleanup, { once: true });
     return audio;
+  },
+
+  getAssetDirectory(src) {
+    if (!src || typeof src !== 'string' || src.indexOf('/') === -1) return null;
+    return src.slice(0, src.lastIndexOf('/'));
+  },
+
+  getHeroHitSrc(heroKey) {
+    const heroAssets = Assets && Assets[heroKey];
+    const dir = this.getAssetDirectory(heroAssets && heroAssets.idle);
+    return dir ? dir + '/Hit.mp3' : null;
+  },
+
+  getEnemyAppearSrc(enemyType) {
+    if (enemyType === 'dogRegime') return null;
+    const enemyConfig = (GAME_CONFIG.enemies && GAME_CONFIG.enemies[enemyType]) || {};
+    if (enemyConfig.appearSoundPath) return enemyConfig.appearSoundPath;
+    if (Assets.enemyAppear && Assets.enemyAppear[enemyType]) return Assets.enemyAppear[enemyType];
+    const folder = String(enemyType || 'enemy').replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
+    return 'assets/enemies/' + folder + '/Appear.mp3';
+  },
+
+  registerCharacterSfx() {
+    for (const enemyType of Object.keys((GAME_CONFIG && GAME_CONFIG.enemies) || {})) {
+      const src = this.getEnemyAppearSrc(enemyType);
+      if (!src) continue;
+      this.sfx[enemyType + 'Appear'] = this.createAudio(src, false);
+    }
+
+    for (const heroKey of Object.keys((GAME_CONFIG && GAME_CONFIG.heroes) || {})) {
+      const src = this.getHeroHitSrc(heroKey);
+      if (!src) continue;
+      this.sfx[heroKey + 'Hit'] = this.createAudio(src, false);
+    }
+  },
+
+  isUsableSfxKey(key) {
+    const audio = this.sfx && this.sfx[key];
+    return !!audio && (!audio.dataset || audio.dataset.failed !== 'true');
   },
 
   playSfx(key, volume = 1, options = {}) {
@@ -5373,7 +5414,17 @@ class LevelScene {
 
   getWaveAppearDelayMs(wave) {
     if (wave.appearDelayMs != null) return Math.max(0, Number(wave.appearDelayMs) || 0);
-    return 0;
+    const key = this.getWaveAppearKey(wave);
+    return key === 'zetnikAppear' ? 850 : 0;
+  }
+
+  getWaveAppearKey(wave) {
+    for (const group of wave.enemies || []) {
+      if (group.type === 'dogRegime') continue;
+      const key = group.type + 'Appear';
+      if (AudioManager.isUsableSfxKey && AudioManager.isUsableSfxKey(key)) return key;
+    }
+    return null;
   }
 
   getEnemyAppearSoundKey(type) {
@@ -11598,30 +11649,6 @@ window.addEventListener('load', () => {
 (function () {
   if (typeof GameApp === 'undefined') return;
 
-  const ENEMY_SOUND_FOLDERS = {
-    dogRegime: null,
-    zetnik: 'zetnik',
-    sucker: 'sucker',
-    bastard: 'bastard'
-  };
-
-  function getAssetDirectory(src) {
-    if (!src || typeof src !== 'string' || src.indexOf('/') === -1) return null;
-    return src.slice(0, src.lastIndexOf('/'));
-  }
-
-  function getHeroHitSrc(heroKey) {
-    const heroAssets = Assets && Assets[heroKey];
-    const dir = getAssetDirectory(heroAssets && heroAssets.idle);
-    return dir ? dir + '/Hit.mp3' : null;
-  }
-
-  function getEnemyAppearSrc(enemyType) {
-    if (ENEMY_SOUND_FOLDERS[enemyType] === null) return null;
-    const folder = ENEMY_SOUND_FOLDERS[enemyType] || enemyType;
-    return 'assets/enemies/' + folder + '/Appear.mp3';
-  }
-
   function isUsableSfxKey(key) {
     const audio = AudioManager && AudioManager.sfx && AudioManager.sfx[key];
     return !!audio && (!audio.dataset || audio.dataset.failed !== 'true');
@@ -11629,57 +11656,6 @@ window.addEventListener('load', () => {
 
   if (typeof GAME_CONFIG !== 'undefined') {
     GAME_CONFIG.playerHurtFreezeMs = GAME_CONFIG.playerHurtFreezeMs || 280;
-  }
-
-  if (typeof Assets !== 'undefined') {
-    const enemyAppear = {};
-    for (const enemyType of Object.keys((GAME_CONFIG && GAME_CONFIG.enemies) || {})) {
-      enemyAppear[enemyType] = getEnemyAppearSrc(enemyType);
-    }
-    Assets.enemyAppear = Object.assign(enemyAppear, Assets.enemyAppear || {});
-
-    const heroHit = {};
-    for (const heroKey of Object.keys((GAME_CONFIG && GAME_CONFIG.heroes) || {})) {
-      heroHit[heroKey] = getHeroHitSrc(heroKey);
-    }
-    Assets.heroHit = Object.assign(heroHit, Assets.heroHit || {});
-  }
-
-  if (typeof AudioManager !== 'undefined' && !AudioManager.optionalCharacterAudioPatchApplied) {
-    const originalAudioInit = AudioManager.init;
-    AudioManager.init = function () {
-      originalAudioInit.call(this);
-
-      for (const [enemyType, src] of Object.entries((Assets && Assets.enemyAppear) || {})) {
-        if (!src) continue;
-        this.sfx[enemyType + 'Appear'] = this.createAudio(src, false);
-      }
-
-      for (const [heroKey, src] of Object.entries((Assets && Assets.heroHit) || {})) {
-        if (!src) continue;
-        this.sfx[heroKey + 'Hit'] = this.createAudio(src, false);
-      }
-    };
-    AudioManager.optionalCharacterAudioPatchApplied = true;
-  }
-
-  if (typeof LevelScene !== 'undefined' && !LevelScene.enemyAppearAudioPatchApplied) {
-    LevelScene.prototype.getWaveAppearKey = function (wave) {
-      for (const group of wave.enemies || []) {
-        if (group.type === 'dogRegime') continue;
-        const key = group.type + 'Appear';
-        if (isUsableSfxKey(key)) return key;
-      }
-      return null;
-    };
-
-    LevelScene.prototype.getWaveAppearDelayMs = function (wave) {
-      if (wave.appearDelayMs != null) return Math.max(0, Number(wave.appearDelayMs) || 0);
-      const key = this.getWaveAppearKey(wave);
-      return key === 'zetnikAppear' ? 850 : 0;
-    };
-
-    LevelScene.enemyAppearAudioPatchApplied = true;
   }
 
   if (typeof Player !== 'undefined' && !Player.hurtFreezePatchApplied) {

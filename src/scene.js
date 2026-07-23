@@ -229,7 +229,17 @@ class LevelScene {
 
   getWaveAppearDelayMs(wave) {
     if (wave.appearDelayMs != null) return Math.max(0, Number(wave.appearDelayMs) || 0);
-    return 0;
+    const key = this.getWaveAppearKey(wave);
+    return key === 'zetnikAppear' ? 850 : 0;
+  }
+
+  getWaveAppearKey(wave) {
+    for (const group of wave.enemies || []) {
+      if (group.type === 'dogRegime') continue;
+      const key = group.type + 'Appear';
+      if (AudioManager.isUsableSfxKey && AudioManager.isUsableSfxKey(key)) return key;
+    }
+    return null;
   }
 
   getEnemyAppearSoundKey(type) {
