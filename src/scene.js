@@ -168,6 +168,30 @@ class LevelScene {
   drawLevelBackgroundEffects(ctx) {
   }
 
+  drawLevelForegroundObjects(ctx) {
+    const level = this.getLevelConfig();
+    const items = Array.isArray(level && level.interactives) ? level.interactives : [];
+    for (const item of items) {
+      if (!item || item.type !== 'vehicleObstacle' || !item.drawRect) continue;
+      const rect = item.drawRect;
+      const image = item.image && this.images.levelInteractiveImages && this.images.levelInteractiveImages[item.image];
+      ctx.save();
+      if (image && image.complete !== false && image.naturalWidth !== 0) {
+        try {
+          ctx.drawImage(image, rect.x, rect.y, rect.w, rect.h);
+          ctx.restore();
+          continue;
+        } catch (error) {}
+      }
+      ctx.fillStyle = 'rgba(20,45,75,0.82)';
+      ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+      ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
+      ctx.restore();
+    }
+  }
+
   spawnInitialWave() {
     this.currentWaveIndex = -1;
     this.enemies = [];
@@ -221,7 +245,10 @@ class LevelScene {
 
   playEnemyAppearSound(type) {
     if (!type) return;
-    if (type === 'dogRegime') return;
+    if (type === 'dogRegime') {
+      if (AudioManager.stopHorseAppearSfx) AudioManager.stopHorseAppearSfx();
+      return;
+    }
     const previousAppearType = AudioManager.enemyAppearType;
     AudioManager.enemyAppearType = type;
     try {
@@ -331,6 +358,9 @@ class LevelScene {
 
   spawnEnemyGroup(group) {
     const count = Math.max(0, Number(group.count) || 0);
+    if (group && group.type === 'dogRegime' && AudioManager.stopHorseAppearSfx) {
+      AudioManager.stopHorseAppearSfx();
+    }
     let enemyId = this.enemies.length;
     let playedAppearSound = false;
     for (let i = 0; i < count; i++) {

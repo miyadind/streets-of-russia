@@ -211,11 +211,26 @@ const AudioManager = {
   isBlockedHorseAppear(key, options = {}) {
     const src = String(options.src || options.path || '').replace(/\\/g, '/').toLowerCase();
     const registered = this.sfx && key ? this.sfx[key] : null;
+    const optional = this.optionalSfx && key ? this.optionalSfx[key] : null;
     const registeredSrc = registered && registered.src ? String(registered.src).replace(/\\/g, '/').toLowerCase() : '';
+    const optionalSrc = optional && optional.src ? String(optional.src).replace(/\\/g, '/').toLowerCase() : '';
     const isHorseAppear = key === 'horseAppear' ||
       src.includes('assets/enemies/horse/appear.mp3') ||
-      registeredSrc.includes('assets/enemies/horse/appear.mp3');
+      registeredSrc.includes('assets/enemies/horse/appear.mp3') ||
+      optionalSrc.includes('assets/enemies/horse/appear.mp3');
     return isHorseAppear && this.enemyAppearType !== 'horse';
+  },
+
+  stopHorseAppearSfx() {
+    this.activeSfx = (this.activeSfx || []).filter((audio) => {
+      const src = audio && audio.src ? String(audio.src).replace(/\\/g, '/').toLowerCase() : '';
+      if (!src.includes('assets/enemies/horse/appear.mp3')) return true;
+      try {
+        audio.pause();
+        audio.currentTime = 0;
+      } catch (error) {}
+      return false;
+    });
   },
 
   playSyntheticSfx(key, volume = 1, options = {}) {

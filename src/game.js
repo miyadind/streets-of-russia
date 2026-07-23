@@ -178,7 +178,54 @@ class GameApp {
       tea: loaded.pickupTea
     };
 
+    await this.loadLevelInteractiveImages(loaded);
+
     return loaded;
+  }
+
+  async loadLevelInteractiveImages(loaded) {
+    loaded.levelInteractiveBackgrounds = loaded.levelInteractiveBackgrounds || {};
+    loaded.levelInteractiveImages = loaded.levelInteractiveImages || {};
+
+    const cache = {};
+    const loadImage = (src, label) => new Promise((resolve) => {
+      if (!src) {
+        resolve(null);
+        return;
+      }
+      if (cache[src]) {
+        resolve(cache[src]);
+        return;
+      }
+      const img = new Image();
+      img.onload = () => {
+        cache[src] = img;
+        resolve(img);
+      };
+      img.onerror = () => {
+        console.warn('Missing level interactive image:', label || src);
+        resolve(null);
+      };
+      img.src = src;
+    });
+
+    const requests = [];
+    for (const level of Object.values(GAME_CONFIG.levels || {})) {
+      for (const item of level.interactives || []) {
+        if (item.altBackground && !loaded.levelInteractiveBackgrounds[item.altBackground]) {
+          requests.push(loadImage(item.altBackground, item.altBackground).then((image) => {
+            loaded.levelInteractiveBackgrounds[item.altBackground] = image;
+          }));
+        }
+        if (item.image && !loaded.levelInteractiveImages[item.image]) {
+          requests.push(loadImage(item.image, item.image).then((image) => {
+            loaded.levelInteractiveImages[item.image] = image;
+          }));
+        }
+      }
+    }
+
+    await Promise.all(requests);
   }
 
   async loadLevelBackgrounds(fallbackStreets = []) {
