@@ -9,6 +9,7 @@ const AudioManager = {
   musicActuallyPlaying: false,
   activeSfx: [],
   pausedAudio: [],
+  musicPauseReasons: null,
   enemyAppearType: null,
 
   init() {
@@ -22,6 +23,7 @@ const AudioManager = {
     this.musicActuallyPlaying = false;
     this.activeSfx = [];
     this.pausedAudio = [];
+    this.musicPauseReasons = new Set();
     this.enemyAppearType = null;
 
     for (const [key, src] of Object.entries((Assets.audio && Assets.audio.sfx) || {})) {
@@ -233,6 +235,48 @@ const AudioManager = {
     });
   },
 
+  allMusicTracks() {
+    return Object.values(this.music || {}).filter(Boolean);
+  },
+
+  silenceOtherMusic(except) {
+    for (const audio of this.allMusicTracks()) {
+      if (!audio || audio === except) continue;
+      try {
+        audio.pause();
+        audio.currentTime = 0;
+      } catch (error) {}
+    }
+  },
+
+  isMusicPausedByGame() {
+    return !!(this.musicPauseReasons && this.musicPauseReasons.size > 0);
+  },
+
+  pauseCurrentMusicForReason() {
+    this.silenceOtherMusic(this.currentMusic || null);
+    if (!this.currentMusic) return;
+    try {
+      if (!this.currentMusic.paused) this.currentMusic.pause();
+    } catch (error) {}
+    this.musicActuallyPlaying = false;
+  },
+
+  setMusicPauseReason(reason, paused) {
+    if (!reason) return;
+    if (!this.musicPauseReasons) this.musicPauseReasons = new Set();
+    const hadPause = this.musicPauseReasons.size > 0;
+    if (paused) this.musicPauseReasons.add(reason);
+    else this.musicPauseReasons.delete(reason);
+
+    const hasPause = this.musicPauseReasons.size > 0;
+    if (hasPause) {
+      this.pauseCurrentMusicForReason();
+    } else if (hadPause && this.currentMusicKey && this.isMusicOn()) {
+      this.playMusic(this.currentMusicKey, false, true);
+    }
+  },
+
   playSyntheticSfx(key, volume = 1, options = {}) {
     if (!this.isSfxOn()) return;
     const presets = {
@@ -274,6 +318,15 @@ const AudioManager = {
 
     const next = this.music[key];
     if (!next || (next.dataset && next.dataset.failed === 'true')) return;
+    this.currentMusic = next;
+
+    if (this.isMusicPausedByGame()) {
+      if (forceRestart) {
+        try { next.currentTime = 0; } catch (error) {}
+      }
+      this.pauseCurrentMusicForReason();
+      return;
+    }
 
     if (this.currentMusic === next && !forceRestart) {
       next.volume = this.getMusicVolume();
@@ -294,6 +347,7 @@ const AudioManager = {
     next.play()
       .then(() => {
         this.musicActuallyPlaying = true;
+        this.silenceOtherMusic(next);
       })
       .catch(() => {
         this.musicActuallyPlaying = false;
@@ -306,6 +360,7 @@ const AudioManager = {
     this.currentMusic.currentTime = 0;
     this.currentMusic = null;
     this.musicActuallyPlaying = false;
+    this.silenceOtherMusic(null);
   },
 
   pauseAllAudio() {
@@ -345,12 +400,34 @@ const AudioManager = {
   },
 
   refreshSettings() {
+    if (this.isMusicPausedByGame()) {
+      this.pauseCurrentMusicForReason();
+      return;
+    }
+
     if (this.currentMusic) {
       this.currentMusic.volume = this.getMusicVolume();
       if (this.currentMusic.paused && this.currentMusicKey) this.playMusic(this.currentMusicKey, false, true);
+      this.silenceOtherMusic(this.currentMusic);
       return;
     }
 
     if (this.currentMusicKey) this.playMusic(this.currentMusicKey, false, true);
   }
 };
+
+if (typeof document !== 'undefined' && !AudioManager.windowPauseListenersInstalled) {
+  document.addEventListener('visibilitychange', () => {
+    AudioManager.setMusicPauseReason('hidden-tab', document.visibilityState !== 'visible');
+  });
+
+  window.addEventListener('blur', () => {
+    AudioManager.setMusicPauseReason('window-blur', true);
+  });
+
+  window.addEventListener('focus', () => {
+    AudioManager.setMusicPauseReason('window-blur', false);
+  });
+
+  AudioManager.windowPauseListenersInstalled = true;
+}

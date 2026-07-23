@@ -51,6 +51,5 @@
   "src/storyFlowPatch.js",
   "src/sessionOnlyRunPatch.js",
   "src/heroDefeatOverlayPatch.js",
-  "src/audioPauseGuardPatch.js",
   "src/campaignMapDevChapterPatch.js"
 ]

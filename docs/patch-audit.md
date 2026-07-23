@@ -4,7 +4,7 @@ This file tracks patch files that should be folded into stable game systems.
 
 ## Audio
 
-- `audioPauseGuardPatch.js`: pause/resume music for game pause, developer panel, tab blur/focus.
+- `audioPauseGuardPatch.js`: folded into core in `0.4.87` and removed.
 - `globalQualityPatch.js`: optional enemy appear audio, hero hit audio, and some combat tuning.
 - `horseAssetsFixPatch.js`: horse custom sounds and late asset registration.
 - `pauseMenuPatch.js`: pause menu voices and menu SFX.

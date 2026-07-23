@@ -324,6 +324,14 @@ class GameApp {
     const previousState = this.state;
     this.state = nextState;
     this.updateMusicForState(previousState, nextState);
+    this.syncMusicPauseState();
+  }
+
+  syncMusicPauseState() {
+    if (!AudioManager.setMusicPauseReason) return;
+    const devOpen = typeof DevPanel !== 'undefined' && DevPanel.open;
+    const gamePaused = this.state === 'level' && !!this.paused;
+    AudioManager.setMusicPauseReason('game-pause', gamePaused || devOpen);
   }
 
   updateMusicForState(previousState, nextState) {
@@ -362,7 +370,9 @@ class GameApp {
   }
 
   update(dt) {
+    this.syncMusicPauseState();
     DevPanel.update(this);
+    this.syncMusicPauseState();
 
     const click = Input.consumePointer();
     if (click && this.handleSpeakerClick(click)) return;
@@ -392,6 +402,8 @@ class GameApp {
     } else if (typeof MobileControls !== 'undefined') {
       MobileControls.update(this);
     }
+
+    this.syncMusicPauseState();
   }
 
   getSpeakerRect() {

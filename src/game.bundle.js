@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.86',
+  buildVersion: '0.4.87',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -1171,6 +1171,7 @@ const AudioManager = {
   musicActuallyPlaying: false,
   activeSfx: [],
   pausedAudio: [],
+  musicPauseReasons: null,
   enemyAppearType: null,
 
   init() {
@@ -1184,6 +1185,7 @@ const AudioManager = {
     this.musicActuallyPlaying = false;
     this.activeSfx = [];
     this.pausedAudio = [];
+    this.musicPauseReasons = new Set();
     this.enemyAppearType = null;
 
     for (const [key, src] of Object.entries((Assets.audio && Assets.audio.sfx) || {})) {
@@ -1395,6 +1397,48 @@ const AudioManager = {
     });
   },
 
+  allMusicTracks() {
+    return Object.values(this.music || {}).filter(Boolean);
+  },
+
+  silenceOtherMusic(except) {
+    for (const audio of this.allMusicTracks()) {
+      if (!audio || audio === except) continue;
+      try {
+        audio.pause();
+        audio.currentTime = 0;
+      } catch (error) {}
+    }
+  },
+
+  isMusicPausedByGame() {
+    return !!(this.musicPauseReasons && this.musicPauseReasons.size > 0);
+  },
+
+  pauseCurrentMusicForReason() {
+    this.silenceOtherMusic(this.currentMusic || null);
+    if (!this.currentMusic) return;
+    try {
+      if (!this.currentMusic.paused) this.currentMusic.pause();
+    } catch (error) {}
+    this.musicActuallyPlaying = false;
+  },
+
+  setMusicPauseReason(reason, paused) {
+    if (!reason) return;
+    if (!this.musicPauseReasons) this.musicPauseReasons = new Set();
+    const hadPause = this.musicPauseReasons.size > 0;
+    if (paused) this.musicPauseReasons.add(reason);
+    else this.musicPauseReasons.delete(reason);
+
+    const hasPause = this.musicPauseReasons.size > 0;
+    if (hasPause) {
+      this.pauseCurrentMusicForReason();
+    } else if (hadPause && this.currentMusicKey && this.isMusicOn()) {
+      this.playMusic(this.currentMusicKey, false, true);
+    }
+  },
+
   playSyntheticSfx(key, volume = 1, options = {}) {
     if (!this.isSfxOn()) return;
     const presets = {
@@ -1436,6 +1480,15 @@ const AudioManager = {
 
     const next = this.music[key];
     if (!next || (next.dataset && next.dataset.failed === 'true')) return;
+    this.currentMusic = next;
+
+    if (this.isMusicPausedByGame()) {
+      if (forceRestart) {
+        try { next.currentTime = 0; } catch (error) {}
+      }
+      this.pauseCurrentMusicForReason();
+      return;
+    }
 
     if (this.currentMusic === next && !forceRestart) {
       next.volume = this.getMusicVolume();
@@ -1456,6 +1509,7 @@ const AudioManager = {
     next.play()
       .then(() => {
         this.musicActuallyPlaying = true;
+        this.silenceOtherMusic(next);
       })
       .catch(() => {
         this.musicActuallyPlaying = false;
@@ -1468,6 +1522,7 @@ const AudioManager = {
     this.currentMusic.currentTime = 0;
     this.currentMusic = null;
     this.musicActuallyPlaying = false;
+    this.silenceOtherMusic(null);
   },
 
   pauseAllAudio() {
@@ -1507,15 +1562,37 @@ const AudioManager = {
   },
 
   refreshSettings() {
+    if (this.isMusicPausedByGame()) {
+      this.pauseCurrentMusicForReason();
+      return;
+    }
+
     if (this.currentMusic) {
       this.currentMusic.volume = this.getMusicVolume();
       if (this.currentMusic.paused && this.currentMusicKey) this.playMusic(this.currentMusicKey, false, true);
+      this.silenceOtherMusic(this.currentMusic);
       return;
     }
 
     if (this.currentMusicKey) this.playMusic(this.currentMusicKey, false, true);
   }
 };
+
+if (typeof document !== 'undefined' && !AudioManager.windowPauseListenersInstalled) {
+  document.addEventListener('visibilitychange', () => {
+    AudioManager.setMusicPauseReason('hidden-tab', document.visibilityState !== 'visible');
+  });
+
+  window.addEventListener('blur', () => {
+    AudioManager.setMusicPauseReason('window-blur', true);
+  });
+
+  window.addEventListener('focus', () => {
+    AudioManager.setMusicPauseReason('window-blur', false);
+  });
+
+  AudioManager.windowPauseListenersInstalled = true;
+}
 
 
 
@@ -9318,6 +9395,14 @@ class GameApp {
     const previousState = this.state;
     this.state = nextState;
     this.updateMusicForState(previousState, nextState);
+    this.syncMusicPauseState();
+  }
+
+  syncMusicPauseState() {
+    if (!AudioManager.setMusicPauseReason) return;
+    const devOpen = typeof DevPanel !== 'undefined' && DevPanel.open;
+    const gamePaused = this.state === 'level' && !!this.paused;
+    AudioManager.setMusicPauseReason('game-pause', gamePaused || devOpen);
   }
 
   updateMusicForState(previousState, nextState) {
@@ -9356,7 +9441,9 @@ class GameApp {
   }
 
   update(dt) {
+    this.syncMusicPauseState();
     DevPanel.update(this);
+    this.syncMusicPauseState();
 
     const click = Input.consumePointer();
     if (click && this.handleSpeakerClick(click)) return;
@@ -9386,6 +9473,8 @@ class GameApp {
     } else if (typeof MobileControls !== 'undefined') {
       MobileControls.update(this);
     }
+
+    this.syncMusicPauseState();
   }
 
   getSpeakerRect() {
@@ -17775,160 +17864,6 @@ window.addEventListener('load', () => {
     ctx.strokeRect(box.x, box.y, box.w, box.h);
     ctx.restore();
   };
-})();
-
-
-
-/* ===== src/audioPauseGuardPatch.js ===== */
-(function () {
-  if (typeof AudioManager === 'undefined') return;
-
-  const musicPauseReasons = new Set();
-  const originalPlayMusic = AudioManager.playMusic.bind(AudioManager);
-  const originalStopMusic = AudioManager.stopMusic.bind(AudioManager);
-  const originalRefreshSettings = AudioManager.refreshSettings.bind(AudioManager);
-
-  function allMusicTracks() {
-    return Object.values(AudioManager.music || {}).filter(Boolean);
-  }
-
-  function silenceOtherMusic(except) {
-    for (const audio of allMusicTracks()) {
-      if (!audio || audio === except) continue;
-      try {
-        audio.pause();
-        audio.currentTime = 0;
-      } catch (error) {}
-    }
-  }
-
-  function pauseCurrentMusic() {
-    silenceOtherMusic(AudioManager.currentMusic || null);
-    if (!AudioManager.currentMusic) return;
-    try {
-      if (!AudioManager.currentMusic.paused) AudioManager.currentMusic.pause();
-    } catch (error) {}
-    AudioManager.musicActuallyPlaying = false;
-  }
-
-  function resumeCurrentMusic() {
-    if (!AudioManager.currentMusicKey || !AudioManager.isMusicOn || !AudioManager.isMusicOn()) return;
-    originalPlayMusic(AudioManager.currentMusicKey, false, true);
-    silenceOtherMusic(AudioManager.currentMusic || null);
-  }
-
-  AudioManager.isMusicPausedByGame = function () {
-    return musicPauseReasons.size > 0;
-  };
-
-  AudioManager.setMusicPauseReason = function (reason, paused) {
-    if (!reason) return;
-    const hadPause = musicPauseReasons.size > 0;
-    if (paused) musicPauseReasons.add(reason);
-    else musicPauseReasons.delete(reason);
-
-    const hasPause = musicPauseReasons.size > 0;
-    if (hasPause) pauseCurrentMusic();
-    else if (hadPause) resumeCurrentMusic();
-  };
-
-  AudioManager.playMusic = function (key, forceRestart = false, retryIfBlocked = false) {
-    if (!key) return;
-    this.currentMusicKey = key;
-    const next = this.music && this.music[key];
-    if (next) this.currentMusic = next;
-
-    if (this.isMusicPausedByGame && this.isMusicPausedByGame()) {
-      if (forceRestart && next) {
-        try { next.currentTime = 0; } catch (error) {}
-      }
-      pauseCurrentMusic();
-      return;
-    }
-
-    originalPlayMusic(key, forceRestart, retryIfBlocked);
-    silenceOtherMusic(this.currentMusic || next || null);
-  };
-
-  AudioManager.stopMusic = function () {
-    originalStopMusic();
-    silenceOtherMusic(null);
-  };
-
-  AudioManager.refreshSettings = function () {
-    if (this.isMusicPausedByGame && this.isMusicPausedByGame()) {
-      pauseCurrentMusic();
-      return;
-    }
-    originalRefreshSettings();
-    silenceOtherMusic(this.currentMusic || null);
-  };
-
-  if (typeof GameApp !== 'undefined') {
-    const originalGameUpdate = GameApp.prototype.update;
-    const originalGameSetState = GameApp.prototype.setState;
-
-    GameApp.prototype.syncMusicPauseState = function () {
-      const devOpen = typeof DevPanel !== 'undefined' && DevPanel.open;
-      const gamePaused = this.state === 'level' && !!this.paused;
-      AudioManager.setMusicPauseReason('game-pause', gamePaused || devOpen);
-    };
-
-    GameApp.prototype.update = function (dt) {
-      this.syncMusicPauseState();
-      originalGameUpdate.call(this, dt);
-      this.syncMusicPauseState();
-    };
-
-    GameApp.prototype.setState = function (nextState) {
-      originalGameSetState.call(this, nextState);
-      this.syncMusicPauseState();
-    };
-  }
-
-  if (typeof DevPanel !== 'undefined') {
-    const originalDevUpdate = DevPanel.update.bind(DevPanel);
-    const originalDevHandleClick = DevPanel.handleClick.bind(DevPanel);
-
-    DevPanel.update = function (game) {
-      const wasOpen = this.open;
-      originalDevUpdate(game);
-      if (game && wasOpen !== this.open && typeof game.syncMusicPauseState === 'function') {
-        game.syncMusicPauseState();
-      }
-    };
-
-    DevPanel.handleClick = function (point, game) {
-      const wasOpen = this.open;
-      const result = originalDevHandleClick(point, game);
-      if (game && wasOpen !== this.open && typeof game.syncMusicPauseState === 'function') {
-        game.syncMusicPauseState();
-      }
-      return result;
-    };
-
-    if (typeof DevPanel.openFromPauseMenu === 'function') {
-      const originalOpenFromPauseMenu = DevPanel.openFromPauseMenu.bind(DevPanel);
-      DevPanel.openFromPauseMenu = function (game) {
-        const result = originalOpenFromPauseMenu(game);
-        this.open = true;
-        if (game && typeof game.syncMusicPauseState === 'function') game.syncMusicPauseState();
-        return result;
-      };
-    }
-  }
-
-  document.addEventListener('visibilitychange', () => {
-    AudioManager.setMusicPauseReason('hidden-tab', document.visibilityState !== 'visible');
-  });
-
-  window.addEventListener('blur', () => {
-    AudioManager.setMusicPauseReason('window-blur', true);
-  });
-
-  window.addEventListener('focus', () => {
-    AudioManager.setMusicPauseReason('window-blur', false);
-  });
 })();
 
 
