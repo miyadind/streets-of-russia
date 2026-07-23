@@ -289,10 +289,7 @@ class SuckerEnemy extends DogRegimeEnemy {
     this.biteCount = 0;
     this.biteFrame = 0;
     this.hasPinnedPlayer = true;
-    if (scene && scene.game && !scene.game.suckerPinHintShown) {
-      scene.game.suckerPinHintShown = true;
-      scene.suckerPinHintActive = true;
-    }
+    if (scene) scene.suckerPinHintActive = true;
     this.alignToPinnedPlayer(player);
     this.scatterOtherEnemies(scene);
     scene.hitStop = 55;

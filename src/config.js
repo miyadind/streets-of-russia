@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  buildVersion: '0.4.78',
+  buildVersion: '0.4.79',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -39,6 +39,7 @@ const GAME_CONFIG = {
   enemyAttackSlotRadiusX: 46,
   enemyAttackSlotRadiusY: 24,
   enemyOffscreenMargin: 180,
+  zetnikEscapeMargin: 80,
   pushboxLaneTolerance: 12,
   yHitTolerance: 28,
   combatLaneCount: 3,

@@ -25,6 +25,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
     this.chargeLaneY = this.pickChargeLane(y);
     this.y = this.chargeLaneY;
     this.chargeDirection = x < GAME_CONFIG.width / 2 ? 1 : -1;
+    this.hasEnteredPlayfield = this.isInsidePlayfield();
   }
 
   pickChargeLane(fallbackY) {
@@ -117,7 +118,8 @@ class ZetnikEnemy extends DogRegimeEnemy {
       this.walkFrame = (this.walkFrame + 1) % this.getWalkFrameCount();
     }
 
-    if (this.isPastEscapeMargin()) {
+    this.markEnteredPlayfield();
+    if (this.hasEnteredPlayfield && this.isPastEscapeMargin()) {
       this.escapeOffscreen();
       return;
     }
@@ -262,7 +264,8 @@ class ZetnikEnemy extends DogRegimeEnemy {
       return;
     }
 
-    if (this.isPastEscapeMargin()) {
+    this.markEnteredPlayfield();
+    if (this.hasEnteredPlayfield && this.isPastEscapeMargin()) {
       this.escapeOffscreen();
     }
   }
@@ -415,8 +418,16 @@ class ZetnikEnemy extends DogRegimeEnemy {
     this.gundosHitPlayer = true;
   }
 
-  isPastEscapeMargin(margin = GAME_CONFIG.enemyOffscreenMargin || 180) {
+  isPastEscapeMargin(margin = GAME_CONFIG.zetnikEscapeMargin == null ? (GAME_CONFIG.enemyOffscreenMargin || 180) : GAME_CONFIG.zetnikEscapeMargin) {
     return this.x < -margin || this.x > GAME_CONFIG.width + margin;
+  }
+
+  isInsidePlayfield(margin = 20) {
+    return this.x >= -margin && this.x <= GAME_CONFIG.width + margin;
+  }
+
+  markEnteredPlayfield() {
+    if (!this.hasEnteredPlayfield && this.isInsidePlayfield()) this.hasEnteredPlayfield = true;
   }
 
   updateCrash(dt) {

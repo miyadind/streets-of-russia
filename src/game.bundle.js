@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.78',
+  buildVersion: '0.4.79',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -46,6 +46,7 @@ const GAME_CONFIG = {
   enemyAttackSlotRadiusX: 46,
   enemyAttackSlotRadiusY: 24,
   enemyOffscreenMargin: 180,
+  zetnikEscapeMargin: 80,
   pushboxLaneTolerance: 12,
   yHitTolerance: 28,
   combatLaneCount: 3,
@@ -1949,20 +1950,6 @@ class Player {
       ctx.restore();
     }
 
-    if (this.state === 'pinned' && this.pinnedBy && this.pinnedBy.canEscapePin && this.pinnedBy.canEscapePin()) {
-      const pulse = 0.72 + Math.sin(performance.now() / 95) * 0.28;
-      ctx.save();
-      ctx.globalAlpha = Math.max(0.35, pulse);
-      ctx.font = 'bold 22px Arial';
-      ctx.textAlign = 'center';
-      ctx.lineWidth = 5;
-      ctx.strokeStyle = 'rgba(0,0,0,0.86)';
-      ctx.fillStyle = '#ffef6f';
-      ctx.strokeText('PRESS ATTACK', this.x, this.y - h - 54);
-      ctx.fillText('PRESS ATTACK', this.x, this.y - h - 54);
-      ctx.restore();
-    }
-
     if (debug && this.state === 'attack') {
       const hb = this.getHitbox();
       ctx.strokeStyle = 'lime';
@@ -2130,7 +2117,7 @@ class DogRegimeEnemy {
     const frontThreat = this.isPlayerAttackThreat(player);
     const goodAttackDistance = absX >= this.attackMinDistanceX && absX <= this.attackMaxDistanceX;
     const alignedForAttack = absY <= this.attackRangeY;
-    const canAttackNow = hasAttackPermission && clearAttackPosition && goodAttackDistance && alignedForAttack && !frontThreat;
+    const canAttackNow = hasAttackPermission && clearAttackPosition && goodAttackDistance && alignedForAttack && inAttackRange && !frontThreat;
 
     if (canAttackNow && this.cooldown <= 0) {
       this.state = 'attack';
@@ -2604,6 +2591,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
     this.chargeLaneY = this.pickChargeLane(y);
     this.y = this.chargeLaneY;
     this.chargeDirection = x < GAME_CONFIG.width / 2 ? 1 : -1;
+    this.hasEnteredPlayfield = this.isInsidePlayfield();
   }
 
   pickChargeLane(fallbackY) {
@@ -2696,7 +2684,8 @@ class ZetnikEnemy extends DogRegimeEnemy {
       this.walkFrame = (this.walkFrame + 1) % this.getWalkFrameCount();
     }
 
-    if (this.isPastEscapeMargin()) {
+    this.markEnteredPlayfield();
+    if (this.hasEnteredPlayfield && this.isPastEscapeMargin()) {
       this.escapeOffscreen();
       return;
     }
@@ -2841,7 +2830,8 @@ class ZetnikEnemy extends DogRegimeEnemy {
       return;
     }
 
-    if (this.isPastEscapeMargin()) {
+    this.markEnteredPlayfield();
+    if (this.hasEnteredPlayfield && this.isPastEscapeMargin()) {
       this.escapeOffscreen();
     }
   }
@@ -2994,8 +2984,16 @@ class ZetnikEnemy extends DogRegimeEnemy {
     this.gundosHitPlayer = true;
   }
 
-  isPastEscapeMargin(margin = GAME_CONFIG.enemyOffscreenMargin || 180) {
+  isPastEscapeMargin(margin = GAME_CONFIG.zetnikEscapeMargin == null ? (GAME_CONFIG.enemyOffscreenMargin || 180) : GAME_CONFIG.zetnikEscapeMargin) {
     return this.x < -margin || this.x > GAME_CONFIG.width + margin;
+  }
+
+  isInsidePlayfield(margin = 20) {
+    return this.x >= -margin && this.x <= GAME_CONFIG.width + margin;
+  }
+
+  markEnteredPlayfield() {
+    if (!this.hasEnteredPlayfield && this.isInsidePlayfield()) this.hasEnteredPlayfield = true;
   }
 
   updateCrash(dt) {
@@ -3363,10 +3361,7 @@ class SuckerEnemy extends DogRegimeEnemy {
     this.biteCount = 0;
     this.biteFrame = 0;
     this.hasPinnedPlayer = true;
-    if (scene && scene.game && !scene.game.suckerPinHintShown) {
-      scene.game.suckerPinHintShown = true;
-      scene.suckerPinHintActive = true;
-    }
+    if (scene) scene.suckerPinHintActive = true;
     this.alignToPinnedPlayer(player);
     this.scatterOtherEnemies(scene);
     scene.hitStop = 55;
@@ -5428,7 +5423,41 @@ class LevelScene {
   }
 
   isWaveBlocker(enemy) {
+    if (enemy && enemy.enemyType === 'zetnik' && typeof enemy.markEnteredPlayfield === 'function') {
+      enemy.markEnteredPlayfield();
+    }
+    if (enemy && enemy.enemyType === 'zetnik' && enemy.alive && !enemy.remove &&
+        enemy.hasEnteredPlayfield !== false &&
+        typeof enemy.isPastEscapeMargin === 'function' && enemy.isPastEscapeMargin()) {
+      if (typeof enemy.escapeOffscreen === 'function') enemy.escapeOffscreen();
+      else {
+        enemy.alive = false;
+        enemy.hp = 0;
+        enemy.remove = true;
+        enemy.blocksWaveClear = false;
+        enemy.pickupDropped = true;
+      }
+      return false;
+    }
     return enemy && enemy.alive && enemy.blocksWaveClear !== false;
+  }
+
+  cleanupEscapedZetniks() {
+    for (const enemy of this.enemies || []) {
+      if (!enemy || enemy.enemyType !== 'zetnik' || !enemy.alive || enemy.remove) continue;
+      if (typeof enemy.markEnteredPlayfield === 'function') enemy.markEnteredPlayfield();
+      if (enemy.hasEnteredPlayfield !== false &&
+          typeof enemy.isPastEscapeMargin === 'function' && enemy.isPastEscapeMargin()) {
+        if (typeof enemy.escapeOffscreen === 'function') enemy.escapeOffscreen();
+        else {
+          enemy.alive = false;
+          enemy.hp = 0;
+          enemy.remove = true;
+          enemy.blocksWaveClear = false;
+          enemy.pickupDropped = true;
+        }
+      }
+    }
   }
 
   getSpawnPoint(side, index, count) {
@@ -5558,6 +5587,7 @@ class LevelScene {
       enemy.update(dt, this);
       if (wasAlive && !enemy.alive) this.maybeDropPickup(enemy, { source: 'system' });
     }
+    this.cleanupEscapedZetniks();
     this.flushPickupDrops();
     for (const pickup of this.pickups) pickup.update(dt, this);
     this.separateEnemies(dt);
@@ -5605,6 +5635,7 @@ class LevelScene {
 
     ctx.fillStyle = 'rgba(255,255,255,0.025)';
     ctx.fillRect(0, GAME_CONFIG.laneTop, GAME_CONFIG.width, GAME_CONFIG.laneBottom - GAME_CONFIG.laneTop);
+    if (this.drawLevelForegroundObjects) this.drawLevelForegroundObjects(ctx);
 
     const entities = [{ type: 'player', y: this.player.y, ref: this.player }];
     for (const enemy of this.enemies) entities.push({ type: 'enemy', y: enemy.y, ref: enemy });
@@ -9616,10 +9647,34 @@ window.addEventListener('load', () => {
     actor.y += chosen.dy;
   }
 
+  function drawVehicleObstacle(scene, ctx, item) {
+    const rect = item && item.drawRect;
+    if (!rect) return;
+    const image = item.image && scene.images.levelInteractiveImages && scene.images.levelInteractiveImages[item.image];
+    if (image) {
+      ctx.drawImage(image, rect.x, rect.y, rect.w, rect.h);
+    } else {
+      ctx.save();
+      ctx.fillStyle = 'rgba(20,45,75,0.82)';
+      ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+      ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
+      ctx.restore();
+    }
+  }
+
   LevelScene.prototype.resolveObstacleCollisions = function (actor) {
     const level = this.getLevelConfig();
     for (const obstacle of getVehicleObstacles(level)) {
       resolveActorFromObstacle(this, actor, obstacle);
+    }
+  };
+
+  LevelScene.prototype.drawLevelForegroundObjects = function (ctx) {
+    const level = this.getLevelConfig();
+    for (const item of getVehicleObstacles(level)) {
+      drawVehicleObstacle(this, ctx, item);
     }
   };
 
@@ -9661,21 +9716,12 @@ window.addEventListener('load', () => {
     const showObjectEditor = typeof DevPanel !== 'undefined' && DevPanel.open && DevPanel.tab === 'OBJECTS';
     for (const item of getInteractivesForLevel(level)) {
       if (isVehicleObstacle(item)) {
-        const rect = item.drawRect;
-        const image = item.image && this.images.levelInteractiveImages && this.images.levelInteractiveImages[item.image];
-        if (rect && image) {
-          ctx.drawImage(image, rect.x, rect.y, rect.w, rect.h);
-        } else if (rect) {
-          ctx.fillStyle = 'rgba(20,45,75,0.82)';
-          ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
-        }
-
         if (this.debug || showObjectEditor) {
           ctx.save();
-          if (rect) {
+          if (item.drawRect) {
             ctx.strokeStyle = 'rgba(80, 190, 255, 0.9)';
             ctx.lineWidth = 2;
-            ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
+            ctx.strokeRect(item.drawRect.x, item.drawRect.y, item.drawRect.w, item.drawRect.h);
           }
           if (item.blockBox) {
             ctx.strokeStyle = 'rgba(255, 230, 90, 0.95)';
@@ -13117,6 +13163,7 @@ window.addEventListener('load', () => {
 
     ctx.fillStyle = 'rgba(255,255,255,0.025)';
     ctx.fillRect(0, GAME_CONFIG.laneTop, GAME_CONFIG.width, GAME_CONFIG.laneBottom - GAME_CONFIG.laneTop);
+    if (this.drawLevelForegroundObjects) this.drawLevelForegroundObjects(ctx);
 
     const entities = [{ type: 'player', y: this.player.y, ref: this.player }];
     for (const enemy of this.enemies) entities.push({ type: 'enemy', y: enemy.y, ref: enemy });

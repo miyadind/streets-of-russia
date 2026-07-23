@@ -139,7 +139,7 @@ class DogRegimeEnemy {
     const frontThreat = this.isPlayerAttackThreat(player);
     const goodAttackDistance = absX >= this.attackMinDistanceX && absX <= this.attackMaxDistanceX;
     const alignedForAttack = absY <= this.attackRangeY;
-    const canAttackNow = hasAttackPermission && clearAttackPosition && goodAttackDistance && alignedForAttack && !frontThreat;
+    const canAttackNow = hasAttackPermission && clearAttackPosition && goodAttackDistance && alignedForAttack && inAttackRange && !frontThreat;
 
     if (canAttackNow && this.cooldown <= 0) {
       this.state = 'attack';

@@ -212,10 +212,34 @@
     actor.y += chosen.dy;
   }
 
+  function drawVehicleObstacle(scene, ctx, item) {
+    const rect = item && item.drawRect;
+    if (!rect) return;
+    const image = item.image && scene.images.levelInteractiveImages && scene.images.levelInteractiveImages[item.image];
+    if (image) {
+      ctx.drawImage(image, rect.x, rect.y, rect.w, rect.h);
+    } else {
+      ctx.save();
+      ctx.fillStyle = 'rgba(20,45,75,0.82)';
+      ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+      ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
+      ctx.restore();
+    }
+  }
+
   LevelScene.prototype.resolveObstacleCollisions = function (actor) {
     const level = this.getLevelConfig();
     for (const obstacle of getVehicleObstacles(level)) {
       resolveActorFromObstacle(this, actor, obstacle);
+    }
+  };
+
+  LevelScene.prototype.drawLevelForegroundObjects = function (ctx) {
+    const level = this.getLevelConfig();
+    for (const item of getVehicleObstacles(level)) {
+      drawVehicleObstacle(this, ctx, item);
     }
   };
 
@@ -257,21 +281,12 @@
     const showObjectEditor = typeof DevPanel !== 'undefined' && DevPanel.open && DevPanel.tab === 'OBJECTS';
     for (const item of getInteractivesForLevel(level)) {
       if (isVehicleObstacle(item)) {
-        const rect = item.drawRect;
-        const image = item.image && this.images.levelInteractiveImages && this.images.levelInteractiveImages[item.image];
-        if (rect && image) {
-          ctx.drawImage(image, rect.x, rect.y, rect.w, rect.h);
-        } else if (rect) {
-          ctx.fillStyle = 'rgba(20,45,75,0.82)';
-          ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
-        }
-
         if (this.debug || showObjectEditor) {
           ctx.save();
-          if (rect) {
+          if (item.drawRect) {
             ctx.strokeStyle = 'rgba(80, 190, 255, 0.9)';
             ctx.lineWidth = 2;
-            ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
+            ctx.strokeRect(item.drawRect.x, item.drawRect.y, item.drawRect.w, item.drawRect.h);
           }
           if (item.blockBox) {
             ctx.strokeStyle = 'rgba(255, 230, 90, 0.95)';

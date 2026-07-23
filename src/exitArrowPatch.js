@@ -157,6 +157,7 @@
 
     ctx.fillStyle = 'rgba(255,255,255,0.025)';
     ctx.fillRect(0, GAME_CONFIG.laneTop, GAME_CONFIG.width, GAME_CONFIG.laneBottom - GAME_CONFIG.laneTop);
+    if (this.drawLevelForegroundObjects) this.drawLevelForegroundObjects(ctx);
 
     const entities = [{ type: 'player', y: this.player.y, ref: this.player }];
     for (const enemy of this.enemies) entities.push({ type: 'enemy', y: enemy.y, ref: enemy });

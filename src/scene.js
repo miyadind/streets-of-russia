@@ -381,7 +381,41 @@ class LevelScene {
   }
 
   isWaveBlocker(enemy) {
+    if (enemy && enemy.enemyType === 'zetnik' && typeof enemy.markEnteredPlayfield === 'function') {
+      enemy.markEnteredPlayfield();
+    }
+    if (enemy && enemy.enemyType === 'zetnik' && enemy.alive && !enemy.remove &&
+        enemy.hasEnteredPlayfield !== false &&
+        typeof enemy.isPastEscapeMargin === 'function' && enemy.isPastEscapeMargin()) {
+      if (typeof enemy.escapeOffscreen === 'function') enemy.escapeOffscreen();
+      else {
+        enemy.alive = false;
+        enemy.hp = 0;
+        enemy.remove = true;
+        enemy.blocksWaveClear = false;
+        enemy.pickupDropped = true;
+      }
+      return false;
+    }
     return enemy && enemy.alive && enemy.blocksWaveClear !== false;
+  }
+
+  cleanupEscapedZetniks() {
+    for (const enemy of this.enemies || []) {
+      if (!enemy || enemy.enemyType !== 'zetnik' || !enemy.alive || enemy.remove) continue;
+      if (typeof enemy.markEnteredPlayfield === 'function') enemy.markEnteredPlayfield();
+      if (enemy.hasEnteredPlayfield !== false &&
+          typeof enemy.isPastEscapeMargin === 'function' && enemy.isPastEscapeMargin()) {
+        if (typeof enemy.escapeOffscreen === 'function') enemy.escapeOffscreen();
+        else {
+          enemy.alive = false;
+          enemy.hp = 0;
+          enemy.remove = true;
+          enemy.blocksWaveClear = false;
+          enemy.pickupDropped = true;
+        }
+      }
+    }
   }
 
   getSpawnPoint(side, index, count) {
@@ -511,6 +545,7 @@ class LevelScene {
       enemy.update(dt, this);
       if (wasAlive && !enemy.alive) this.maybeDropPickup(enemy, { source: 'system' });
     }
+    this.cleanupEscapedZetniks();
     this.flushPickupDrops();
     for (const pickup of this.pickups) pickup.update(dt, this);
     this.separateEnemies(dt);
@@ -558,6 +593,7 @@ class LevelScene {
 
     ctx.fillStyle = 'rgba(255,255,255,0.025)';
     ctx.fillRect(0, GAME_CONFIG.laneTop, GAME_CONFIG.width, GAME_CONFIG.laneBottom - GAME_CONFIG.laneTop);
+    if (this.drawLevelForegroundObjects) this.drawLevelForegroundObjects(ctx);
 
     const entities = [{ type: 'player', y: this.player.y, ref: this.player }];
     for (const enemy of this.enemies) entities.push({ type: 'enemy', y: enemy.y, ref: enemy });
