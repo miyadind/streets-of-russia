@@ -9,6 +9,7 @@ const AudioManager = {
   musicActuallyPlaying: false,
   activeSfx: [],
   pausedAudio: [],
+  enemyAppearType: null,
 
   init() {
     this.sfx = {};
@@ -21,6 +22,7 @@ const AudioManager = {
     this.musicActuallyPlaying = false;
     this.activeSfx = [];
     this.pausedAudio = [];
+    this.enemyAppearType = null;
 
     for (const [key, src] of Object.entries((Assets.audio && Assets.audio.sfx) || {})) {
       if (!src) continue;
@@ -138,6 +140,7 @@ const AudioManager = {
 
   playSfx(key, volume = 1, options = {}) {
     if (!this.isSfxOn()) return;
+    if (this.isBlockedHorseAppear(key, options)) return;
     const src = this.sfx[key];
     if (!src) {
       this.playSyntheticSfx(key, volume, options);
@@ -167,6 +170,7 @@ const AudioManager = {
 
   playOptionalSfx(key, volume = 1, options = {}) {
     if (!this.isSfxOn()) return false;
+    if (this.isBlockedHorseAppear(key, options)) return false;
 
     const registered = this.sfx[key];
     if (registered && (!registered.dataset || registered.dataset.failed !== 'true')) {
@@ -175,6 +179,7 @@ const AudioManager = {
     }
 
     const srcPath = options.src || options.path;
+    if (this.isBlockedHorseAppear(key, { src: srcPath })) return false;
     if (!srcPath) return false;
 
     const cacheKey = key || srcPath;
@@ -201,6 +206,16 @@ const AudioManager = {
     } catch (error) {
       return false;
     }
+  },
+
+  isBlockedHorseAppear(key, options = {}) {
+    const src = String(options.src || options.path || '').replace(/\\/g, '/').toLowerCase();
+    const registered = this.sfx && key ? this.sfx[key] : null;
+    const registeredSrc = registered && registered.src ? String(registered.src).replace(/\\/g, '/').toLowerCase() : '';
+    const isHorseAppear = key === 'horseAppear' ||
+      src.includes('assets/enemies/horse/appear.mp3') ||
+      registeredSrc.includes('assets/enemies/horse/appear.mp3');
+    return isHorseAppear && this.enemyAppearType !== 'horse';
   },
 
   playSyntheticSfx(key, volume = 1, options = {}) {
