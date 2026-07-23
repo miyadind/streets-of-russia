@@ -2,7 +2,7 @@
   if (typeof GameApp === 'undefined') return;
 
   const ENEMY_SOUND_FOLDERS = {
-    dogRegime: 'dog-regime',
+    dogRegime: null,
     zetnik: 'zetnik',
     sucker: 'sucker',
     bastard: 'bastard'
@@ -20,6 +20,7 @@
   }
 
   function getEnemyAppearSrc(enemyType) {
+    if (ENEMY_SOUND_FOLDERS[enemyType] === null) return null;
     const folder = ENEMY_SOUND_FOLDERS[enemyType] || enemyType;
     return 'assets/enemies/' + folder + '/Appear.mp3';
   }
@@ -68,6 +69,7 @@
   if (typeof LevelScene !== 'undefined' && !LevelScene.enemyAppearAudioPatchApplied) {
     LevelScene.prototype.getWaveAppearKey = function (wave) {
       for (const group of wave.enemies || []) {
+        if (group.type === 'dogRegime') continue;
         const key = group.type + 'Appear';
         if (isUsableSfxKey(key)) return key;
       }

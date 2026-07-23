@@ -221,6 +221,7 @@ class LevelScene {
 
   playEnemyAppearSound(type) {
     if (!type) return;
+    if (type === 'dogRegime') return;
     AudioManager.playOptionalSfx(this.getEnemyAppearSoundKey(type), 0.9, {
       src: this.getEnemyAppearSoundPath(type),
       startAt: 0.01

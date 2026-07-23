@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  buildVersion: '0.4.81',
+  buildVersion: '0.4.82',
   width: 1280,
   height: 720,
   targetFPS: 60,

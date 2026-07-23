@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.81',
+  buildVersion: '0.4.82',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -5258,6 +5258,7 @@ class LevelScene {
 
   playEnemyAppearSound(type) {
     if (!type) return;
+    if (type === 'dogRegime') return;
     AudioManager.playOptionalSfx(this.getEnemyAppearSoundKey(type), 0.9, {
       src: this.getEnemyAppearSoundPath(type),
       startAt: 0.01
@@ -11440,7 +11441,7 @@ window.addEventListener('load', () => {
   if (typeof GameApp === 'undefined') return;
 
   const ENEMY_SOUND_FOLDERS = {
-    dogRegime: 'dog-regime',
+    dogRegime: null,
     zetnik: 'zetnik',
     sucker: 'sucker',
     bastard: 'bastard'
@@ -11458,6 +11459,7 @@ window.addEventListener('load', () => {
   }
 
   function getEnemyAppearSrc(enemyType) {
+    if (ENEMY_SOUND_FOLDERS[enemyType] === null) return null;
     const folder = ENEMY_SOUND_FOLDERS[enemyType] || enemyType;
     return 'assets/enemies/' + folder + '/Appear.mp3';
   }
@@ -11506,6 +11508,7 @@ window.addEventListener('load', () => {
   if (typeof LevelScene !== 'undefined' && !LevelScene.enemyAppearAudioPatchApplied) {
     LevelScene.prototype.getWaveAppearKey = function (wave) {
       for (const group of wave.enemies || []) {
+        if (group.type === 'dogRegime') continue;
         const key = group.type + 'Appear';
         if (isUsableSfxKey(key)) return key;
       }
