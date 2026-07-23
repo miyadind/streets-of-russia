@@ -27,6 +27,7 @@ class Player {
     this.attackTimer = 0;
     this.attackHasHit = false;
     this.hitStunTimer = 0;
+    this.hurtTimer = 0;
     this.invulnerableTimer = 0;
     this.flash = 0;
     this.knockdownTimer = 0;
@@ -42,9 +43,11 @@ class Player {
     if (this.flash > 0) this.flash = Math.max(0, this.flash - dt);
 
     if (this.state === 'hurt') {
-      this.hitStunTimer -= dt;
-      if (this.hitStunTimer <= 0) {
-        this.hitStunTimer = 0;
+      this.hurtTimer = Math.max(0, (this.hurtTimer || 0) - dt);
+      this.x = Math.max(70, Math.min(GAME_CONFIG.width - 70, this.x));
+      this.y = Math.max(GAME_CONFIG.laneTop, Math.min(GAME_CONFIG.laneBottom, this.y));
+      if (this.hurtTimer <= 0) {
+        this.hurtTimer = 0;
         this.state = 'idle';
       }
       return;
@@ -121,6 +124,7 @@ class Player {
   receiveDamage(amount, options = {}) {
     if (this.hp <= 0) return false;
     if (this.invulnerableTimer > 0 && !options.ignoreInvulnerability) return false;
+    const wasAlive = this.hp > 0;
 
     const source = options.source || 'melee';
     let damageAmount = Math.max(0, amount || 0);
@@ -150,6 +154,20 @@ class Player {
       this.startHitStun(options.hitStunMs, options.invulnerableMs);
     }
 
+    if (wasAlive && this.hp > 0 && this.state !== 'knockdown' && this.state !== 'pinned') {
+      this.state = 'hurt';
+      this.hurtTimer = Math.max(0, options.hurtFreezeMs || GAME_CONFIG.playerHurtFreezeMs || 280);
+      this.attackTimer = 0;
+      this.attackHasHit = false;
+      this.comboStep = 0;
+      this.comboTimer = 0;
+
+      const hitKey = this.heroKey + 'Hit';
+      if (AudioManager.isUsableSfxKey && AudioManager.isUsableSfxKey(hitKey)) {
+        AudioManager.playSfx(hitKey, 0.92, { startAt: 0.01 });
+      }
+    }
+
     return true;
   }
 
@@ -175,6 +193,7 @@ class Player {
     this.hp = restoredHp;
     this.state = 'knockdown';
     this.hitStunTimer = 0;
+    this.hurtTimer = 0;
     this.invulnerableTimer = Math.max(GAME_CONFIG.playerInvulnerableMs, GAME_CONFIG.playerReviveKnockdownMs || 950);
     this.flash = this.invulnerableTimer;
     this.knockdownTimer = GAME_CONFIG.playerReviveKnockdownMs || 950;
@@ -368,6 +387,7 @@ class Player {
     this.knockdownFacing = options.facing ? Math.sign(options.facing) || this.facing || 1 : this.facing || 1;
     this.facing = this.knockdownFacing;
     this.hitStunTimer = 0;
+    this.hurtTimer = 0;
     this.invulnerableTimer = GAME_CONFIG.playerInvulnerableMs;
     this.flash = GAME_CONFIG.playerInvulnerableMs;
     this.knockdownTimer = durationMs;
@@ -383,6 +403,7 @@ class Player {
     AudioManager.playSfx('playerDown', 0.85);
     this.state = 'pinned';
     this.hitStunTimer = 0;
+    this.hurtTimer = 0;
     this.invulnerableTimer = 0;
     this.flash = 0;
     this.knockdownTimer = durationMs;
@@ -396,6 +417,7 @@ class Player {
   releaseFromPin() {
     this.state = 'idle';
     this.hitStunTimer = 0;
+    this.hurtTimer = 0;
     this.knockdownTimer = 0;
     this.pinnedBy = null;
   }

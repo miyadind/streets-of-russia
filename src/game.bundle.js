@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.89',
+  buildVersion: '0.4.90',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -35,6 +35,7 @@ const GAME_CONFIG = {
   comboResetMs: 520,
   playerHitStopMs: 55,
   playerHitStunMs: 380,
+  playerHurtFreezeMs: 280,
   playerInvulnerableMs: 520,
   playerReviveKnockdownMs: 950,
   playerReviveTextMs: 1250,
@@ -1667,6 +1668,7 @@ class Player {
     this.attackTimer = 0;
     this.attackHasHit = false;
     this.hitStunTimer = 0;
+    this.hurtTimer = 0;
     this.invulnerableTimer = 0;
     this.flash = 0;
     this.knockdownTimer = 0;
@@ -1682,9 +1684,11 @@ class Player {
     if (this.flash > 0) this.flash = Math.max(0, this.flash - dt);
 
     if (this.state === 'hurt') {
-      this.hitStunTimer -= dt;
-      if (this.hitStunTimer <= 0) {
-        this.hitStunTimer = 0;
+      this.hurtTimer = Math.max(0, (this.hurtTimer || 0) - dt);
+      this.x = Math.max(70, Math.min(GAME_CONFIG.width - 70, this.x));
+      this.y = Math.max(GAME_CONFIG.laneTop, Math.min(GAME_CONFIG.laneBottom, this.y));
+      if (this.hurtTimer <= 0) {
+        this.hurtTimer = 0;
         this.state = 'idle';
       }
       return;
@@ -1761,6 +1765,7 @@ class Player {
   receiveDamage(amount, options = {}) {
     if (this.hp <= 0) return false;
     if (this.invulnerableTimer > 0 && !options.ignoreInvulnerability) return false;
+    const wasAlive = this.hp > 0;
 
     const source = options.source || 'melee';
     let damageAmount = Math.max(0, amount || 0);
@@ -1790,6 +1795,20 @@ class Player {
       this.startHitStun(options.hitStunMs, options.invulnerableMs);
     }
 
+    if (wasAlive && this.hp > 0 && this.state !== 'knockdown' && this.state !== 'pinned') {
+      this.state = 'hurt';
+      this.hurtTimer = Math.max(0, options.hurtFreezeMs || GAME_CONFIG.playerHurtFreezeMs || 280);
+      this.attackTimer = 0;
+      this.attackHasHit = false;
+      this.comboStep = 0;
+      this.comboTimer = 0;
+
+      const hitKey = this.heroKey + 'Hit';
+      if (AudioManager.isUsableSfxKey && AudioManager.isUsableSfxKey(hitKey)) {
+        AudioManager.playSfx(hitKey, 0.92, { startAt: 0.01 });
+      }
+    }
+
     return true;
   }
 
@@ -1815,6 +1834,7 @@ class Player {
     this.hp = restoredHp;
     this.state = 'knockdown';
     this.hitStunTimer = 0;
+    this.hurtTimer = 0;
     this.invulnerableTimer = Math.max(GAME_CONFIG.playerInvulnerableMs, GAME_CONFIG.playerReviveKnockdownMs || 950);
     this.flash = this.invulnerableTimer;
     this.knockdownTimer = GAME_CONFIG.playerReviveKnockdownMs || 950;
@@ -2008,6 +2028,7 @@ class Player {
     this.knockdownFacing = options.facing ? Math.sign(options.facing) || this.facing || 1 : this.facing || 1;
     this.facing = this.knockdownFacing;
     this.hitStunTimer = 0;
+    this.hurtTimer = 0;
     this.invulnerableTimer = GAME_CONFIG.playerInvulnerableMs;
     this.flash = GAME_CONFIG.playerInvulnerableMs;
     this.knockdownTimer = durationMs;
@@ -2023,6 +2044,7 @@ class Player {
     AudioManager.playSfx('playerDown', 0.85);
     this.state = 'pinned';
     this.hitStunTimer = 0;
+    this.hurtTimer = 0;
     this.invulnerableTimer = 0;
     this.flash = 0;
     this.knockdownTimer = durationMs;
@@ -2036,6 +2058,7 @@ class Player {
   releaseFromPin() {
     this.state = 'idle';
     this.hitStunTimer = 0;
+    this.hurtTimer = 0;
     this.knockdownTimer = 0;
     this.pinnedBy = null;
   }
@@ -11648,72 +11671,6 @@ window.addEventListener('load', () => {
 /* ===== src/globalQualityPatch.js ===== */
 (function () {
   if (typeof GameApp === 'undefined') return;
-
-  function isUsableSfxKey(key) {
-    const audio = AudioManager && AudioManager.sfx && AudioManager.sfx[key];
-    return !!audio && (!audio.dataset || audio.dataset.failed !== 'true');
-  }
-
-  if (typeof GAME_CONFIG !== 'undefined') {
-    GAME_CONFIG.playerHurtFreezeMs = GAME_CONFIG.playerHurtFreezeMs || 280;
-  }
-
-  if (typeof Player !== 'undefined' && !Player.hurtFreezePatchApplied) {
-    const originalPlayerUpdate = Player.prototype.update;
-    Player.prototype.update = function (dt, scene) {
-      if (this.state === 'hurt') {
-        this.hurtTimer = Math.max(0, (this.hurtTimer || 0) - dt);
-        this.x = Math.max(70, Math.min(GAME_CONFIG.width - 70, this.x));
-        this.y = Math.max(GAME_CONFIG.laneTop, Math.min(GAME_CONFIG.laneBottom, this.y));
-        if (this.hurtTimer <= 0) {
-          this.state = 'idle';
-          this.hurtTimer = 0;
-        }
-        return;
-      }
-
-      originalPlayerUpdate.call(this, dt, scene);
-    };
-
-    const originalReceiveDamage = Player.prototype.receiveDamage;
-    Player.prototype.receiveDamage = function (amount, options = {}) {
-      const wasAlive = this.hp > 0;
-      const hit = originalReceiveDamage.call(this, amount, options);
-
-      if (hit && wasAlive && this.hp > 0 && this.state !== 'knockdown' && this.state !== 'pinned') {
-        this.state = 'hurt';
-        this.hurtTimer = Math.max(0, options.hurtFreezeMs || GAME_CONFIG.playerHurtFreezeMs || 280);
-        this.attackTimer = 0;
-        this.attackHasHit = false;
-        this.comboStep = 0;
-        this.comboTimer = 0;
-
-        const hitKey = this.heroKey + 'Hit';
-        if (isUsableSfxKey(hitKey)) {
-          AudioManager.playSfx(hitKey, 0.92, { startAt: 0.01 });
-        }
-      }
-
-      return hit;
-    };
-
-    const originalStartAttack = Player.prototype.startAttack;
-    Player.prototype.startAttack = function () {
-      if (this.state === 'hurt') return;
-      originalStartAttack.call(this);
-    };
-
-    const originalGetImage = Player.prototype.getImage;
-    Player.prototype.getImage = function () {
-      if (this.state === 'hurt') {
-        const heroImages = this.getHeroImages();
-        return heroImages.hit || heroImages.idle;
-      }
-      return originalGetImage.call(this);
-    };
-
-    Player.hurtFreezePatchApplied = true;
-  }
 
   if (typeof DogRegimeEnemy !== 'undefined' && !DogRegimeEnemy.prototype.attackRangeBindingPatchApplied) {
     DogRegimeEnemy.prototype.getClubReachBox = function () {

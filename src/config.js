@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  buildVersion: '0.4.89',
+  buildVersion: '0.4.90',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -28,6 +28,7 @@ const GAME_CONFIG = {
   comboResetMs: 520,
   playerHitStopMs: 55,
   playerHitStunMs: 380,
+  playerHurtFreezeMs: 280,
   playerInvulnerableMs: 520,
   playerReviveKnockdownMs: 950,
   playerReviveTextMs: 1250,
