@@ -875,6 +875,7 @@
         return;
       }
       previousSceneDraw.call(this, ctx);
+      if (this.drawLevelForegroundObjects) this.drawLevelForegroundObjects(ctx);
       this.drawGundosFloatTexts(ctx);
     };
 
@@ -896,6 +897,7 @@
 
       ctx.fillStyle = 'rgba(255,255,255,0.025)';
       ctx.fillRect(0, GAME_CONFIG.laneTop, GAME_CONFIG.width, GAME_CONFIG.laneBottom - GAME_CONFIG.laneTop);
+      if (this.drawLevelForegroundObjects) this.drawLevelForegroundObjects(ctx);
 
       const boss = this.activeGundos || (this.enemies || []).find(enemy => enemy && enemy.enemyType === 'gundos');
       if (boss && boss.alive && boss.transformed && boss.introFinished && boss.drawFireWall) boss.drawFireWall(ctx, this);
