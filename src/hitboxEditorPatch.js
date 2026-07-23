@@ -35,6 +35,7 @@
     alexey: { bodyW: 0.34, minBodyW: 64, bodyH: 0.79, bodyTop: 0.96, pushW: 0.32, pushH: 0.16, attackY: 0.76, attackH: 0.24, reach: [0.28, 0.33, 0.39] },
     anna: { bodyW: 0.28, minBodyW: 58, bodyH: 0.74, bodyTop: 0.95, pushW: 0.3, pushH: 0.14, attackY: 0.72, attackH: 0.22, reach: [0.27, 0.31, 0.37] },
     humanEnemy: { bodyW: 0.42, minBodyW: 72, bodyH: 0.92, bodyTop: 0.99, pushW: 0.42, pushH: 0.18, attackY: 0.66, attackH: 0.28, attackW: 0.52 },
+    dogRegime: { bodyW: 0.42, minBodyW: 72, bodyH: 0.92, bodyTop: 0.99, pushW: 0.42, pushH: 0.18, attackY: 0.66, attackH: 0.28, attackW: 0.572 },
     skinnyEnemy: { bodyW: 0.36, minBodyW: 64, bodyH: 0.9, bodyTop: 0.99, pushW: 0.38, pushH: 0.16, attackY: 0.66, attackH: 0.27, attackW: 0.55 },
     sucker: { bodyW: 0.5, minBodyW: 82, bodyH: 0.88, bodyTop: 0.99, pushW: 0.46, pushH: 0.18, slideY: 0.66, slideH: 0.27, slideW: 0.62, biteY: 0.64, biteH: 0.28, biteW: 0.45 },
     horse: { bodyW: 0.32, minBodyW: 58, bodyH: 0.92, bodyTop: 0.99, pushW: 0.36, pushH: 0.16, attackY: 0.58, attackH: 0.34, attackW: 1.55 },
@@ -145,7 +146,7 @@
       anna: makeHeroBoxes('anna')
     },
     enemies: {
-      dogRegime: makeEnemyBoxes('dogRegime', 'humanEnemy'),
+      dogRegime: makeEnemyBoxes('dogRegime', 'dogRegime'),
       zetnik: makeEnemyBoxes('zetnik', 'skinnyEnemy'),
       sucker: makeSuckerBoxes(),
       bastard: makeEnemyBoxes('bastard', 'humanEnemy'),
@@ -207,6 +208,11 @@
     }
     for (const key of Object.keys(DEFAULT_HITBOXES.enemies)) {
       GAME_CONFIG.hitboxes.enemies[key] = migrateHitboxEntity(GAME_CONFIG.hitboxes.enemies[key], DEFAULT_HITBOXES.enemies[key]);
+    }
+    const dog = GAME_CONFIG.hitboxes.enemies.dogRegime;
+    const dogDefault = DEFAULT_HITBOXES.enemies.dogRegime;
+    if (dog && dog.attack && dogDefault && dogDefault.attack) {
+      dog.attack.w = Math.max(dog.attack.w || 0, dogDefault.attack.w);
     }
   }
 
@@ -287,18 +293,12 @@
       if (this.attackTimer < data.activeStart || this.attackTimer > data.activeEnd) return false;
 
       const config = (GAME_CONFIG.enemies && GAME_CONFIG.enemies.sucker) || {};
-      const rangeX = config.counterRangeX || 74;
       const rangeY = config.counterRangeY || GAME_CONFIG.enemyAttackRangeY || 58;
-      const counterZone = {
-        x: this.facing === 1 ? this.x : this.x - rangeX,
-        y: this.y - rangeY,
-        w: rangeX,
-        h: rangeY * 2
-      };
-      const forgiveness = config.counterForgiveness == null ? 10 : config.counterForgiveness;
+      const counterZone = this.getHitbox();
+      const forgiveness = config.counterForgiveness == null ? 2 : config.counterForgiveness;
       const targets = [];
       if (enemy.state === 'slide' && typeof enemy.getSlideHitbox === 'function') targets.push(enemy.getSlideHitbox());
-      if (typeof enemy.getHurtbox === 'function') targets.push(enemy.getHurtbox());
+      if (enemy.state === 'slide' && typeof enemy.getHurtbox === 'function') targets.push(enemy.getHurtbox());
 
       return targets.some(target => target && Combat.canMeleeHit(this, enemy, {
         attackBox: counterZone,
