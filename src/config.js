@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  buildVersion: '0.4.80',
+  buildVersion: '0.4.81',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -150,6 +150,7 @@ const GAME_CONFIG = {
       attackMaxDistanceX: 117,
       attackRangeX: 99,
       attackRangeY: 38,
+      clubContactTolerance: 10,
       maxAttackers: 1,
       decisionMinMs: 120,
       decisionMaxMs: 280,

@@ -351,9 +351,11 @@
     DogRegimeEnemy.prototype.canClubReachPlayer = function (player, anticipation = false) {
       if (!player || typeof player.getBodyBox !== 'function') return false;
       const attack = this.getAttackBox();
-      const pad = 4;
-      const activeBox = anticipation ?
-        { x: attack.x - pad, y: attack.y - pad, w: attack.w + pad * 2, h: attack.h + pad * 2 } :
+      const config = (GAME_CONFIG.enemies && GAME_CONFIG.enemies[this.enemyType]) || {};
+      const contactPad = this.enemyType === 'dogRegime' ? (config.clubContactTolerance == null ? 10 : config.clubContactTolerance) : 0;
+      const pad = anticipation ? Math.max(4, contactPad) : contactPad;
+      const activeBox = pad > 0 ?
+        { x: attack.x - pad, y: attack.y - Math.max(2, pad * 0.5), w: attack.w + pad * 2, h: attack.h + Math.max(4, pad) } :
         attack;
       return Combat.canMeleeHit(this, player, {
         attackBox: activeBox,
