@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  buildVersion: '0.4.91',
+  buildVersion: '0.4.92',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -303,13 +303,6 @@ const GAME_CONFIG = {
           laneTolerance: 42,
           hitbox: { x: 342, y: 272, w: 128, h: 146 },
           effectRect: { x: 360, y: 322, w: 72, h: 150 }
-        },
-        {
-          id: 'policeBuhanka',
-          type: 'vehicleObstacle',
-          image: 'assets/vehicles/buhanka.png',
-          drawRect: { x: 910, y: 430, w: 310, h: 207 },
-          blockBox: { x: 930, y: 558, w: 285, h: 86 }
         }
       ],
       music: 'levelTheme',
