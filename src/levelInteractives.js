@@ -1,23 +1,6 @@
 (function () {
   if (typeof GameApp === 'undefined' || typeof LevelScene === 'undefined') return;
 
-  function loadImage(src) {
-    return new Promise((resolve) => {
-      if (!src) {
-        resolve(null);
-        return;
-      }
-
-      const img = new Image();
-      img.onload = () => resolve(img);
-      img.onerror = () => {
-        console.warn('Missing interactive level image:', src);
-        resolve(null);
-      };
-      img.src = src;
-    });
-  }
-
   function getInteractivesForLevel(level) {
     return Array.isArray(level && level.interactives) ? level.interactives : [];
   }
@@ -136,33 +119,6 @@
 
     ctx.restore();
   }
-
-  const previousLoadImages = GameApp.prototype.loadImages;
-  GameApp.prototype.loadImages = async function () {
-    const loaded = await previousLoadImages.call(this);
-    loaded.levelInteractiveBackgrounds = loaded.levelInteractiveBackgrounds || {};
-    loaded.levelInteractiveImages = loaded.levelInteractiveImages || {};
-
-    const requests = [];
-    const levels = GAME_CONFIG.levels || {};
-    for (const key of Object.keys(levels)) {
-      for (const item of getInteractivesForLevel(levels[key])) {
-        if (!item.altBackground || loaded.levelInteractiveBackgrounds[item.altBackground]) continue;
-        requests.push(loadImage(item.altBackground).then((image) => {
-          loaded.levelInteractiveBackgrounds[item.altBackground] = image;
-        }));
-      }
-      for (const item of getInteractivesForLevel(levels[key])) {
-        if (!item.image || loaded.levelInteractiveImages[item.image]) continue;
-        requests.push(loadImage(item.image).then((image) => {
-          loaded.levelInteractiveImages[item.image] = image;
-        }));
-      }
-    }
-
-    await Promise.all(requests);
-    return loaded;
-  };
 
   function getActorObstacleBox(actor) {
     if (!actor) return null;
