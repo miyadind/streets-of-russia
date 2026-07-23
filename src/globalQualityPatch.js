@@ -1,49 +1,6 @@
 (function () {
   if (typeof GameApp === 'undefined') return;
 
-  if (typeof DogRegimeEnemy !== 'undefined' && !DogRegimeEnemy.prototype.attackRangeBindingPatchApplied) {
-    DogRegimeEnemy.prototype.getClubReachBox = function () {
-      const minX = Math.max(0, this.attackMinDistanceX || 0);
-      const maxX = Math.max(minX + 1, this.attackRangeX || GAME_CONFIG.enemyAttackRangeX || 76);
-      const rangeY = Math.max(1, this.attackRangeY || GAME_CONFIG.enemyAttackRangeY || 36);
-      return {
-        x: this.facing === 1 ? this.x + minX : this.x - maxX,
-        y: this.y - rangeY,
-        w: maxX - minX,
-        h: rangeY * 2
-      };
-    };
-
-    DogRegimeEnemy.prototype.canClubReachPlayer = function (player, anticipation = false) {
-      if (!player) return false;
-      if (typeof Combat !== 'undefined' && Combat.actorsSameLane && !Combat.actorsSameLane(this, player)) return false;
-      const forwardDistance = (player.x - this.x) * (this.facing || 1);
-      const yDistance = Math.abs(player.y - this.y);
-      const padX = anticipation ? 6 : 0;
-      const padY = anticipation ? 4 : 0;
-      const minX = Math.max(0, (this.attackMinDistanceX || 0) - padX);
-      const maxX = Math.max(minX + 1, (this.attackRangeX || GAME_CONFIG.enemyAttackRangeX || 76) + padX);
-      const maxY = (this.attackRangeY || GAME_CONFIG.enemyAttackRangeY || 36) + padY;
-      return forwardDistance >= minX && forwardDistance <= maxX && yDistance <= maxY;
-    };
-
-    const originalDogApplyTuning = DogRegimeEnemy.prototype.applyTuning;
-    DogRegimeEnemy.prototype.applyTuning = function (resetHp = false) {
-      if (typeof originalDogApplyTuning === 'function') originalDogApplyTuning.call(this, resetHp);
-      const config = (GAME_CONFIG.enemies && GAME_CONFIG.enemies[this.enemyType]) || {};
-      this.attackMinDistanceX = config.attackMinDistanceX == null ? 28 : config.attackMinDistanceX;
-      this.attackRangeX = config.attackRangeX || GAME_CONFIG.enemyAttackRangeX || 76;
-      this.attackRangeY = config.attackRangeY || GAME_CONFIG.enemyAttackRangeY || 36;
-      this.attackMaxDistanceX = this.attackRangeX;
-    };
-
-    DogRegimeEnemy.prototype.isInAttackRange = function (player) {
-      return this.canClubReachPlayer(player, true);
-    };
-
-    DogRegimeEnemy.prototype.attackRangeBindingPatchApplied = true;
-  }
-
   function loadOptionalImage(src) {
     return new Promise((resolve) => {
       if (!src) {

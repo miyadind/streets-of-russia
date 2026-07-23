@@ -44,7 +44,7 @@ class DogRegimeEnemy {
     this.tooFarDistanceX = config.tooFarDistanceX || Math.max(this.preferredDistanceX + 40, 140);
     this.attackRangeX = config.attackRangeX || GAME_CONFIG.enemyAttackRangeX;
     this.attackRangeY = config.attackRangeY || GAME_CONFIG.enemyAttackRangeY;
-    this.attackMinDistanceX = config.attackMinDistanceX || Math.max(34, this.minDistanceX - 6);
+    this.attackMinDistanceX = config.attackMinDistanceX == null ? 28 : config.attackMinDistanceX;
     this.attackMaxDistanceX = config.attackMaxDistanceX || this.attackRangeX;
     this.maxAttackers = config.maxAttackers || 1;
     this.decisionMinMs = config.decisionMinMs || 160;
@@ -394,11 +394,32 @@ class DogRegimeEnemy {
   }
 
   isInAttackRange(player) {
-    return Combat.canMeleeHit(this, player, {
-      attackBox: this.getAttackBox(),
-      targetBox: player.getBodyBox(),
-      laneTolerance: this.attackRangeY
-    });
+    return this.canClubReachPlayer(player, true);
+  }
+
+  getClubReachBox() {
+    const minX = Math.max(0, this.attackMinDistanceX || 0);
+    const maxX = Math.max(minX + 1, this.attackRangeX || GAME_CONFIG.enemyAttackRangeX || 76);
+    const rangeY = Math.max(1, this.attackRangeY || GAME_CONFIG.enemyAttackRangeY || 36);
+    return {
+      x: this.facing === 1 ? this.x + minX : this.x - maxX,
+      y: this.y - rangeY,
+      w: maxX - minX,
+      h: rangeY * 2
+    };
+  }
+
+  canClubReachPlayer(player, anticipation = false) {
+    if (!player) return false;
+    if (typeof Combat !== 'undefined' && Combat.actorsSameLane && !Combat.actorsSameLane(this, player)) return false;
+    const forwardDistance = (player.x - this.x) * (this.facing || 1);
+    const yDistance = Math.abs(player.y - this.y);
+    const padX = anticipation ? 6 : 0;
+    const padY = anticipation ? 4 : 0;
+    const minX = Math.max(0, (this.attackMinDistanceX || 0) - padX);
+    const maxX = Math.max(minX + 1, (this.attackRangeX || GAME_CONFIG.enemyAttackRangeX || 76) + padX);
+    const maxY = (this.attackRangeY || GAME_CONFIG.enemyAttackRangeY || 36) + padY;
+    return forwardDistance >= minX && forwardDistance <= maxX && yDistance <= maxY;
   }
 
   updateAttack(dt, scene) {
@@ -408,11 +429,7 @@ class DogRegimeEnemy {
 
     if (!this.attackHasHit && this.attackTimer >= activeStart && this.attackTimer <= activeEnd) {
       const player = scene.player;
-      if (Combat.canMeleeHit(this, player, {
-        attackBox: this.getAttackBox(),
-        targetBox: player.getBodyBox(),
-        laneTolerance: GAME_CONFIG.yHitTolerance
-      })) {
+      if (this.canClubReachPlayer(player, false)) {
         const hit = player.receiveDamage(this.damage, {
           source: 'melee',
           knockbackX: this.facing * 18
