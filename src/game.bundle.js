@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.92',
+  buildVersion: '0.4.93',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -263,18 +263,6 @@ const GAME_CONFIG = {
     tea: { image: 'tea', healPercent: 0.5, dropChance: 1, scale: 0.075, label: '+50% HP' }
   },
 
-  enemyPickupDrops: {
-    zetnik: 'medkit',
-    dogRegime: 'pirozhok',
-    horse: 'tea'
-  },
-
-  levelPickupDrops: {
-    street01: { enemyType: 'zetnik', pickup: 'medkit' },
-    street02: { enemyType: 'dogRegime', pickup: 'pirozhok' },
-    street03: null
-  },
-
   levelOrder: [
     'street01', 'street02', 'street03',
     'siberia01', 'siberia02', 'siberia03',
@@ -309,7 +297,10 @@ const GAME_CONFIG = {
           laneY: 620,
           laneTolerance: 42,
           hitbox: { x: 342, y: 272, w: 128, h: 146 },
-          effectRect: { x: 360, y: 322, w: 72, h: 150 }
+          effectRect: { x: 360, y: 322, w: 72, h: 150 },
+          dropPickup: 'medkit',
+          dropX: 406,
+          dropY: 620
         }
       ],
       music: 'levelTheme',
@@ -5355,7 +5346,6 @@ class LevelScene {
     this.enemies = [];
     this.pickups = [];
     this.pendingPickupDrops = [];
-    this.levelPickupDropped = false;
     this.hitStop = 0;
     this.encounterActive = false;
     this.encounterCleared = false;
@@ -5415,7 +5405,6 @@ class LevelScene {
     this.enemies = [];
     this.pickups = [];
     this.pendingPickupDrops = [];
-    this.levelPickupDropped = false;
     this.encounterActive = false;
     this.encounterCleared = false;
     this.nonBlockingWaveTimer = 0;
@@ -5885,33 +5874,29 @@ class LevelScene {
     }
   }
 
-  getLevelPickupRule() {
-    const rules = GAME_CONFIG.levelPickupDrops || {};
-    const key = this.getLevelKey ? this.getLevelKey() : null;
-    return key ? rules[key] : null;
+  dropPickup(type, x, y) {
+    if (!type) return;
+    const rawX = Number.isFinite(x) ? x : GAME_CONFIG.width / 2;
+    const rawY = Number.isFinite(y) ? y : GAME_CONFIG.laneBottom;
+    const safeX = Math.max(70, Math.min(GAME_CONFIG.width - 70, rawX));
+    const safeY = Math.max(GAME_CONFIG.laneTop + 35, Math.min(GAME_CONFIG.laneBottom, rawY));
+    if (!this.pendingPickupDrops) this.pendingPickupDrops = [];
+    this.pendingPickupDrops.push({ type, x: safeX, y: safeY });
   }
 
   maybeDropPickup(enemy, options = {}) {
-    if (!enemy || enemy.pickupDropped || enemy.gundosMinion) return;
+    if (!enemy || enemy.pickupDropped) return;
     enemy.pickupDropped = true;
     if (options.source !== 'player') return;
-    if (this.levelPickupDropped) return;
+    if (enemy.enemyType !== 'zetnik') return;
+    if (enemy.gundosMinion || enemy.gundosGuarding || enemy.redirectedToBoss) return;
+    if (this.gundosArenaActive || this.gundosIntroActive || this.gundosVictoryPending) return;
 
-    const rule = this.getLevelPickupRule();
-    if (!rule || !rule.pickup) return;
-    const allowedTypes = Array.isArray(rule.enemyTypes)
-      ? rule.enemyTypes
-      : [rule.enemyType].filter(Boolean);
-    if (allowedTypes.length && !allowedTypes.includes(enemy.enemyType)) return;
-
-    this.levelPickupDropped = true;
-    const pickupType = rule.pickup;
     const rawX = Number.isFinite(enemy.x) ? enemy.x : GAME_CONFIG.width / 2;
     const rawY = Number.isFinite(enemy.y) ? enemy.y : GAME_CONFIG.laneBottom;
     const x = Math.max(70, Math.min(GAME_CONFIG.width - 70, rawX));
     const y = Math.max(GAME_CONFIG.laneTop + 35, Math.min(GAME_CONFIG.laneBottom, rawY));
-    if (!this.pendingPickupDrops) this.pendingPickupDrops = [];
-    this.pendingPickupDrops.push({ type: pickupType, x, y });
+    this.dropPickup('pirozhok', x, y);
   }
 
   flushPickupDrops() {
@@ -6636,6 +6621,8 @@ const DevPanel = {
 
   exportConfig() {
     const exportData = {
+      buildVersion: GAME_CONFIG.buildVersion,
+      exportedAt: new Date().toISOString(),
       settings: GAME_CONFIG.settings,
       audio: GAME_CONFIG.audio,
       playerScale: GAME_CONFIG.playerScale,
@@ -6650,13 +6637,34 @@ const DevPanel = {
     const text = JSON.stringify(exportData, null, 2);
     console.log('STREETS_OF_RUSSIA_TUNING_EXPORT');
     console.log(text);
+    this.downloadTextFile('streets-of-russia-dev-export.json', text, 'application/json');
 
     if (navigator.clipboard && window.isSecureContext) {
       navigator.clipboard.writeText(text)
-        .then(() => this.setStatus('Export copied to clipboard'))
-        .catch(() => this.setStatus('Export printed in Console'));
+        .then(() => this.setStatus('Export downloaded + copied'))
+        .catch(() => this.setStatus('Export downloaded + printed'));
     } else {
-      this.setStatus('Export printed in Console');
+      this.setStatus('Export downloaded + printed');
+    }
+  },
+
+  downloadTextFile(filename, text, mimeType = 'text/plain') {
+    if (typeof Blob === 'undefined' || typeof URL === 'undefined' || !document.createElement) return false;
+    try {
+      const blob = new Blob([text], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      return true;
+    } catch (error) {
+      console.warn('Failed to download export', error);
+      return false;
     }
   },
 
@@ -9767,6 +9775,13 @@ window.addEventListener('load', () => {
     if (state.hits >= (item.hitsToReplace || 3)) {
       state.replaced = true;
       state.flashMs = 0;
+      if (!state.pickupDropped && item.dropPickup && scene.dropPickup) {
+        const rect = item.hitbox || item.effectRect || {};
+        const x = Number.isFinite(item.dropX) ? item.dropX : (rect.x || 0) + (rect.w || 0) / 2;
+        const y = Number.isFinite(item.dropY) ? item.dropY : (item.laneY || GAME_CONFIG.laneBottom);
+        scene.dropPickup(item.dropPickup, x, y);
+        state.pickupDropped = true;
+      }
       AudioManager.playSfx('enemyDown', 0.82, { playbackRate: 0.92, startAt: 0.02 });
       return;
     }

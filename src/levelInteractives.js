@@ -50,6 +50,13 @@
     if (state.hits >= (item.hitsToReplace || 3)) {
       state.replaced = true;
       state.flashMs = 0;
+      if (!state.pickupDropped && item.dropPickup && scene.dropPickup) {
+        const rect = item.hitbox || item.effectRect || {};
+        const x = Number.isFinite(item.dropX) ? item.dropX : (rect.x || 0) + (rect.w || 0) / 2;
+        const y = Number.isFinite(item.dropY) ? item.dropY : (item.laneY || GAME_CONFIG.laneBottom);
+        scene.dropPickup(item.dropPickup, x, y);
+        state.pickupDropped = true;
+      }
       AudioManager.playSfx('enemyDown', 0.82, { playbackRate: 0.92, startAt: 0.02 });
       return;
     }

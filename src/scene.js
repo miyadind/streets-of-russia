@@ -137,7 +137,6 @@ class LevelScene {
     this.enemies = [];
     this.pickups = [];
     this.pendingPickupDrops = [];
-    this.levelPickupDropped = false;
     this.hitStop = 0;
     this.encounterActive = false;
     this.encounterCleared = false;
@@ -197,7 +196,6 @@ class LevelScene {
     this.enemies = [];
     this.pickups = [];
     this.pendingPickupDrops = [];
-    this.levelPickupDropped = false;
     this.encounterActive = false;
     this.encounterCleared = false;
     this.nonBlockingWaveTimer = 0;
@@ -667,33 +665,29 @@ class LevelScene {
     }
   }
 
-  getLevelPickupRule() {
-    const rules = GAME_CONFIG.levelPickupDrops || {};
-    const key = this.getLevelKey ? this.getLevelKey() : null;
-    return key ? rules[key] : null;
+  dropPickup(type, x, y) {
+    if (!type) return;
+    const rawX = Number.isFinite(x) ? x : GAME_CONFIG.width / 2;
+    const rawY = Number.isFinite(y) ? y : GAME_CONFIG.laneBottom;
+    const safeX = Math.max(70, Math.min(GAME_CONFIG.width - 70, rawX));
+    const safeY = Math.max(GAME_CONFIG.laneTop + 35, Math.min(GAME_CONFIG.laneBottom, rawY));
+    if (!this.pendingPickupDrops) this.pendingPickupDrops = [];
+    this.pendingPickupDrops.push({ type, x: safeX, y: safeY });
   }
 
   maybeDropPickup(enemy, options = {}) {
-    if (!enemy || enemy.pickupDropped || enemy.gundosMinion) return;
+    if (!enemy || enemy.pickupDropped) return;
     enemy.pickupDropped = true;
     if (options.source !== 'player') return;
-    if (this.levelPickupDropped) return;
+    if (enemy.enemyType !== 'zetnik') return;
+    if (enemy.gundosMinion || enemy.gundosGuarding || enemy.redirectedToBoss) return;
+    if (this.gundosArenaActive || this.gundosIntroActive || this.gundosVictoryPending) return;
 
-    const rule = this.getLevelPickupRule();
-    if (!rule || !rule.pickup) return;
-    const allowedTypes = Array.isArray(rule.enemyTypes)
-      ? rule.enemyTypes
-      : [rule.enemyType].filter(Boolean);
-    if (allowedTypes.length && !allowedTypes.includes(enemy.enemyType)) return;
-
-    this.levelPickupDropped = true;
-    const pickupType = rule.pickup;
     const rawX = Number.isFinite(enemy.x) ? enemy.x : GAME_CONFIG.width / 2;
     const rawY = Number.isFinite(enemy.y) ? enemy.y : GAME_CONFIG.laneBottom;
     const x = Math.max(70, Math.min(GAME_CONFIG.width - 70, rawX));
     const y = Math.max(GAME_CONFIG.laneTop + 35, Math.min(GAME_CONFIG.laneBottom, rawY));
-    if (!this.pendingPickupDrops) this.pendingPickupDrops = [];
-    this.pendingPickupDrops.push({ type: pickupType, x, y });
+    this.dropPickup('pirozhok', x, y);
   }
 
   flushPickupDrops() {

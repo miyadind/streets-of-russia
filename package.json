@@ -1,6 +1,7 @@
 {
   "scripts": {
     "build": "node tools/build-single.js",
-    "check": "node --check src/game.bundle.js"
+    "check": "node --check src/game.bundle.js",
+    "apply-dev-export": "node tools/apply-dev-export.js"
   }
 }

@@ -698,6 +698,8 @@ const DevPanel = {
 
   exportConfig() {
     const exportData = {
+      buildVersion: GAME_CONFIG.buildVersion,
+      exportedAt: new Date().toISOString(),
       settings: GAME_CONFIG.settings,
       audio: GAME_CONFIG.audio,
       playerScale: GAME_CONFIG.playerScale,
@@ -712,13 +714,34 @@ const DevPanel = {
     const text = JSON.stringify(exportData, null, 2);
     console.log('STREETS_OF_RUSSIA_TUNING_EXPORT');
     console.log(text);
+    this.downloadTextFile('streets-of-russia-dev-export.json', text, 'application/json');
 
     if (navigator.clipboard && window.isSecureContext) {
       navigator.clipboard.writeText(text)
-        .then(() => this.setStatus('Export copied to clipboard'))
-        .catch(() => this.setStatus('Export printed in Console'));
+        .then(() => this.setStatus('Export downloaded + copied'))
+        .catch(() => this.setStatus('Export downloaded + printed'));
     } else {
-      this.setStatus('Export printed in Console');
+      this.setStatus('Export downloaded + printed');
+    }
+  },
+
+  downloadTextFile(filename, text, mimeType = 'text/plain') {
+    if (typeof Blob === 'undefined' || typeof URL === 'undefined' || !document.createElement) return false;
+    try {
+      const blob = new Blob([text], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      return true;
+    } catch (error) {
+      console.warn('Failed to download export', error);
+      return false;
     }
   },
 

@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  buildVersion: '0.4.92',
+  buildVersion: '0.4.93',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -256,18 +256,6 @@ const GAME_CONFIG = {
     tea: { image: 'tea', healPercent: 0.5, dropChance: 1, scale: 0.075, label: '+50% HP' }
   },
 
-  enemyPickupDrops: {
-    zetnik: 'medkit',
-    dogRegime: 'pirozhok',
-    horse: 'tea'
-  },
-
-  levelPickupDrops: {
-    street01: { enemyType: 'zetnik', pickup: 'medkit' },
-    street02: { enemyType: 'dogRegime', pickup: 'pirozhok' },
-    street03: null
-  },
-
   levelOrder: [
     'street01', 'street02', 'street03',
     'siberia01', 'siberia02', 'siberia03',
@@ -302,7 +290,10 @@ const GAME_CONFIG = {
           laneY: 620,
           laneTolerance: 42,
           hitbox: { x: 342, y: 272, w: 128, h: 146 },
-          effectRect: { x: 360, y: 322, w: 72, h: 150 }
+          effectRect: { x: 360, y: 322, w: 72, h: 150 },
+          dropPickup: 'medkit',
+          dropX: 406,
+          dropY: 620
         }
       ],
       music: 'levelTheme',
