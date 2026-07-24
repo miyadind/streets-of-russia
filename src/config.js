@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  "buildVersion": "0.4.101",
+  "buildVersion": "0.4.102",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -317,6 +317,8 @@ const GAME_CONFIG = {
       "speed": 1.875,
       "scale": 0.266,
       "damage": 0,
+      "bossMusic": true,
+      "bossMusicKey": "bossTheme",
       "blocksWaveClear": true,
       "canAttack": false,
       "canDie": true,
@@ -483,16 +485,27 @@ const GAME_CONFIG = {
           "dropY": 620
         }
       ],
-      "music": "levelTheme",
+      "music": "street01Theme",
       "waves": [
         {
           "trigger": "onEnter",
           "enemies": [
             {
               "type": "dogRegime",
-              "count": 2,
+              "count": 1,
               "side": "right",
-              "delayMs": 0
+              "delayMs": 7000
+            }
+          ]
+        },
+        {
+          "trigger": "afterWaveCleared",
+          "enemies": [
+            {
+              "type": "dogRegime",
+              "count": 1,
+              "side": "right",
+              "delayMs": 2500
             }
           ]
         }
@@ -516,7 +529,7 @@ const GAME_CONFIG = {
       "name": "Far East 02",
       "region": "far-east",
       "background": "assets/backgrounds/1/street02.png",
-      "music": "levelTheme",
+      "music": "street02Theme",
       "waves": [
         {
           "trigger": "onEnter",
@@ -525,7 +538,7 @@ const GAME_CONFIG = {
               "type": "dogRegime",
               "count": 2,
               "side": "right",
-              "delayMs": 0
+              "delayMs": 2500
             }
           ]
         },
@@ -536,13 +549,19 @@ const GAME_CONFIG = {
               "type": "dogRegime",
               "count": 1,
               "side": "left",
-              "delayMs": 0
+              "delayMs": 1800
             },
             {
               "type": "zetnik",
               "count": 1,
               "side": "right",
-              "delayMs": 0
+              "delayMs": 4800
+            },
+            {
+              "type": "horse",
+              "count": 1,
+              "side": "right",
+              "delayMs": 7800
             }
           ]
         },
@@ -553,7 +572,7 @@ const GAME_CONFIG = {
               "type": "sucker",
               "count": 1,
               "side": "right",
-              "delayMs": 0
+              "delayMs": 3500
             }
           ]
         }
@@ -577,7 +596,7 @@ const GAME_CONFIG = {
       "name": "Far East 03",
       "region": "far-east",
       "background": "assets/backgrounds/1/street03.png",
-      "music": "levelTheme",
+      "music": "bossTheme",
       "bossFireWall": {
         "x": 520,
         "y": 588,

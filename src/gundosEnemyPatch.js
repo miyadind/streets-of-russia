@@ -94,7 +94,8 @@
       });
     }
 
-    if (street03) {
+    if (street03 && (!Array.isArray(street03.waves) ||
+        !street03.waves.some(wave => (wave.enemies || []).some(group => group.type === 'gundos')))) {
       street03.waves = [{
         trigger: 'onEnter',
         enemies: [{ type: 'gundos', count: 1, side: 'right' }]

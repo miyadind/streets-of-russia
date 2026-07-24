@@ -10,7 +10,7 @@ window.Assets = {
       street01Theme:'assets/audio/music/menu-theme.mp3',
       street02Theme:'assets/audio/music/menu-theme.mp3',
       street03Theme:'assets/audio/music/menu-theme.mp3',
-      bossTheme:'assets/audio/music/menu-theme.mp3'
+      bossTheme:'assets/audio/music/intro-theme.mp3'
     },
     sfx:{
       menuMove:null,
