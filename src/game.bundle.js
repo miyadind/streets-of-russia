@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.99",
+  "buildVersion": "0.4.100",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -18744,7 +18744,7 @@ window.addEventListener('load', () => {
       'assets/audio/sfx/Navalnii3.mp3'
     ]
   };
-  const IDLE_DELAY_MS = 60000;
+  const IDLE_DELAY_MS = 30000;
 
   function getActiveClips(game) {
     const player = game && game.scene && game.scene.player;
@@ -18756,11 +18756,7 @@ window.addEventListener('load', () => {
     if (!getActiveClips(game) || !player || game.state !== 'level' || game.paused ||
         (typeof DevPanel !== 'undefined' && DevPanel.open) || game.scene.gundosIntroLocked) return false;
 
-    if (player.state !== 'idle') return false;
-    return !Input.pressed('a') && !Input.pressed('d') && !Input.pressed('w') && !Input.pressed('s') &&
-      !Input.pressed('arrowleft') && !Input.pressed('arrowright') &&
-      !Input.pressed('arrowup') && !Input.pressed('arrowdown') &&
-      !Input.pressed('space') && !Input.pressed('enter');
+    return player.state === 'idle';
   }
 
   function stopVoice(game) {
@@ -18808,12 +18804,16 @@ window.addEventListener('load', () => {
     this.heroVoicePlaying = false;
     this.heroVoiceAudio = null;
     this.heroVoiceHeroKey = null;
+    this.heroVoiceIdleStartedAt = 0;
   };
 
   const previousSetState = GameApp.prototype.setState;
   GameApp.prototype.setState = function (nextState) {
     if (nextState !== 'level') stopVoice(this);
-    if (nextState !== 'level') this.heroVoiceIdleMs = 0;
+    if (nextState !== 'level') {
+      this.heroVoiceIdleMs = 0;
+      this.heroVoiceIdleStartedAt = 0;
+    }
     return previousSetState.call(this, nextState);
   };
 
@@ -18827,6 +18827,7 @@ window.addEventListener('load', () => {
         this.heroVoiceIndex = 0;
         this.heroVoiceAutoIndex = 0;
         this.heroVoiceIdleMs = 0;
+        this.heroVoiceIdleStartedAt = 0;
       }
       const clips = getActiveClips(this);
       if (Input.consume('z') && clips) {
@@ -18840,11 +18841,15 @@ window.addEventListener('load', () => {
       if (!clips && this.heroVoicePlaying) stopVoice(this);
       if (this.heroVoicePlaying || !isGameplayIdle(this)) {
         this.heroVoiceIdleMs = 0;
+        this.heroVoiceIdleStartedAt = 0;
       } else {
-        this.heroVoiceIdleMs += Math.max(0, dt || 0);
+        const now = performance.now();
+        if (!this.heroVoiceIdleStartedAt) this.heroVoiceIdleStartedAt = now;
+        this.heroVoiceIdleMs = now - this.heroVoiceIdleStartedAt;
         if (this.heroVoiceIdleMs >= IDLE_DELAY_MS) {
           playVoice(this, this.heroVoiceAutoIndex);
           this.heroVoiceAutoIndex = (this.heroVoiceAutoIndex + 1) % clips.length;
+          this.heroVoiceIdleStartedAt = 0;
         }
       }
     }
