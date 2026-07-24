@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.104",
+  "buildVersion": "0.4.105",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -143,6 +143,7 @@ const GAME_CONFIG = {
   "audio": {
     "music": {
       "menu": "menuTheme",
+      "map": "mapTheme",
       "level": "levelTheme",
       "boss": "bossTheme"
     },
@@ -1271,6 +1272,7 @@ window.Assets = {
     music:{
       menuTheme:'assets/audio/music/Main_menu1.mp3',
       menuThemeAlt:'assets/audio/music/Main_menu2.mp3',
+      mapTheme:'assets/audio/music/Map.mp3',
       levelTheme:'assets/audio/music/menu-theme.mp3',
       street01Theme:'assets/audio/music/Dalnii_vostok.mp3',
       street02Theme:'assets/audio/music/Dalnii_vostok.mp3',
@@ -10223,6 +10225,9 @@ class GameApp {
   }
 
   getMenuMusicKey() {
+    if (this.state === 'campaignMap') {
+      return (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.map) || 'mapTheme';
+    }
     const configured = (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.menu) || 'menuTheme';
     if (configured !== 'menuTheme') return configured;
     if (!this.menuMusicKey) this.menuMusicKey = 'menuTheme';

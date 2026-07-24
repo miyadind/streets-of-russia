@@ -7,6 +7,7 @@ window.Assets = {
     music:{
       menuTheme:'assets/audio/music/Main_menu1.mp3',
       menuThemeAlt:'assets/audio/music/Main_menu2.mp3',
+      mapTheme:'assets/audio/music/Map.mp3',
       levelTheme:'assets/audio/music/menu-theme.mp3',
       street01Theme:'assets/audio/music/Dalnii_vostok.mp3',
       street02Theme:'assets/audio/music/Dalnii_vostok.mp3',

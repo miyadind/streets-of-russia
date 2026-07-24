@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  "buildVersion": "0.4.104",
+  "buildVersion": "0.4.105",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -136,6 +136,7 @@ const GAME_CONFIG = {
   "audio": {
     "music": {
       "menu": "menuTheme",
+      "map": "mapTheme",
       "level": "levelTheme",
       "boss": "bossTheme"
     },
