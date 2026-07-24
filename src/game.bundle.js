@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.102",
+  "buildVersion": "0.4.103",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -1269,12 +1269,13 @@ window.Assets = {
   },
   audio:{
     music:{
-      menuTheme:'assets/audio/music/menu-theme.mp3',
+      menuTheme:'assets/audio/music/Main_menu1.mp3',
+      menuThemeAlt:'assets/audio/music/Main_menu2.mp3',
       levelTheme:'assets/audio/music/menu-theme.mp3',
-      street01Theme:'assets/audio/music/menu-theme.mp3',
-      street02Theme:'assets/audio/music/menu-theme.mp3',
+      street01Theme:'assets/audio/music/Dalnii_vostok.mp3',
+      street02Theme:'assets/audio/music/Dalnii_vostok.mp3',
       street03Theme:'assets/audio/music/menu-theme.mp3',
-      bossTheme:'assets/audio/music/intro-theme.mp3'
+      bossTheme:'assets/audio/music/Gundos music.mp3'
     },
     sfx:{
       menuMove:null,
@@ -10199,7 +10200,12 @@ class GameApp {
   }
 
   getMenuMusicKey() {
-    return (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.menu) || 'menuTheme';
+    const configured = (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.menu) || 'menuTheme';
+    if (configured !== 'menuTheme') return configured;
+    if (!this.menuMusicKey) {
+      this.menuMusicKey = Math.random() < 0.5 ? 'menuTheme' : 'menuThemeAlt';
+    }
+    return this.menuMusicKey;
   }
 
   isMenuState(state) {
@@ -10238,6 +10244,7 @@ class GameApp {
     const managedKeys = [
       this.getMenuMusicKey(),
       'menuTheme',
+      'menuThemeAlt',
       'levelTheme',
       'bossTheme'
     ];

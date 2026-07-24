@@ -5,12 +5,13 @@ window.Assets = {
   },
   audio:{
     music:{
-      menuTheme:'assets/audio/music/menu-theme.mp3',
+      menuTheme:'assets/audio/music/Main_menu1.mp3',
+      menuThemeAlt:'assets/audio/music/Main_menu2.mp3',
       levelTheme:'assets/audio/music/menu-theme.mp3',
-      street01Theme:'assets/audio/music/menu-theme.mp3',
-      street02Theme:'assets/audio/music/menu-theme.mp3',
+      street01Theme:'assets/audio/music/Dalnii_vostok.mp3',
+      street02Theme:'assets/audio/music/Dalnii_vostok.mp3',
       street03Theme:'assets/audio/music/menu-theme.mp3',
-      bossTheme:'assets/audio/music/intro-theme.mp3'
+      bossTheme:'assets/audio/music/Gundos music.mp3'
     },
     sfx:{
       menuMove:null,

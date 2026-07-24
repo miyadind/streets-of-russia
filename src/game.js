@@ -268,7 +268,12 @@ class GameApp {
   }
 
   getMenuMusicKey() {
-    return (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.menu) || 'menuTheme';
+    const configured = (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.menu) || 'menuTheme';
+    if (configured !== 'menuTheme') return configured;
+    if (!this.menuMusicKey) {
+      this.menuMusicKey = Math.random() < 0.5 ? 'menuTheme' : 'menuThemeAlt';
+    }
+    return this.menuMusicKey;
   }
 
   isMenuState(state) {
@@ -307,6 +312,7 @@ class GameApp {
     const managedKeys = [
       this.getMenuMusicKey(),
       'menuTheme',
+      'menuThemeAlt',
       'levelTheme',
       'bossTheme'
     ];
