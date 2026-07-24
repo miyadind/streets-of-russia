@@ -11,6 +11,11 @@
       'assets/audio/sfx/Navalnii1.mp3',
       'assets/audio/sfx/Navalnii2.mp3',
       'assets/audio/sfx/Navalnii3.mp3'
+    ],
+    anna: [
+      'assets/audio/sfx/Anna1.mp3',
+      'assets/audio/sfx/Anna2.mp3',
+      'assets/audio/sfx/Anna3.mp3'
     ]
   };
   const IDLE_DELAY_MS = 30000;
