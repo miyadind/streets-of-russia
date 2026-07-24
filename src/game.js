@@ -270,9 +270,7 @@ class GameApp {
   getMenuMusicKey() {
     const configured = (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.menu) || 'menuTheme';
     if (configured !== 'menuTheme') return configured;
-    if (!this.menuMusicKey) {
-      this.menuMusicKey = Math.random() < 0.5 ? 'menuTheme' : 'menuThemeAlt';
-    }
+    if (!this.menuMusicKey) this.menuMusicKey = 'menuTheme';
     return this.menuMusicKey;
   }
 

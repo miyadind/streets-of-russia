@@ -41,6 +41,7 @@ const AudioManager = {
       if (!src) continue;
       this.music[key] = this.createAudio(src, true);
     }
+    this.configureMenuPlaylist();
   },
 
   createAudio(src, loop, options = {}) {
@@ -98,6 +99,28 @@ const AudioManager = {
     audio.addEventListener('error', cleanup, { once: true });
     if (!audio.loop) audio.addEventListener('ended', cleanup, { once: true });
     return audio;
+  },
+
+  configureMenuPlaylist() {
+    this.menuPlaylist = ['menuTheme', 'menuThemeAlt'].filter(key => this.music[key]);
+    for (const key of this.menuPlaylist) {
+      const audio = this.music[key];
+      audio.loop = false;
+      audio.addEventListener('ended', () => this.playNextMenuTrack(key));
+    }
+  },
+
+  playNextMenuTrack(currentKey) {
+    const playlist = this.menuPlaylist || [];
+    const index = playlist.indexOf(currentKey);
+    if (index < 0 || this.currentMusicKey !== currentKey || !this.currentMusic || this.isMusicPausedByGame()) return;
+
+    const game = window.game;
+    if (!game || !game.isMenuState || !game.isMenuState(game.state)) return;
+
+    const nextKey = playlist[(index + 1) % playlist.length];
+    game.menuMusicKey = nextKey;
+    this.playMusic(nextKey, true, true);
   },
 
   unregisterExternalAudio(audio) {
