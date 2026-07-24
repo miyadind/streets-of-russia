@@ -124,7 +124,7 @@ const AudioManager = {
     const game = window.game;
     if (metadata.owner === 'intro') return !!game && game.state === 'intro';
     if (metadata.owner === 'gundos') return !!game && game.state === 'level' && !game.paused;
-    if (metadata.owner === 'borisVoice') return !!game && game.state === 'level' && !game.paused && this.isSfxOn();
+    if (metadata.owner === 'heroVoice') return !!game && game.state === 'level' && !game.paused && this.isSfxOn();
     return metadata.channel === 'music' ? this.isMusicOn() : this.isSfxOn();
   },
 
