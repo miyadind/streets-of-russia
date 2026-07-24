@@ -255,6 +255,8 @@ class Player {
       const hitbox = this.getHitbox();
       for (const enemy of scene.enemies) {
         if (!enemy.alive) continue;
+        // Projectiles are hazards, not punchable enemies.
+        if (enemy.enemyType === 'gundosFireball') continue;
         if (enemy.enemyType === 'sucker' && (enemy.state === 'windup' || enemy.state === 'slide') && this.canCounterSlide(enemy)) {
           this.attackHasHit = true;
           enemy.interruptSlide(this);

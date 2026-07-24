@@ -154,7 +154,6 @@ class BastardEnemy {
   }
 
   grantGundosMedicHeal(player, scene) {
-    if (this.bastardHealingExit || this.bastardHealExitQueued || this.gundosMedicPhase === 'exit') return 0;
     if (!player || player.hp >= player.maxHp) return 0;
     const amount = Math.min(5, Math.max(0, player.maxHp - player.hp));
     if (amount <= 0) return 0;

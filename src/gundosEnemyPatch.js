@@ -159,6 +159,8 @@
       this.alive = true;
       this.remove = false;
       this.blocksWaveClear = false;
+      this.nonPhysical = true;
+      this.canBeHit = false;
       this.spin = Math.random() * Math.PI * 2;
     }
 
@@ -167,21 +169,24 @@
       this.x -= this.speed * frameScale;
       this.spin += dt * 0.012;
       const player = scene && scene.player;
-      if (player && player.hp > 0 &&
-          Combat.canProjectileHit(this, player, {
-            attackBox: this.getHurtbox(),
-            laneY: this.laneY,
-            laneTolerance: GAME_CONFIG.yHitTolerance
-          })) {
-        player.receiveDamage(8, {
+      const playerBody = player && player.getBodyBox ? player.getBodyBox() : null;
+      const hitsAssignedLane = player && Combat.actorOnLane(
+        player,
+        this.laneY,
+        GAME_CONFIG.yHitTolerance
+      );
+      if (player && player.hp > 0 && hitsAssignedLane && Combat.overlap(this.getHurtbox(), playerBody)) {
+        const hit = player.receiveDamage(8, {
           source: 'ranged',
           knockbackX: -46,
           hitStunMs: 160,
           invulnerableMs: 260
         });
         this.remove = true;
-        if (scene) scene.hitStop = Math.max(scene.hitStop || 0, 55);
-        AudioManager.playSfx('bossAppear', 0.35, { playbackRate: 1.35, startAt: 0.01 });
+        if (hit) {
+          if (scene) scene.hitStop = Math.max(scene.hitStop || 0, 55);
+          AudioManager.playSfx('bossAppear', 0.35, { playbackRate: 1.35, startAt: 0.01 });
+        }
       }
       if (this.x < -80) this.remove = true;
     }
@@ -218,10 +223,7 @@
       }
     }
 
-    takeHit() {
-      this.remove = true;
-      this.alive = false;
-    }
+    takeHit() {}
   }
 
   if (typeof GameApp !== 'undefined') {
@@ -855,6 +857,12 @@
         item.enemy.x = item.x;
         item.enemy.y = item.y;
       }
+    };
+
+    const previousEnemyHasPhysicalPresence = LevelScene.prototype.enemyHasPhysicalPresence;
+    LevelScene.prototype.enemyHasPhysicalPresence = function (enemy) {
+      if (enemy && enemy.nonPhysical) return false;
+      return previousEnemyHasPhysicalPresence.call(this, enemy);
     };
 
     const previousNextScreen = LevelScene.prototype.nextScreen;
