@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.93',
+  buildVersion: '0.4.94',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -3695,7 +3695,6 @@ class BastardEnemy {
     this.gundosMedicPhase = 'none';
     this.gundosMedicTargetX = x;
     this.gundosMedicHealGiven = 0;
-    this.gundosMedicHealLimit = 20;
     this.bastardHealExitQueued = false;
     this.bastardHealingExit = false;
     this.bastardHealExitDirection = -1;
@@ -3764,7 +3763,6 @@ class BastardEnemy {
     this.gundosMedicPhase = 'enter';
     this.gundosMedicTargetX = targetX;
     this.gundosMedicHealGiven = 0;
-    this.gundosMedicHealLimit = 20;
     this.bastardHealExitQueued = false;
     this.bastardHealingExit = false;
     this.x = -70;
@@ -3824,20 +3822,13 @@ class BastardEnemy {
 
   grantGundosMedicHeal(player, scene) {
     if (this.bastardHealingExit || this.bastardHealExitQueued || this.gundosMedicPhase === 'exit') return 0;
-    const remaining = Math.max(0, this.gundosMedicHealLimit - this.gundosMedicHealGiven);
-    const amount = Math.min(5, remaining);
-    if (amount <= 0) {
-      this.queueBastardHealingExit();
-      return 0;
-    }
+    if (!player || player.hp >= player.maxHp) return 0;
+    const amount = Math.min(5, Math.max(0, player.maxHp - player.hp));
+    if (amount <= 0) return 0;
 
     this.gundosMedicHealGiven += amount;
     player.hp = Math.min(player.maxHp, player.hp + amount);
     if (scene && scene.addGundosFloatText) scene.addGundosFloatText('+' + amount + ' HP', this.x, this.y - 150, '#6dff8d');
-    if (this.gundosMedicHealGiven >= this.gundosMedicHealLimit) {
-      this.gundosMedicTimer = Math.min(this.gundosMedicTimer, 1300);
-      this.queueBastardHealingExit();
-    }
     return amount;
   }
 
