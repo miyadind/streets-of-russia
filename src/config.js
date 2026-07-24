@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  "buildVersion": "0.4.106",
+  "buildVersion": "0.4.107",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -555,8 +555,9 @@ const GAME_CONFIG = {
             {
               "type": "zetnik",
               "count": 1,
-              "side": "right",
-              "delayMs": 4800
+              "side": "left",
+              "delayMs": 4800,
+              "alignToPlayerLane": true
             },
             {
               "type": "horse",

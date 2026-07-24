@@ -377,8 +377,17 @@ class LevelScene {
       }
 
       const spawn = this.getSpawnPoint(group.side, i, count);
+      if (group.alignToPlayerLane && this.player) {
+        const zone = this.getWalkZone();
+        spawn.y = Math.max(zone.top, Math.min(zone.bottom, this.player.y));
+      }
       const enemy = this.createEnemy(group.type, spawn.x, spawn.y, enemyId);
       if (!enemy) continue;
+
+      if (group.alignToPlayerLane && enemy.enemyType === 'zetnik') {
+        enemy.y = spawn.y;
+        enemy.chargeLaneY = spawn.y;
+      }
 
       this.enemies.push(enemy);
       if (!playedAppearSound) {

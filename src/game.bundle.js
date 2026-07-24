@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.106",
+  "buildVersion": "0.4.107",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -562,8 +562,9 @@ const GAME_CONFIG = {
             {
               "type": "zetnik",
               "count": 1,
-              "side": "right",
-              "delayMs": 4800
+              "side": "left",
+              "delayMs": 4800,
+              "alignToPlayerLane": true
             },
             {
               "type": "horse",
@@ -6380,8 +6381,17 @@ class LevelScene {
       }
 
       const spawn = this.getSpawnPoint(group.side, i, count);
+      if (group.alignToPlayerLane && this.player) {
+        const zone = this.getWalkZone();
+        spawn.y = Math.max(zone.top, Math.min(zone.bottom, this.player.y));
+      }
       const enemy = this.createEnemy(group.type, spawn.x, spawn.y, enemyId);
       if (!enemy) continue;
+
+      if (group.alignToPlayerLane && enemy.enemyType === 'zetnik') {
+        enemy.y = spawn.y;
+        enemy.chargeLaneY = spawn.y;
+      }
 
       this.enemies.push(enemy);
       if (!playedAppearSound) {
