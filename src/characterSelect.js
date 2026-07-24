@@ -53,7 +53,7 @@ const CharacterSelect = {
     if (click) {
       for (let i = 0; i < this.heroes.length; i++) {
         const info = this.getInfoButtonBox(i);
-        if (this.isPointInCircle(click, info)) {
+        if (this.isPointInBox(click, info)) {
           this.setSelection(i);
           this.footerFocus = null;
           this.openInfo();
@@ -127,7 +127,7 @@ const CharacterSelect = {
 
   getInfoButtonBox(i) {
     const box = this.getCardBox(i);
-    return { x: box.x + 25, y: box.y + 25, r: 14 };
+    return { x: box.x + 18, y: box.y + 18, w: 122, h: 30 };
   },
 
   getConfirmBox() {
@@ -185,7 +185,7 @@ const CharacterSelect = {
     const box = this.getCardBox(index);
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
     ctx.fillRect(box.x, box.y, box.w, box.h);
-    ctx.strokeStyle = selected ? '#ffffff' : 'rgba(255,255,255,0.35)';
+    ctx.strokeStyle = selected ? '#ffd447' : 'rgba(255,255,255,0.35)';
     ctx.lineWidth = selected ? 5 : 2;
     ctx.strokeRect(box.x, box.y, box.w, box.h);
 
@@ -237,22 +237,20 @@ const CharacterSelect = {
   drawInfoIcon(ctx, index, selected, color) {
     const icon = this.getInfoButtonBox(index);
     ctx.save();
-    ctx.beginPath();
-    ctx.arc(icon.x, icon.y, icon.r, 0, Math.PI * 2);
     ctx.fillStyle = selected ? color : 'rgba(0,0,0,0.72)';
-    ctx.fill();
+    ctx.fillRect(icon.x, icon.y, icon.w, icon.h);
     ctx.lineWidth = selected ? 2.5 : 2;
-    ctx.strokeStyle = selected ? '#fff' : 'rgba(255,255,255,0.74)';
-    ctx.stroke();
+    ctx.strokeStyle = selected ? '#ffd447' : 'rgba(255,255,255,0.74)';
+    ctx.strokeRect(icon.x, icon.y, icon.w, icon.h);
 
-    ctx.font = 'bold 16px Georgia, Times New Roman, serif';
+    ctx.font = 'bold 12px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#fff';
     ctx.strokeStyle = 'rgba(0,0,0,0.75)';
     ctx.lineWidth = 2.5;
-    ctx.strokeText('I', icon.x, icon.y + 0.5);
-    ctx.fillText('I', icon.x, icon.y + 0.5);
+    ctx.strokeText('ИНФОРМАЦИЯ', icon.x + icon.w / 2, icon.y + icon.h / 2 + 0.5);
+    ctx.fillText('ИНФОРМАЦИЯ', icon.x + icon.w / 2, icon.y + icon.h / 2 + 0.5);
     ctx.restore();
   },
 

@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.109",
+  "buildVersion": "0.4.110",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -230,7 +230,7 @@ const GAME_CONFIG = {
       "speed": 1.725,
       "damage": 12,
       "scale": 0.13,
-      "bossMusic": true,
+      "bossMusic": false,
       "bossMusicKey": "bossTheme",
       "attackStartDistance": 420,
       "minDistance": 220,
@@ -358,21 +358,21 @@ const GAME_CONFIG = {
       "fullHeal": true,
       "dropChance": 1,
       "scale": 0.09,
-      "label": "FULL HP"
+      "label": "100% ЗДОРОВЬЯ"
     },
     "pirozhok": {
       "image": "pirozhok",
       "healPercent": 0.2,
       "dropChance": 1,
       "scale": 0.065,
-      "label": "+20% HP"
+      "label": "+20% ЗДОРОВЬЯ"
     },
     "tea": {
       "image": "tea",
       "healPercent": 0.5,
       "dropChance": 1,
       "scale": 0.075,
-      "label": "+50% HP"
+      "label": "+50% ЗДОРОВЬЯ"
     }
   },
   "levelOrder": [
@@ -2236,7 +2236,7 @@ const AudioManager = {
   playSyntheticSfx(key, volume = 1, options = {}) {
     if (!this.isSfxOn()) return;
     const presets = {
-      menuMove: { start: 540, end: 880, duration: 0.095, gain: 0.18, type: 'square' },
+      menuMove: { start: 540, end: 880, duration: 0.12, gain: 0.34, type: 'square' },
       menuSelect: { start: 660, end: 1040, duration: 0.13, gain: 0.22, type: 'triangle' },
       menuBack: { start: 430, end: 260, duration: 0.13, gain: 0.18, type: 'triangle' },
       waveStart: { start: 360, end: 720, duration: 0.18, gain: 0.18, type: 'sawtooth' },
@@ -5678,7 +5678,7 @@ const CharacterSelect = {
     if (click) {
       for (let i = 0; i < this.heroes.length; i++) {
         const info = this.getInfoButtonBox(i);
-        if (this.isPointInCircle(click, info)) {
+        if (this.isPointInBox(click, info)) {
           this.setSelection(i);
           this.footerFocus = null;
           this.openInfo();
@@ -5752,7 +5752,7 @@ const CharacterSelect = {
 
   getInfoButtonBox(i) {
     const box = this.getCardBox(i);
-    return { x: box.x + 25, y: box.y + 25, r: 14 };
+    return { x: box.x + 18, y: box.y + 18, w: 122, h: 30 };
   },
 
   getConfirmBox() {
@@ -5810,7 +5810,7 @@ const CharacterSelect = {
     const box = this.getCardBox(index);
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
     ctx.fillRect(box.x, box.y, box.w, box.h);
-    ctx.strokeStyle = selected ? '#ffffff' : 'rgba(255,255,255,0.35)';
+    ctx.strokeStyle = selected ? '#ffd447' : 'rgba(255,255,255,0.35)';
     ctx.lineWidth = selected ? 5 : 2;
     ctx.strokeRect(box.x, box.y, box.w, box.h);
 
@@ -5862,22 +5862,20 @@ const CharacterSelect = {
   drawInfoIcon(ctx, index, selected, color) {
     const icon = this.getInfoButtonBox(index);
     ctx.save();
-    ctx.beginPath();
-    ctx.arc(icon.x, icon.y, icon.r, 0, Math.PI * 2);
     ctx.fillStyle = selected ? color : 'rgba(0,0,0,0.72)';
-    ctx.fill();
+    ctx.fillRect(icon.x, icon.y, icon.w, icon.h);
     ctx.lineWidth = selected ? 2.5 : 2;
-    ctx.strokeStyle = selected ? '#fff' : 'rgba(255,255,255,0.74)';
-    ctx.stroke();
+    ctx.strokeStyle = selected ? '#ffd447' : 'rgba(255,255,255,0.74)';
+    ctx.strokeRect(icon.x, icon.y, icon.w, icon.h);
 
-    ctx.font = 'bold 16px Georgia, Times New Roman, serif';
+    ctx.font = 'bold 12px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#fff';
     ctx.strokeStyle = 'rgba(0,0,0,0.75)';
     ctx.lineWidth = 2.5;
-    ctx.strokeText('I', icon.x, icon.y + 0.5);
-    ctx.fillText('I', icon.x, icon.y + 0.5);
+    ctx.strokeText('ИНФОРМАЦИЯ', icon.x + icon.w / 2, icon.y + icon.h / 2 + 0.5);
+    ctx.fillText('ИНФОРМАЦИЯ', icon.x + icon.w / 2, icon.y + icon.h / 2 + 0.5);
     ctx.restore();
   },
 
@@ -5999,6 +5997,7 @@ const CharacterSelect = {
     ctx.textAlign = 'left';
   }
 };
+
 
 
 /* ===== src/scene.js ===== */
@@ -10337,11 +10336,6 @@ class GameApp {
       if (resumeCurrentLevel) return;
     }
 
-    if (previousState === 'characterSelect') {
-      this.characterSelectMusicPaused = false;
-      return;
-    }
-
     if (this.isIntroState(nextState)) {
       this.stopManagedMusicForStateChange();
       return;
@@ -10354,6 +10348,12 @@ class GameApp {
     if (nextState === 'level') {
       this.stopIntroAudioForStateChange();
       if (AudioManager.currentMusicKey === this.getMenuMusicKey()) AudioManager.stopMusic();
+      return;
+    }
+
+    if (nextState === 'campaignMap') {
+      this.stopIntroAudioForStateChange();
+      AudioManager.playMusic(this.getMenuMusicKey(), false, true);
       return;
     }
 
@@ -14247,7 +14247,7 @@ window.addEventListener('load', () => {
       if (click) {
         for (let i = 0; i < this.heroes.length; i++) {
           const info = this.getInfoButtonBox(i);
-          if (this.isPointInCircle(click, info)) {
+          if (this.isPointInBox(click, info)) {
             this.selectedIndex = i;
             this.footerFocus = null;
             this.openInfo();
@@ -14521,6 +14521,7 @@ window.addEventListener('load', () => {
     GameApp.prototype.resumeAfterHeroDefeat = function (heroKey) {
       this.ensureRunState();
       if (this.defeatedHeroes[heroKey]) return;
+      const switchingWithoutDeath = this.characterSelectMode === 'switchHero';
       this.selectedHero = heroKey;
       if (!this.scene) this.scene = new LevelScene(this, this.images);
       const respawn = this.casualtyRespawn || {
@@ -14540,8 +14541,10 @@ window.addEventListener('load', () => {
       this.characterSelectMode = null;
       this.paused = false;
       this.setState('level');
-      const level = this.scene.getLevelConfig ? this.scene.getLevelConfig() : null;
-      AudioManager.playMusic((level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme', true);
+      if (!switchingWithoutDeath) {
+        const level = this.scene.getLevelConfig ? this.scene.getLevelConfig() : null;
+        AudioManager.playMusic((level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme', true);
+      }
     };
 
     GameApp.prototype.startRetryRegion = function (heroKey) {
@@ -15224,7 +15227,7 @@ window.addEventListener('load', () => {
       if (click) {
         for (let i = 0; i < this.heroes.length; i++) {
           const info = this.getInfoButtonBox(i);
-          if (this.isPointInCircle(click, info)) {
+          if (this.isPointInBox(click, info)) {
             this.selectedIndex = i;
             this.footerFocus = null;
             this.openInfo();
@@ -18583,7 +18586,7 @@ window.addEventListener('load', () => {
     if (click) {
       for (let i = 0; i < this.heroes.length; i++) {
         const info = this.getInfoButtonBox(i);
-        if (this.isPointInCircle(click, info)) {
+        if (this.isPointInBox(click, info)) {
           if (!this.isHeroDisabled(game, this.heroes[i])) this.selectedIndex = i;
           this.openInfo();
           return;

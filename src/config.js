@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  "buildVersion": "0.4.109",
+  "buildVersion": "0.4.110",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -223,7 +223,7 @@ const GAME_CONFIG = {
       "speed": 1.725,
       "damage": 12,
       "scale": 0.13,
-      "bossMusic": true,
+      "bossMusic": false,
       "bossMusicKey": "bossTheme",
       "attackStartDistance": 420,
       "minDistance": 220,
@@ -351,21 +351,21 @@ const GAME_CONFIG = {
       "fullHeal": true,
       "dropChance": 1,
       "scale": 0.09,
-      "label": "FULL HP"
+      "label": "100% ЗДОРОВЬЯ"
     },
     "pirozhok": {
       "image": "pirozhok",
       "healPercent": 0.2,
       "dropChance": 1,
       "scale": 0.065,
-      "label": "+20% HP"
+      "label": "+20% ЗДОРОВЬЯ"
     },
     "tea": {
       "image": "tea",
       "healPercent": 0.5,
       "dropChance": 1,
       "scale": 0.075,
-      "label": "+50% HP"
+      "label": "+50% ЗДОРОВЬЯ"
     }
   },
   "levelOrder": [

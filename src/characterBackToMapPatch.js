@@ -51,7 +51,7 @@
     if (click) {
       for (let i = 0; i < this.heroes.length; i++) {
         const info = this.getInfoButtonBox(i);
-        if (this.isPointInCircle(click, info)) {
+        if (this.isPointInBox(click, info)) {
           this.setSelection(i);
           this.footerFocus = null;
           this.openInfo();

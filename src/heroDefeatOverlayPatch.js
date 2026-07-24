@@ -121,7 +121,7 @@
     if (click) {
       for (let i = 0; i < this.heroes.length; i++) {
         const info = this.getInfoButtonBox(i);
-        if (this.isPointInCircle(click, info)) {
+        if (this.isPointInBox(click, info)) {
           if (!this.isHeroDisabled(game, this.heroes[i])) this.selectedIndex = i;
           this.openInfo();
           return;

@@ -366,11 +366,6 @@ class GameApp {
       if (resumeCurrentLevel) return;
     }
 
-    if (previousState === 'characterSelect') {
-      this.characterSelectMusicPaused = false;
-      return;
-    }
-
     if (this.isIntroState(nextState)) {
       this.stopManagedMusicForStateChange();
       return;
@@ -383,6 +378,12 @@ class GameApp {
     if (nextState === 'level') {
       this.stopIntroAudioForStateChange();
       if (AudioManager.currentMusicKey === this.getMenuMusicKey()) AudioManager.stopMusic();
+      return;
+    }
+
+    if (nextState === 'campaignMap') {
+      this.stopIntroAudioForStateChange();
+      AudioManager.playMusic(this.getMenuMusicKey(), false, true);
       return;
     }
 

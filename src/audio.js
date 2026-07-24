@@ -415,7 +415,7 @@ const AudioManager = {
   playSyntheticSfx(key, volume = 1, options = {}) {
     if (!this.isSfxOn()) return;
     const presets = {
-      menuMove: { start: 540, end: 880, duration: 0.095, gain: 0.18, type: 'square' },
+      menuMove: { start: 540, end: 880, duration: 0.12, gain: 0.34, type: 'square' },
       menuSelect: { start: 660, end: 1040, duration: 0.13, gain: 0.22, type: 'triangle' },
       menuBack: { start: 430, end: 260, duration: 0.13, gain: 0.18, type: 'triangle' },
       waveStart: { start: 360, end: 720, duration: 0.18, gain: 0.18, type: 'sawtooth' },

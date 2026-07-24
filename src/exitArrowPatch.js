@@ -286,7 +286,7 @@
       if (click) {
         for (let i = 0; i < this.heroes.length; i++) {
           const info = this.getInfoButtonBox(i);
-          if (this.isPointInCircle(click, info)) {
+          if (this.isPointInBox(click, info)) {
             this.selectedIndex = i;
             this.footerFocus = null;
             this.openInfo();
@@ -560,6 +560,7 @@
     GameApp.prototype.resumeAfterHeroDefeat = function (heroKey) {
       this.ensureRunState();
       if (this.defeatedHeroes[heroKey]) return;
+      const switchingWithoutDeath = this.characterSelectMode === 'switchHero';
       this.selectedHero = heroKey;
       if (!this.scene) this.scene = new LevelScene(this, this.images);
       const respawn = this.casualtyRespawn || {
@@ -579,8 +580,10 @@
       this.characterSelectMode = null;
       this.paused = false;
       this.setState('level');
-      const level = this.scene.getLevelConfig ? this.scene.getLevelConfig() : null;
-      AudioManager.playMusic((level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme', true);
+      if (!switchingWithoutDeath) {
+        const level = this.scene.getLevelConfig ? this.scene.getLevelConfig() : null;
+        AudioManager.playMusic((level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme', true);
+      }
     };
 
     GameApp.prototype.startRetryRegion = function (heroKey) {
