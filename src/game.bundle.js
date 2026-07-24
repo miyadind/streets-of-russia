@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.108",
+  "buildVersion": "0.4.109",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -10294,7 +10294,11 @@ class GameApp {
 
   ensureMenuMusic() {
     if (this.state === 'characterSelect') {
-      AudioManager.stopMusic();
+      if (this.characterSelectMusicPaused) {
+        AudioManager.setMusicPauseReason('character-select', true);
+      } else {
+        AudioManager.stopMusic();
+      }
       return;
     }
     if (this.isIntroState(this.state) || this.state === 'level' || this.state === 'splash') return;
@@ -10319,7 +10323,22 @@ class GameApp {
   updateMusicForState(previousState, nextState) {
     if (nextState === 'characterSelect') {
       this.stopIntroAudioForStateChange();
-      AudioManager.stopMusic();
+      this.characterSelectMusicPaused = !!AudioManager.currentMusic;
+      if (this.characterSelectMusicPaused) {
+        AudioManager.setMusicPauseReason('character-select', true);
+      }
+      return;
+    }
+
+    if (previousState === 'characterSelect' && this.characterSelectMusicPaused) {
+      const resumeCurrentLevel = nextState === 'level' && !!this.scene;
+      this.characterSelectMusicPaused = false;
+      AudioManager.setMusicPauseReason('character-select', false);
+      if (resumeCurrentLevel) return;
+    }
+
+    if (previousState === 'characterSelect') {
+      this.characterSelectMusicPaused = false;
       return;
     }
 
