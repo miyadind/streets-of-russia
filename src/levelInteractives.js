@@ -35,10 +35,19 @@
   function canHitPoster(scene, item, state) {
     const player = scene && scene.player;
     if (!player || state.replaced || player.attackHasHit || !isAttackActive(player)) return false;
-    return Combat.canInteractHit(player, item, {
-      attackBox: player.getHitbox(),
-      laneTolerance: item.laneTolerance || GAME_CONFIG.yHitTolerance
-    });
+    const attackBox = player.getHitbox && player.getHitbox();
+    const posterBox = item.hitbox;
+    if (!attackBox || !posterBox) return false;
+
+    // Background objects are reached from their foot line, not by overlapping
+    // the artwork high above the pavement.
+    const reachesPoster = attackBox.x < posterBox.x + posterBox.w &&
+      attackBox.x + attackBox.w > posterBox.x;
+    return reachesPoster && Combat.actorOnLane(
+      player,
+      item.laneY,
+      item.laneTolerance || GAME_CONFIG.yHitTolerance
+    );
   }
 
   function hitPoster(scene, item, state) {
@@ -242,6 +251,19 @@
   LevelScene.prototype.drawLevelBackgroundEffects = function (ctx) {
     const level = this.getLevelConfig();
     const showObjectEditor = typeof DevPanel !== 'undefined' && DevPanel.open && DevPanel.tab === 'OBJECTS';
+    if (level && level.bossFireWall && (this.debug || showObjectEditor)) {
+      const wall = level.bossFireWall;
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255, 115, 32, 0.95)';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([10, 6]);
+      ctx.strokeRect(wall.x, wall.y, wall.w, wall.h);
+      ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(255, 115, 32, 0.9)';
+      ctx.font = 'bold 13px Arial';
+      ctx.fillText('GUNDOS FIRE WALL', wall.x + 8, wall.y - 8);
+      ctx.restore();
+    }
     for (const item of getInteractivesForLevel(level)) {
       if (isVehicleObstacle(item)) {
         if (this.debug || showObjectEditor) {
@@ -310,7 +332,16 @@
     };
 
     DevPanel.getSelectedObjectList = function () {
-      return getInteractivesForLevel(this.getSelectedObjectLevel());
+      const level = this.getSelectedObjectLevel();
+      const objects = getInteractivesForLevel(level).slice();
+      if (level && level.bossFireWall) {
+        objects.push({
+          id: 'gundosFireWall',
+          type: 'fireWall',
+          hitbox: level.bossFireWall
+        });
+      }
+      return objects;
     };
 
     DevPanel.getSelectedObject = function () {
@@ -324,6 +355,8 @@
     DevPanel.getSelectedObjectBox = function () {
       const item = this.getSelectedObject();
       if (!item) return null;
+      const keys = this.objectBoxKeys(item);
+      if (!keys.includes(this.selectedObjectBoxKey)) this.selectedObjectBoxKey = keys[0];
       if (this.selectedObjectBoxKey === 'lane') return item;
       if (!item[this.selectedObjectBoxKey]) item[this.selectedObjectBoxKey] = { x: 0, y: 0, w: 40, h: 40 };
       return item[this.selectedObjectBoxKey];

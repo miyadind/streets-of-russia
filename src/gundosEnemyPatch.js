@@ -480,12 +480,11 @@
     enforceFireRing(scene) {
       if (!this.transformed || !scene || !scene.player) return;
       const player = scene.player;
-      const zone = scene.getWalkZone ? scene.getWalkZone() : { top: GAME_CONFIG.laneTop, bottom: GAME_CONFIG.laneBottom };
-      const wallLeft = this.getFireWallX(scene);
-      const wallRight = this.x - 34;
-      const inY = player.y >= zone.top - 16 && player.y <= zone.bottom + 18;
-      if (!inY || player.x <= wallLeft || player.x >= wallRight + 38) return;
-      player.x = wallLeft - 38;
+      const wall = this.getFireWallRect(scene);
+      const inWallLane = player.y >= wall.y - 16 && player.y <= wall.y + wall.h + 18;
+      const crossesWall = player.x > wall.x - 38 && player.x < wall.x + wall.w + 38;
+      if (!inWallLane || !crossesWall) return;
+      player.x = wall.x - 38;
       if (player.state !== 'knockdown' && player.state !== 'pinned') {
         player.startHitStun(90, 180);
         player.flash = Math.max(player.flash || 0, 180);
@@ -609,34 +608,44 @@
     drawFireWall(ctx, scene) {
       const set = this.images.enemies.gundos || {};
       const img = set.fireWall;
-      const zone = scene && scene.getWalkZone ? scene.getWalkZone() : {
-        top: GAME_CONFIG.laneTop,
-        bottom: GAME_CONFIG.laneBottom
-      };
-      const wallX = this.getFireWallX(scene);
-      const wallY = zone.top - 12;
-      const wallW = Math.max(220, this.x - wallX - 18);
-      const wallH = zone.bottom - zone.top + 36;
+      const wall = this.getFireWallRect(scene);
       ctx.save();
       if (img) {
         ctx.globalAlpha = 0.94;
-        ctx.drawImage(img, wallX, wallY, wallW, wallH);
+        ctx.drawImage(img, wall.x, wall.y, wall.w, wall.h);
       } else {
-        const gradient = ctx.createLinearGradient(wallX, wallY, wallX + wallW, wallY);
+        const gradient = ctx.createLinearGradient(wall.x, wall.y, wall.x + wall.w, wall.y);
         gradient.addColorStop(0, 'rgba(255,70,15,0.15)');
         gradient.addColorStop(0.5, 'rgba(255,210,60,0.95)');
         gradient.addColorStop(1, 'rgba(255,70,15,0.15)');
         ctx.shadowColor = '#ff4a17';
         ctx.shadowBlur = 24;
         ctx.fillStyle = gradient;
-        ctx.fillRect(wallX, wallY + 34, wallW, 20);
+        ctx.fillRect(wall.x, wall.y + wall.h * 0.42, wall.w, Math.max(20, wall.h * 0.16));
       }
       ctx.restore();
     }
 
-    getFireWallX(scene) {
-      const zone = scene && scene.getWalkZone ? scene.getWalkZone() : { left: 0 };
-      return Math.max((zone.left || 0) + 18, this.x - 520);
+    getFireWallRect(scene) {
+      const level = scene && scene.getLevelConfig ? scene.getLevelConfig() : null;
+      const configured = level && level.bossFireWall;
+      if (configured && Number.isFinite(configured.x) && Number.isFinite(configured.y) &&
+          Number.isFinite(configured.w) && Number.isFinite(configured.h)) {
+        return configured;
+      }
+
+      const zone = scene && scene.getWalkZone ? scene.getWalkZone() : {
+        left: 0,
+        top: GAME_CONFIG.laneTop,
+        bottom: GAME_CONFIG.laneBottom
+      };
+      const x = Math.max((zone.left || 0) + 18, this.x - 520);
+      return {
+        x,
+        y: zone.top - 12,
+        w: Math.max(220, this.x - x - 18),
+        h: zone.bottom - zone.top + 36
+      };
     }
 
     drawHealthBar(ctx) {
@@ -894,6 +903,7 @@
         ctx.fillStyle = '#222';
         ctx.fillRect(0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
       }
+      if (this.drawLevelBackgroundEffects) this.drawLevelBackgroundEffects(ctx);
 
       ctx.fillStyle = 'rgba(255,255,255,0.025)';
       ctx.fillRect(0, GAME_CONFIG.laneTop, GAME_CONFIG.width, GAME_CONFIG.laneBottom - GAME_CONFIG.laneTop);
