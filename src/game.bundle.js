@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  buildVersion: '0.4.94',
+  buildVersion: '0.4.95',
   width: 1280,
   height: 720,
   targetFPS: 60,
@@ -1657,6 +1657,7 @@ class Player {
     this.flash = 0;
     this.knockdownTimer = 0;
     this.knockdownFacing = 1;
+    this.standUpFacing = 1;
     this.pinnedBy = null;
     this.reviveTextTimer = 0;
     this.reviveText = '';
@@ -1750,6 +1751,7 @@ class Player {
     if (this.hp <= 0) return false;
     if (this.invulnerableTimer > 0 && !options.ignoreInvulnerability) return false;
     const wasAlive = this.hp > 0;
+    const facingBeforeHit = this.facing || 1;
 
     const source = options.source || 'melee';
     let damageAmount = Math.max(0, amount || 0);
@@ -1773,7 +1775,8 @@ class Player {
     if (this.hp > 0 && options.knockdownMs) {
       this.knockDown(options.knockdownMs, {
         force: options.forceKnockdown,
-        facing: options.knockdownFacing || (options.knockbackX ? -Math.sign(options.knockbackX) : this.facing)
+        facing: options.knockdownFacing || (options.knockbackX ? -Math.sign(options.knockbackX) : this.facing),
+        standUpFacing: options.standUpFacing || facingBeforeHit
       });
     } else if (this.hp > 0 && this.state !== 'pinned' && this.state !== 'knockdown') {
       this.startHitStun(options.hitStunMs, options.invulnerableMs);
@@ -2010,6 +2013,7 @@ class Player {
     AudioManager.playSfx('playerDown', 0.85);
     this.state = 'knockdown';
     this.knockdownFacing = options.facing ? Math.sign(options.facing) || this.facing || 1 : this.facing || 1;
+    this.standUpFacing = options.standUpFacing ? Math.sign(options.standUpFacing) || this.facing || 1 : this.facing || 1;
     this.facing = this.knockdownFacing;
     this.hitStunTimer = 0;
     this.hurtTimer = 0;
@@ -2027,6 +2031,7 @@ class Player {
     if (!options.force && !this.canBeKnockedDown()) return false;
     AudioManager.playSfx('playerDown', 0.85);
     this.state = 'pinned';
+    if (options.standUpFacing) this.standUpFacing = Math.sign(options.standUpFacing) || this.facing || 1;
     this.hitStunTimer = 0;
     this.hurtTimer = 0;
     this.invulnerableTimer = 0;
@@ -2040,6 +2045,7 @@ class Player {
   }
 
   releaseFromPin() {
+    if (this.standUpFacing) this.facing = Math.sign(this.standUpFacing) || this.facing || 1;
     this.state = 'idle';
     this.hitStunTimer = 0;
     this.hurtTimer = 0;
