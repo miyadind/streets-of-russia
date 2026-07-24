@@ -51,5 +51,6 @@
   "src/storyFlowPatch.js",
   "src/sessionOnlyRunPatch.js",
   "src/heroDefeatOverlayPatch.js",
-  "src/campaignMapDevChapterPatch.js"
+  "src/campaignMapDevChapterPatch.js",
+  "src/borisVoicePatch.js"
 ]

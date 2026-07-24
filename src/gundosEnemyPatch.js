@@ -294,6 +294,7 @@
         this.voice.preload = 'auto';
         this.voice.loop = false;
         this.voice.volume = AudioManager.getSfxVolume(1);
+        AudioManager.registerExternalAudio(this.voice, { owner: 'gundos', channel: 'sfx' });
         this.voice.addEventListener('ended', () => {
           this.voiceEnded = true;
         });
@@ -384,11 +385,13 @@
 
     stopVoice() {
       if (!this.voice) return;
+      const voice = this.voice;
       try {
-        this.voice.pause();
-        this.voice.currentTime = 0;
+        voice.pause();
+        voice.currentTime = 0;
       } catch (error) {}
       this.voice = null;
+      AudioManager.unregisterExternalAudio(voice);
       if (AudioManager.currentMusic) AudioManager.currentMusic.volume = AudioManager.getMusicVolume();
     }
 

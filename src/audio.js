@@ -9,6 +9,8 @@ const AudioManager = {
   musicActuallyPlaying: false,
   activeSfx: [],
   pausedAudio: [],
+  externalAudio: new Map(),
+  audioContexts: new Set(),
   musicPauseReasons: null,
   enemyAppearType: null,
 
@@ -23,6 +25,8 @@ const AudioManager = {
     this.musicActuallyPlaying = false;
     this.activeSfx = [];
     this.pausedAudio = [];
+    this.externalAudio = new Map();
+    this.audioContexts = new Set();
     this.musicPauseReasons = new Set();
     this.enemyAppearType = null;
 
@@ -70,10 +74,77 @@ const AudioManager = {
     if (!Context) return null;
     try {
       this.audioContext = new Context();
+      this.registerAudioContext(this.audioContext);
     } catch (error) {
       this.audioContext = null;
     }
     return this.audioContext;
+  },
+
+  registerAudioContext(context) {
+    if (context) this.audioContexts.add(context);
+    return context;
+  },
+
+  registerExternalAudio(audio, options = {}) {
+    if (!audio) return audio;
+    const metadata = {
+      owner: options.owner || 'external',
+      channel: options.channel || 'sfx',
+      resume: options.resume !== false
+    };
+    this.externalAudio.set(audio, metadata);
+    const cleanup = () => this.externalAudio.delete(audio);
+    audio.addEventListener('error', cleanup, { once: true });
+    if (!audio.loop) audio.addEventListener('ended', cleanup, { once: true });
+    return audio;
+  },
+
+  unregisterExternalAudio(audio) {
+    if (audio) this.externalAudio.delete(audio);
+  },
+
+  stopExternalAudio(owner) {
+    for (const [audio, metadata] of this.externalAudio) {
+      if (owner && metadata.owner !== owner) continue;
+      try {
+        audio.pause();
+        audio.currentTime = 0;
+      } catch (error) {}
+    }
+    this.pausedAudio = (this.pausedAudio || []).filter(audio => {
+      const metadata = this.externalAudio.get(audio);
+      return !metadata || (owner && metadata.owner !== owner);
+    });
+  },
+
+  canResumeExternalAudio(audio) {
+    const metadata = this.externalAudio.get(audio);
+    if (!metadata || !metadata.resume || document.hidden) return false;
+    const game = window.game;
+    if (metadata.owner === 'intro') return !!game && game.state === 'intro';
+    if (metadata.owner === 'gundos') return !!game && game.state === 'level' && !game.paused;
+    if (metadata.owner === 'borisVoice') return !!game && game.state === 'level' && !game.paused && this.isSfxOn();
+    return metadata.channel === 'music' ? this.isMusicOn() : this.isSfxOn();
+  },
+
+  stopAllAudio() {
+    this.stopMusic();
+    for (const audio of this.activeSfx || []) {
+      try {
+        audio.pause();
+        audio.currentTime = 0;
+      } catch (error) {}
+    }
+    this.activeSfx = [];
+    this.stopExternalAudio();
+    this.pausedAudio = [];
+    for (const context of this.audioContexts || []) {
+      try { context.suspend(); } catch (error) {}
+    }
+    if (this.audioContext) {
+      try { this.audioContext.suspend(); } catch (error) {}
+    }
   },
 
   isSoundOn() {
@@ -355,11 +426,11 @@ const AudioManager = {
 
   playMusic(key, forceRestart = false, retryIfBlocked = false) {
     if (!key) return;
-    this.currentMusicKey = key;
-
     const next = this.music[key];
     if (!next || (next.dataset && next.dataset.failed === 'true')) return;
-    this.currentMusic = next;
+    const previous = this.currentMusic;
+    const isSameTrack = previous === next;
+    this.currentMusicKey = key;
 
     if (this.isMusicPausedByGame()) {
       if (forceRestart) {
@@ -369,13 +440,13 @@ const AudioManager = {
       return;
     }
 
-    if (this.currentMusic === next && !forceRestart) {
+    if (isSameTrack && !forceRestart) {
       next.volume = this.getMusicVolume();
       if (!next.paused && this.musicActuallyPlaying) return;
     }
 
-    if (this.currentMusic !== next || forceRestart) {
-      this.stopMusic();
+    if (!isSameTrack || forceRestart) {
+      this.silenceOtherMusic(null);
       this.currentMusic = next;
       if (forceRestart) next.currentTime = 0;
     }
@@ -385,8 +456,14 @@ const AudioManager = {
     }
 
     next.volume = this.getMusicVolume();
+    const playToken = (this.musicPlayToken || 0) + 1;
+    this.musicPlayToken = playToken;
     next.play()
       .then(() => {
+        if (this.musicPlayToken !== playToken || this.currentMusic !== next) {
+          try { next.pause(); next.currentTime = 0; } catch (error) {}
+          return;
+        }
         this.musicActuallyPlaying = true;
         this.silenceOtherMusic(next);
       })
@@ -396,10 +473,15 @@ const AudioManager = {
   },
 
   stopMusic() {
-    if (!this.currentMusic) return;
-    this.currentMusic.pause();
-    this.currentMusic.currentTime = 0;
+    if (this.currentMusic) {
+      try {
+        this.currentMusic.pause();
+        this.currentMusic.currentTime = 0;
+      } catch (error) {}
+    }
     this.currentMusic = null;
+    this.currentMusicKey = null;
+    this.musicPlayToken = (this.musicPlayToken || 0) + 1;
     this.musicActuallyPlaying = false;
     this.silenceOtherMusic(null);
   },
@@ -408,7 +490,8 @@ const AudioManager = {
     const paused = (this.pausedAudio || []).filter(audio => audio && !audio.ended);
     const candidates = [
       this.currentMusic,
-      ...this.activeSfx.filter(item => item && !item.ended)
+      ...this.activeSfx.filter(item => item && !item.ended),
+      ...this.externalAudio.keys()
     ];
 
     for (const audio of candidates) {
@@ -427,9 +510,20 @@ const AudioManager = {
   resumePausedAudio() {
     const paused = this.pausedAudio || [];
     this.pausedAudio = [];
+    for (const context of this.audioContexts || []) {
+      try {
+        if (context.state === 'suspended') context.resume();
+      } catch (error) {}
+    }
+    if (this.audioContext) {
+      try {
+        if (this.audioContext.state === 'suspended') this.audioContext.resume();
+      } catch (error) {}
+    }
     for (const audio of paused) {
       if (!audio || audio.ended) continue;
       try {
+        if (this.externalAudio.has(audio) && !this.canResumeExternalAudio(audio)) continue;
         if (audio === this.currentMusic) audio.volume = this.getMusicVolume();
         audio.play()
           .then(() => {
@@ -460,15 +554,21 @@ const AudioManager = {
 if (typeof document !== 'undefined' && !AudioManager.windowPauseListenersInstalled) {
   document.addEventListener('visibilitychange', () => {
     AudioManager.setMusicPauseReason('hidden-tab', document.visibilityState !== 'visible');
+    if (document.hidden) AudioManager.pauseAllAudio();
   });
 
   window.addEventListener('blur', () => {
     AudioManager.setMusicPauseReason('window-blur', true);
+    AudioManager.pauseAllAudio();
   });
 
   window.addEventListener('focus', () => {
     AudioManager.setMusicPauseReason('window-blur', false);
   });
+
+  const stopForExit = () => AudioManager.stopAllAudio();
+  window.addEventListener('pagehide', stopForExit);
+  window.addEventListener('beforeunload', stopForExit);
 
   AudioManager.windowPauseListenersInstalled = true;
 }

@@ -68,6 +68,7 @@
     if (game.intro.music) return;
 
     game.intro.music = createAudio(INTRO_MUSIC, true, INTRO_MUSIC_VOLUME);
+    AudioManager.registerExternalAudio(game.intro.music, { owner: 'intro', channel: 'music' });
     game.intro.musicMissing = false;
   }
 
@@ -92,21 +93,25 @@
   const originalInit = GameApp.prototype.init;
   GameApp.prototype.init = async function () {
     await originalInit.call(this);
+    if (this.intro && this.intro.voice) {
+      AudioManager.registerExternalAudio(this.intro.voice, { owner: 'intro', channel: 'sfx' });
+    }
     ensureIntroMusic(this);
     installIntroVoiceEndHold(this);
   };
 
   GameApp.prototype.syncIntroAudioVolumes = function () {
     if (!this.intro) return;
-    const enabled = AudioManager.isMusicOn();
+    const musicEnabled = AudioManager.isMusicOn();
+    const voiceEnabled = AudioManager.isSfxOn();
 
     if (this.intro.music) {
       const baseMusicVolume = AudioManager.getMusicVolume ? AudioManager.getMusicVolume() : INTRO_MUSIC_VOLUME;
-      this.intro.music.volume = enabled ? Math.max(0, Math.min(1, baseMusicVolume)) : 0;
+      this.intro.music.volume = musicEnabled ? Math.max(0, Math.min(1, baseMusicVolume)) : 0;
     }
 
     if (this.intro.voice) {
-      this.intro.voice.volume = enabled ? INTRO_VOICE_VOLUME : 0;
+      this.intro.voice.volume = voiceEnabled ? INTRO_VOICE_VOLUME : 0;
     }
   };
 
@@ -249,6 +254,7 @@
       if (!AudioCtor) return;
       if (!this.intro.audioContext) this.intro.audioContext = new AudioCtor();
       const audioCtx = this.intro.audioContext;
+      AudioManager.registerAudioContext(audioCtx);
       if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
 
       const t = audioCtx.currentTime;
@@ -298,6 +304,7 @@
         const click = realSound.cloneNode(true);
         click.volume = 0.22;
         click.currentTime = 0;
+        AudioManager.registerExternalAudio(click, { owner: 'intro', channel: 'sfx', resume: false });
         click.play().catch(() => {
           this.intro.typewriterSoundMissing = true;
           this.playGeneratedIntroTypeClick();

@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.97",
+  "buildVersion": "0.4.98",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -1807,6 +1807,8 @@ const AudioManager = {
   musicActuallyPlaying: false,
   activeSfx: [],
   pausedAudio: [],
+  externalAudio: new Map(),
+  audioContexts: new Set(),
   musicPauseReasons: null,
   enemyAppearType: null,
 
@@ -1821,6 +1823,8 @@ const AudioManager = {
     this.musicActuallyPlaying = false;
     this.activeSfx = [];
     this.pausedAudio = [];
+    this.externalAudio = new Map();
+    this.audioContexts = new Set();
     this.musicPauseReasons = new Set();
     this.enemyAppearType = null;
 
@@ -1868,10 +1872,77 @@ const AudioManager = {
     if (!Context) return null;
     try {
       this.audioContext = new Context();
+      this.registerAudioContext(this.audioContext);
     } catch (error) {
       this.audioContext = null;
     }
     return this.audioContext;
+  },
+
+  registerAudioContext(context) {
+    if (context) this.audioContexts.add(context);
+    return context;
+  },
+
+  registerExternalAudio(audio, options = {}) {
+    if (!audio) return audio;
+    const metadata = {
+      owner: options.owner || 'external',
+      channel: options.channel || 'sfx',
+      resume: options.resume !== false
+    };
+    this.externalAudio.set(audio, metadata);
+    const cleanup = () => this.externalAudio.delete(audio);
+    audio.addEventListener('error', cleanup, { once: true });
+    if (!audio.loop) audio.addEventListener('ended', cleanup, { once: true });
+    return audio;
+  },
+
+  unregisterExternalAudio(audio) {
+    if (audio) this.externalAudio.delete(audio);
+  },
+
+  stopExternalAudio(owner) {
+    for (const [audio, metadata] of this.externalAudio) {
+      if (owner && metadata.owner !== owner) continue;
+      try {
+        audio.pause();
+        audio.currentTime = 0;
+      } catch (error) {}
+    }
+    this.pausedAudio = (this.pausedAudio || []).filter(audio => {
+      const metadata = this.externalAudio.get(audio);
+      return !metadata || (owner && metadata.owner !== owner);
+    });
+  },
+
+  canResumeExternalAudio(audio) {
+    const metadata = this.externalAudio.get(audio);
+    if (!metadata || !metadata.resume || document.hidden) return false;
+    const game = window.game;
+    if (metadata.owner === 'intro') return !!game && game.state === 'intro';
+    if (metadata.owner === 'gundos') return !!game && game.state === 'level' && !game.paused;
+    if (metadata.owner === 'borisVoice') return !!game && game.state === 'level' && !game.paused && this.isSfxOn();
+    return metadata.channel === 'music' ? this.isMusicOn() : this.isSfxOn();
+  },
+
+  stopAllAudio() {
+    this.stopMusic();
+    for (const audio of this.activeSfx || []) {
+      try {
+        audio.pause();
+        audio.currentTime = 0;
+      } catch (error) {}
+    }
+    this.activeSfx = [];
+    this.stopExternalAudio();
+    this.pausedAudio = [];
+    for (const context of this.audioContexts || []) {
+      try { context.suspend(); } catch (error) {}
+    }
+    if (this.audioContext) {
+      try { this.audioContext.suspend(); } catch (error) {}
+    }
   },
 
   isSoundOn() {
@@ -2153,11 +2224,11 @@ const AudioManager = {
 
   playMusic(key, forceRestart = false, retryIfBlocked = false) {
     if (!key) return;
-    this.currentMusicKey = key;
-
     const next = this.music[key];
     if (!next || (next.dataset && next.dataset.failed === 'true')) return;
-    this.currentMusic = next;
+    const previous = this.currentMusic;
+    const isSameTrack = previous === next;
+    this.currentMusicKey = key;
 
     if (this.isMusicPausedByGame()) {
       if (forceRestart) {
@@ -2167,13 +2238,13 @@ const AudioManager = {
       return;
     }
 
-    if (this.currentMusic === next && !forceRestart) {
+    if (isSameTrack && !forceRestart) {
       next.volume = this.getMusicVolume();
       if (!next.paused && this.musicActuallyPlaying) return;
     }
 
-    if (this.currentMusic !== next || forceRestart) {
-      this.stopMusic();
+    if (!isSameTrack || forceRestart) {
+      this.silenceOtherMusic(null);
       this.currentMusic = next;
       if (forceRestart) next.currentTime = 0;
     }
@@ -2183,8 +2254,14 @@ const AudioManager = {
     }
 
     next.volume = this.getMusicVolume();
+    const playToken = (this.musicPlayToken || 0) + 1;
+    this.musicPlayToken = playToken;
     next.play()
       .then(() => {
+        if (this.musicPlayToken !== playToken || this.currentMusic !== next) {
+          try { next.pause(); next.currentTime = 0; } catch (error) {}
+          return;
+        }
         this.musicActuallyPlaying = true;
         this.silenceOtherMusic(next);
       })
@@ -2194,10 +2271,15 @@ const AudioManager = {
   },
 
   stopMusic() {
-    if (!this.currentMusic) return;
-    this.currentMusic.pause();
-    this.currentMusic.currentTime = 0;
+    if (this.currentMusic) {
+      try {
+        this.currentMusic.pause();
+        this.currentMusic.currentTime = 0;
+      } catch (error) {}
+    }
     this.currentMusic = null;
+    this.currentMusicKey = null;
+    this.musicPlayToken = (this.musicPlayToken || 0) + 1;
     this.musicActuallyPlaying = false;
     this.silenceOtherMusic(null);
   },
@@ -2206,7 +2288,8 @@ const AudioManager = {
     const paused = (this.pausedAudio || []).filter(audio => audio && !audio.ended);
     const candidates = [
       this.currentMusic,
-      ...this.activeSfx.filter(item => item && !item.ended)
+      ...this.activeSfx.filter(item => item && !item.ended),
+      ...this.externalAudio.keys()
     ];
 
     for (const audio of candidates) {
@@ -2225,9 +2308,20 @@ const AudioManager = {
   resumePausedAudio() {
     const paused = this.pausedAudio || [];
     this.pausedAudio = [];
+    for (const context of this.audioContexts || []) {
+      try {
+        if (context.state === 'suspended') context.resume();
+      } catch (error) {}
+    }
+    if (this.audioContext) {
+      try {
+        if (this.audioContext.state === 'suspended') this.audioContext.resume();
+      } catch (error) {}
+    }
     for (const audio of paused) {
       if (!audio || audio.ended) continue;
       try {
+        if (this.externalAudio.has(audio) && !this.canResumeExternalAudio(audio)) continue;
         if (audio === this.currentMusic) audio.volume = this.getMusicVolume();
         audio.play()
           .then(() => {
@@ -2258,15 +2352,21 @@ const AudioManager = {
 if (typeof document !== 'undefined' && !AudioManager.windowPauseListenersInstalled) {
   document.addEventListener('visibilitychange', () => {
     AudioManager.setMusicPauseReason('hidden-tab', document.visibilityState !== 'visible');
+    if (document.hidden) AudioManager.pauseAllAudio();
   });
 
   window.addEventListener('blur', () => {
     AudioManager.setMusicPauseReason('window-blur', true);
+    AudioManager.pauseAllAudio();
   });
 
   window.addEventListener('focus', () => {
     AudioManager.setMusicPauseReason('window-blur', false);
   });
+
+  const stopForExit = () => AudioManager.stopAllAudio();
+  window.addEventListener('pagehide', stopForExit);
+  window.addEventListener('beforeunload', stopForExit);
 
   AudioManager.windowPauseListenersInstalled = true;
 }
@@ -12533,6 +12633,7 @@ window.addEventListener('load', () => {
     if (game.intro.music) return;
 
     game.intro.music = createAudio(INTRO_MUSIC, true, INTRO_MUSIC_VOLUME);
+    AudioManager.registerExternalAudio(game.intro.music, { owner: 'intro', channel: 'music' });
     game.intro.musicMissing = false;
   }
 
@@ -12557,21 +12658,25 @@ window.addEventListener('load', () => {
   const originalInit = GameApp.prototype.init;
   GameApp.prototype.init = async function () {
     await originalInit.call(this);
+    if (this.intro && this.intro.voice) {
+      AudioManager.registerExternalAudio(this.intro.voice, { owner: 'intro', channel: 'sfx' });
+    }
     ensureIntroMusic(this);
     installIntroVoiceEndHold(this);
   };
 
   GameApp.prototype.syncIntroAudioVolumes = function () {
     if (!this.intro) return;
-    const enabled = AudioManager.isMusicOn();
+    const musicEnabled = AudioManager.isMusicOn();
+    const voiceEnabled = AudioManager.isSfxOn();
 
     if (this.intro.music) {
       const baseMusicVolume = AudioManager.getMusicVolume ? AudioManager.getMusicVolume() : INTRO_MUSIC_VOLUME;
-      this.intro.music.volume = enabled ? Math.max(0, Math.min(1, baseMusicVolume)) : 0;
+      this.intro.music.volume = musicEnabled ? Math.max(0, Math.min(1, baseMusicVolume)) : 0;
     }
 
     if (this.intro.voice) {
-      this.intro.voice.volume = enabled ? INTRO_VOICE_VOLUME : 0;
+      this.intro.voice.volume = voiceEnabled ? INTRO_VOICE_VOLUME : 0;
     }
   };
 
@@ -12714,6 +12819,7 @@ window.addEventListener('load', () => {
       if (!AudioCtor) return;
       if (!this.intro.audioContext) this.intro.audioContext = new AudioCtor();
       const audioCtx = this.intro.audioContext;
+      AudioManager.registerAudioContext(audioCtx);
       if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
 
       const t = audioCtx.currentTime;
@@ -12763,6 +12869,7 @@ window.addEventListener('load', () => {
         const click = realSound.cloneNode(true);
         click.volume = 0.22;
         click.currentTime = 0;
+        AudioManager.registerExternalAudio(click, { owner: 'intro', channel: 'sfx', resume: false });
         click.play().catch(() => {
           this.intro.typewriterSoundMissing = true;
           this.playGeneratedIntroTypeClick();
@@ -15681,6 +15788,7 @@ window.addEventListener('load', () => {
         this.voice.preload = 'auto';
         this.voice.loop = false;
         this.voice.volume = AudioManager.getSfxVolume(1);
+        AudioManager.registerExternalAudio(this.voice, { owner: 'gundos', channel: 'sfx' });
         this.voice.addEventListener('ended', () => {
           this.voiceEnded = true;
         });
@@ -15771,11 +15879,13 @@ window.addEventListener('load', () => {
 
     stopVoice() {
       if (!this.voice) return;
+      const voice = this.voice;
       try {
-        this.voice.pause();
-        this.voice.currentTime = 0;
+        voice.pause();
+        voice.currentTime = 0;
       } catch (error) {}
       this.voice = null;
+      AudioManager.unregisterExternalAudio(voice);
       if (AudioManager.currentMusic) AudioManager.currentMusic.volume = AudioManager.getMusicVolume();
     }
 
@@ -18613,6 +18723,114 @@ window.addEventListener('load', () => {
 
   CampaignMapScreen.setDevRegionIndex = function (index) {
     setRegionIndex(this, index);
+  };
+})();
+
+
+
+/* ===== src/borisVoicePatch.js ===== */
+(function () {
+  if (typeof GameApp === 'undefined' || typeof AudioManager === 'undefined') return;
+
+  const CLIPS = [
+    'assets/audio/sfx/putin_crysis_war.mp3',
+    'assets/audio/sfx/NO_war.mp3',
+    'assets/audio/sfx/Putin_ebnutii.mp3'
+  ];
+  const IDLE_DELAY_MS = 60000;
+
+  function isBorisActive(game) {
+    return !!(game && game.scene && game.scene.player && game.scene.player.heroKey === 'boris');
+  }
+
+  function isGameplayIdle(game) {
+    const player = game && game.scene && game.scene.player;
+    if (!isBorisActive(game) || !player || game.state !== 'level' || game.paused ||
+        (typeof DevPanel !== 'undefined' && DevPanel.open) ||
+        (game.scene && game.scene.gundosIntroLocked)) return false;
+
+    if (player.state !== 'idle') return false;
+    return !Input.pressed('a') && !Input.pressed('d') && !Input.pressed('w') && !Input.pressed('s') &&
+      !Input.pressed('arrowleft') && !Input.pressed('arrowright') &&
+      !Input.pressed('arrowup') && !Input.pressed('arrowdown') &&
+      !Input.pressed('space') && !Input.pressed('enter');
+  }
+
+  function stopVoice(game) {
+    if (!game) return;
+    AudioManager.stopExternalAudio('borisVoice');
+    if (game.borisVoiceAudio) AudioManager.unregisterExternalAudio(game.borisVoiceAudio);
+    game.borisVoiceAudio = null;
+    game.borisVoicePlaying = false;
+  }
+
+  function playVoice(game, index) {
+    if (!game || !AudioManager.isSfxOn()) return false;
+    const safeIndex = (index + CLIPS.length) % CLIPS.length;
+    stopVoice(game);
+
+    const audio = new Audio(CLIPS[safeIndex]);
+    audio.preload = 'auto';
+    audio.volume = AudioManager.getSfxVolume(1);
+    game.borisVoiceIndex = safeIndex;
+    game.borisVoiceAudio = audio;
+    game.borisVoicePlaying = true;
+    game.borisVoiceIdleMs = 0;
+    AudioManager.registerExternalAudio(audio, { owner: 'borisVoice', channel: 'sfx' });
+
+    const finish = () => {
+      if (game.borisVoiceAudio !== audio) return;
+      AudioManager.unregisterExternalAudio(audio);
+      game.borisVoiceAudio = null;
+      game.borisVoicePlaying = false;
+      game.borisVoiceIdleMs = 0;
+    };
+    audio.addEventListener('ended', finish, { once: true });
+    audio.addEventListener('error', finish, { once: true });
+    audio.play().catch(finish);
+    return true;
+  }
+
+  const previousInit = GameApp.prototype.init;
+  GameApp.prototype.init = async function () {
+    await previousInit.call(this);
+    this.borisVoiceIndex = 0;
+    this.borisVoiceAutoIndex = 0;
+    this.borisVoiceIdleMs = 0;
+    this.borisVoicePlaying = false;
+    this.borisVoiceAudio = null;
+  };
+
+  const previousSetState = GameApp.prototype.setState;
+  GameApp.prototype.setState = function (nextState) {
+    if (nextState !== 'level') stopVoice(this);
+    if (nextState !== 'level') this.borisVoiceIdleMs = 0;
+    return previousSetState.call(this, nextState);
+  };
+
+  const previousUpdate = GameApp.prototype.update;
+  GameApp.prototype.update = function (dt) {
+    if (this.state === 'level') {
+      if (Input.consume('z') && isBorisActive(this)) {
+        this.borisVoiceAutoIndex = (this.borisVoiceIndex + CLIPS.length - 1) % CLIPS.length;
+        playVoice(this, this.borisVoiceAutoIndex);
+      } else if (Input.consume('x') && isBorisActive(this)) {
+        this.borisVoiceAutoIndex = (this.borisVoiceIndex + 1) % CLIPS.length;
+        playVoice(this, this.borisVoiceAutoIndex);
+      }
+
+      if (!isBorisActive(this) && this.borisVoicePlaying) stopVoice(this);
+      if (this.borisVoicePlaying || !isGameplayIdle(this)) {
+        this.borisVoiceIdleMs = 0;
+      } else {
+        this.borisVoiceIdleMs += Math.max(0, dt || 0);
+        if (this.borisVoiceIdleMs >= IDLE_DELAY_MS) {
+          playVoice(this, this.borisVoiceAutoIndex);
+          this.borisVoiceAutoIndex = (this.borisVoiceAutoIndex + 1) % CLIPS.length;
+        }
+      }
+    }
+    return previousUpdate.call(this, dt);
   };
 })();
 
