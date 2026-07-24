@@ -322,6 +322,10 @@ class GameApp {
   }
 
   ensureMenuMusic() {
+    if (this.state === 'characterSelect') {
+      AudioManager.stopMusic();
+      return;
+    }
     if (this.isIntroState(this.state) || this.state === 'level' || this.state === 'splash') return;
     this.stopIntroAudioForStateChange();
     AudioManager.playMusic(this.getMenuMusicKey(), false, true);
@@ -342,6 +346,12 @@ class GameApp {
   }
 
   updateMusicForState(previousState, nextState) {
+    if (nextState === 'characterSelect') {
+      this.stopIntroAudioForStateChange();
+      AudioManager.stopMusic();
+      return;
+    }
+
     if (this.isIntroState(nextState)) {
       this.stopManagedMusicForStateChange();
       return;

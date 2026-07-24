@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.105",
+  "buildVersion": "0.4.106",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -10279,6 +10279,10 @@ class GameApp {
   }
 
   ensureMenuMusic() {
+    if (this.state === 'characterSelect') {
+      AudioManager.stopMusic();
+      return;
+    }
     if (this.isIntroState(this.state) || this.state === 'level' || this.state === 'splash') return;
     this.stopIntroAudioForStateChange();
     AudioManager.playMusic(this.getMenuMusicKey(), false, true);
@@ -10299,6 +10303,12 @@ class GameApp {
   }
 
   updateMusicForState(previousState, nextState) {
+    if (nextState === 'characterSelect') {
+      this.stopIntroAudioForStateChange();
+      AudioManager.stopMusic();
+      return;
+    }
+
     if (this.isIntroState(nextState)) {
       this.stopManagedMusicForStateChange();
       return;
