@@ -329,7 +329,11 @@ class LevelScene {
   }
 
   spawnWave(wave) {
-    this.enemies = this.enemies.filter(enemy => enemy && enemy.alive && enemy.enemyType === 'bastard');
+    // A cleared wave may still have visible knockdown/death frames. Keep those
+    // until their own fade timer removes them so the next enemy does not erase corpses.
+    this.enemies = this.enemies.filter(enemy => enemy && !enemy.remove && (
+      !enemy.alive || (enemy.alive && enemy.enemyType === 'bastard')
+    ));
     this.scheduledGroups = [];
 
     for (const group of wave.enemies || []) {
