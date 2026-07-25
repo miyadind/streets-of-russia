@@ -370,6 +370,7 @@ class LevelScene {
 
   spawnEnemyGroup(group) {
     const count = Math.max(0, Number(group.count) || 0);
+    const isChargingZetnik = group && group.type === 'zetnik';
     if (group && group.type === 'dogRegime' && AudioManager.stopHorseAppearSfx) {
       AudioManager.stopHorseAppearSfx();
     }
@@ -381,16 +382,23 @@ class LevelScene {
       }
 
       const spawn = this.getSpawnPoint(group.side, i, count);
-      if (group.alignToPlayerLane && this.player) {
+      if ((group.alignToPlayerLane || isChargingZetnik) && this.player) {
         const zone = this.getWalkZone();
         spawn.y = Math.max(zone.top, Math.min(zone.bottom, this.player.y));
+      }
+      if (isChargingZetnik) {
+        const fromLeft = group.side === 'left' || (group.side === 'both' && i % 2 === 0);
+        const offscreenMargin = 130 + i * 28;
+        spawn.x = fromLeft ? -offscreenMargin : GAME_CONFIG.width + offscreenMargin;
       }
       const enemy = this.createEnemy(group.type, spawn.x, spawn.y, enemyId);
       if (!enemy) continue;
 
-      if (group.alignToPlayerLane && enemy.enemyType === 'zetnik') {
+      if ((group.alignToPlayerLane || isChargingZetnik) && enemy.enemyType === 'zetnik') {
         enemy.y = spawn.y;
         enemy.chargeLaneY = spawn.y;
+        enemy.laneY = spawn.y;
+        enemy.chargeDirection = spawn.x < GAME_CONFIG.width / 2 ? 1 : -1;
       }
 
       this.enemies.push(enemy);
