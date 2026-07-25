@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.110",
+  "buildVersion": "0.4.111",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -10305,6 +10305,22 @@ class GameApp {
     AudioManager.playMusic(this.getMenuMusicKey(), false, true);
   }
 
+  ensureCampaignMapMusic() {
+    if (this.state !== 'campaignMap' || !AudioManager.isMusicOn() || AudioManager.isMusicPausedByGame()) return;
+
+    const key = this.getMenuMusicKey();
+    const track = AudioManager.music && AudioManager.music[key];
+    if (!track || (track.dataset && track.dataset.failed === 'true') || !track.paused) return;
+
+    const now = performance.now();
+    if (now < (this.nextMapMusicRetryAt || 0)) return;
+
+    // The map can open automatically after a level, while Map.mp3 is still loading.
+    // Retry without restarting the track once the browser has made it playable.
+    this.nextMapMusicRetryAt = now + 750;
+    AudioManager.playMusic(key, false, true);
+  }
+
   setState(nextState) {
     const previousState = this.state;
     this.state = nextState;
@@ -10354,6 +10370,7 @@ class GameApp {
     if (nextState === 'campaignMap') {
       this.stopIntroAudioForStateChange();
       AudioManager.playMusic(this.getMenuMusicKey(), false, true);
+      this.nextMapMusicRetryAt = performance.now() + 300;
       return;
     }
 
@@ -10380,6 +10397,7 @@ class GameApp {
     this.syncMusicPauseState();
     DevPanel.update(this);
     this.syncMusicPauseState();
+    this.ensureCampaignMapMusic();
 
     const click = Input.consumePointer();
     if (click && this.handleSpeakerClick(click)) return;
