@@ -10,11 +10,13 @@
 
   function rects() {
     return {
-      panel: { x: GAME_CONFIG.width - 420, y: 94, w: 380, h: 172 },
-      prev: { x: GAME_CONFIG.width - 392, y: 188, w: 58, h: 42 },
-      next: { x: GAME_CONFIG.width - 112, y: 188, w: 58, h: 42 },
-      start: { x: GAME_CONFIG.width - 324, y: 188, w: 202, h: 42 },
-      dev: { x: GAME_CONFIG.width - 392, y: 238, w: 338, h: 28 }
+      panel: { x: GAME_CONFIG.width - 420, y: 94, w: 380, h: 282 },
+      regionPrev: { x: GAME_CONFIG.width - 392, y: 202, w: 58, h: 38 },
+      regionNext: { x: GAME_CONFIG.width - 112, y: 202, w: 58, h: 38 },
+      levelPrev: { x: GAME_CONFIG.width - 392, y: 252, w: 58, h: 38 },
+      levelNext: { x: GAME_CONFIG.width - 112, y: 252, w: 58, h: 38 },
+      start: { x: GAME_CONFIG.width - 324, y: 302, w: 202, h: 42 },
+      dev: { x: GAME_CONFIG.width - 392, y: 352, w: 338, h: 18 }
     };
   }
 
@@ -28,13 +30,43 @@
 
   function setRegionIndex(map, index) {
     map.activeIndex = clampIndex(map, index);
+    map.devLevelIndex = 0;
     if (map.clearSavedProgress) map.clearSavedProgress();
   }
 
   function moveRegion(map, delta) {
     const count = Math.max(1, map.order.length);
     map.activeIndex = (map.activeIndex + delta + count) % count;
+    map.devLevelIndex = 0;
     if (map.clearSavedProgress) map.clearSavedProgress();
+    AudioManager.playSfx('menuMove', 0.7);
+  }
+
+  function getSelectedLevels(map) {
+    const activeId = map.getActiveRegionId ? map.getActiveRegionId() : map.order[map.activeIndex];
+    const regions = Array.isArray(GAME_CONFIG.campaignRegions) ? GAME_CONFIG.campaignRegions : [];
+    const configured = regions.find(region => region && region.mapId === activeId);
+    if (configured && Array.isArray(configured.levels) && configured.levels.length) return configured.levels;
+
+    return (GAME_CONFIG.levelOrder || []).filter((key) => {
+      const level = GAME_CONFIG.levels && GAME_CONFIG.levels[key];
+      return level && level.region === activeId;
+    });
+  }
+
+  function getSelectedLevel(map) {
+    const levels = getSelectedLevels(map);
+    if (!levels.length) return { levels, index: 0, key: null };
+    const index = Math.max(0, Math.min(levels.length - 1, Number(map.devLevelIndex) || 0));
+    map.devLevelIndex = index;
+    return { levels, index, key: levels[index] };
+  }
+
+  function moveLevel(map, delta) {
+    const levels = getSelectedLevels(map);
+    if (!levels.length) return;
+    const current = Math.max(0, Math.min(levels.length - 1, Number(map.devLevelIndex) || 0));
+    map.devLevelIndex = (current + delta + levels.length) % levels.length;
     AudioManager.playSfx('menuMove', 0.7);
   }
 
@@ -42,6 +74,8 @@
     AudioManager.unlock();
     AudioManager.playSfx('menuSelect', 0.85);
     if (game) {
+      const selection = getSelectedLevel(map);
+      game.devStartLevelKey = selection.key;
       if (window.CampaignFlow && window.CampaignFlow.openCharacterSelect) {
         window.CampaignFlow.openCharacterSelect(game, 'campaignStart');
       } else {
@@ -78,6 +112,16 @@
       return true;
     }
 
+    if (Input.consume(',')) {
+      moveLevel(map, -1);
+      return true;
+    }
+
+    if (Input.consume('.')) {
+      moveLevel(map, 1);
+      return true;
+    }
+
     const click = Input.consumePointer();
     if (!click) return false;
 
@@ -87,13 +131,23 @@
       return false;
     }
 
-    if (inRect(click, r.prev)) {
+    if (inRect(click, r.regionPrev)) {
       moveRegion(map, -1);
       return true;
     }
 
-    if (inRect(click, r.next)) {
+    if (inRect(click, r.regionNext)) {
       moveRegion(map, 1);
+      return true;
+    }
+
+    if (inRect(click, r.levelPrev)) {
+      moveLevel(map, -1);
+      return true;
+    }
+
+    if (inRect(click, r.levelNext)) {
+      moveLevel(map, 1);
       return true;
     }
 
@@ -130,6 +184,8 @@
     const r = rects();
     const activeId = map.getActiveRegionId ? map.getActiveRegionId() : map.order[map.activeIndex];
     const label = map.labels && map.labels[activeId] ? map.labels[activeId] : String(activeId || '').toUpperCase();
+    const selection = getSelectedLevel(map);
+    const levelLabel = selection.key ? String(selection.key).toUpperCase() : 'NO LEVELS';
 
     ctx.save();
     ctx.fillStyle = 'rgba(2, 8, 15, 0.84)';
@@ -150,11 +206,18 @@
 
     ctx.font = '15px Arial';
     ctx.fillStyle = 'rgba(255,255,255,0.72)';
-    ctx.fillText('Click arrows or press [ / ] to switch region', r.panel.x + 22, r.panel.y + 108);
+    ctx.fillText('REGION: [ / ] or arrows', r.panel.x + 22, r.panel.y + 104);
+    ctx.fillText('LEVEL: , / . or arrows', r.panel.x + 22, r.panel.y + 154);
 
-    drawButton(ctx, r.prev, '<', false);
-    drawButton(ctx, r.start, 'START REGION', true);
-    drawButton(ctx, r.next, '>', false);
+    ctx.font = 'bold 18px Arial';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('SCREEN ' + (selection.index + 1) + '/' + Math.max(1, selection.levels.length) + ': ' + levelLabel, r.panel.x + 22, r.panel.y + 178);
+
+    drawButton(ctx, r.regionPrev, '<', false);
+    drawButton(ctx, r.start, 'START SCREEN', true);
+    drawButton(ctx, r.regionNext, '>', false);
+    drawButton(ctx, r.levelPrev, '<', false);
+    drawButton(ctx, r.levelNext, '>', false);
     drawButton(ctx, r.dev, 'OPEN DEVELOPER PANEL', false);
     ctx.restore();
   }

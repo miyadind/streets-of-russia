@@ -197,7 +197,10 @@
 
   function startActiveRegionScene(game) {
     if (!game || !game.scene) return;
-    const targetIndex = getActiveRegionStartIndex(game);
+    const order = getLevelOrder();
+    const devStartIndex = game.devStartLevelKey ? order.indexOf(game.devStartLevelKey) : -1;
+    const targetIndex = devStartIndex >= 0 ? devStartIndex : getActiveRegionStartIndex(game);
+    game.devStartLevelKey = null;
     if (game.scene.screenIndex === targetIndex) {
       placePlayerAtLevelStart(game.scene);
       return;
