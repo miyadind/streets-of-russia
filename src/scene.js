@@ -412,6 +412,9 @@ class LevelScene {
 
   getBossMusicKey(wave) {
     for (const group of wave.enemies || []) {
+      // Sucker is always a regular enemy. Its appearance must never turn a
+      // wave into a boss encounter, even if a dev-wave has stale boss flags.
+      if (group.type === 'sucker') continue;
       const enemyConfig = GAME_CONFIG.enemies[group.type] || {};
       const isBoss = enemyConfig.bossMusic === true || group.boss === true;
       if (!isBoss) continue;
@@ -422,10 +425,14 @@ class LevelScene {
 
   handleWaveAudio(wave) {
     const bossMusicKey = this.getBossMusicKey(wave);
+    const containsSucker = (wave.enemies || []).some(group => group.type === 'sucker');
 
     if (bossMusicKey) {
       AudioManager.playSfx('bossAppear', 0.9);
       AudioManager.playMusic(bossMusicKey, true);
+    } else if (containsSucker) {
+      // A Sucker is not a mini-boss: preserve the current area music.
+      AudioManager.playSfx('waveStart', 0.55);
     } else {
       AudioManager.playSfx('waveStart', 0.55);
       const level = this.getLevelConfig();
