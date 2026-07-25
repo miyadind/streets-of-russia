@@ -293,12 +293,10 @@
       }
 
       if (Input.consume('arrowdown') || Input.consume('s')) {
-        this.footerFocus = 'confirm';
-        AudioManager.playSfx('menuMove', 0.65);
+        this.setFooterFocus('confirm');
       }
       if (Input.consume('arrowup') || Input.consume('w')) {
-        if (this.footerFocus) AudioManager.playSfx('menuMove', 0.65);
-        this.footerFocus = null;
+        this.setFooterFocus(null);
       }
       if (Input.consume('arrowleft') || Input.consume('a')) {
         if (this.footerFocus) this.moveFooterFocus(-1);

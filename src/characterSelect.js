@@ -343,9 +343,9 @@ const CharacterSelect = {
   },
 
   drawButton(ctx, x, y, w, h, text, strong) {
-    ctx.fillStyle = strong ? 'rgba(255,255,255,0.16)' : 'rgba(0,0,0,0.4)';
-    ctx.strokeStyle = strong ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.72)';
-    ctx.lineWidth = strong ? 3 : 2;
+    ctx.fillStyle = strong ? 'rgba(255, 202, 54, 0.18)' : 'rgba(0,0,0,0.4)';
+    ctx.strokeStyle = strong ? '#ffd447' : 'rgba(255,255,255,0.72)';
+    ctx.lineWidth = strong ? 4 : 2;
     ctx.fillRect(x, y, w, h);
     ctx.strokeRect(x, y, w, h);
     ctx.font = h < 44 ? 'bold 18px Arial' : 'bold 24px Arial';

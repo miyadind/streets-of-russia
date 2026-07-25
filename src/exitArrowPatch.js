@@ -203,11 +203,27 @@
 
     CharacterSelect.moveSelection = function (direction, game) {
       const activeGame = game || this.getGame();
+      const previousIndex = this.selectedIndex;
       for (let step = 0; step < this.heroes.length; step++) {
         this.selectedIndex = (this.selectedIndex + direction + this.heroes.length) % this.heroes.length;
         if (!this.isHeroDisabled(activeGame, this.heroes[this.selectedIndex])) break;
       }
-      AudioManager.playSfx('menuMove', 0.85, { playbackRate: direction < 0 ? 0.95 : 1.05 });
+      if (this.selectedIndex !== previousIndex) this.playFocusMove();
+    };
+
+    CharacterSelect.playFocusMove = function () {
+      AudioManager.playSfx('menuMove', 0.8);
+    };
+
+    CharacterSelect.setFooterFocus = function (focus) {
+      if (this.footerFocus === focus) return false;
+      this.footerFocus = focus;
+      this.playFocusMove();
+      return true;
+    };
+
+    CharacterSelect.moveFooterFocus = function () {
+      this.setFooterFocus(this.footerFocus === 'confirm' ? 'back' : 'confirm');
     };
 
     CharacterSelect.setSelection = function (index, game) {
@@ -218,7 +234,7 @@
       }
       if (index === this.selectedIndex) return true;
       this.selectedIndex = index;
-      AudioManager.playSfx('menuMove', 0.85);
+      this.playFocusMove();
       return true;
     };
 
@@ -339,13 +355,13 @@
 
       for (let i = 0; i < this.heroes.length; i++) {
         const disabled = this.isHeroDisabled(this.gameRef, this.heroes[i]);
-        this.drawCard(ctx, images, this.heroes[i], i, i === this.selectedIndex && !disabled);
+        this.drawCard(ctx, images, this.heroes[i], i, i === this.selectedIndex && !disabled && !this.footerFocus);
       }
 
       const back = this.getBackBox();
       const confirm = this.getConfirmBox();
       this.drawButton(ctx, back.x, back.y, back.w, back.h, 'НАЗАД', this.footerFocus === 'back');
-      this.drawButton(ctx, confirm.x, confirm.y, confirm.w, confirm.h, mode === 'casualty' ? 'ПРОДОЛЖИТЬ' : (mode === 'switchHero' ? 'СМЕНИТЬ' : 'ДАЛЕЕ'), this.footerFocus === 'confirm' || !this.footerFocus);
+      this.drawButton(ctx, confirm.x, confirm.y, confirm.w, confirm.h, mode === 'casualty' ? 'ПРОДОЛЖИТЬ' : (mode === 'switchHero' ? 'СМЕНИТЬ' : 'ДАЛЕЕ'), this.footerFocus === 'confirm');
 
       ctx.font = '18px Arial';
       ctx.textAlign = 'center';

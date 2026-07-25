@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.111",
+  "buildVersion": "0.4.112",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -5968,9 +5968,9 @@ const CharacterSelect = {
   },
 
   drawButton(ctx, x, y, w, h, text, strong) {
-    ctx.fillStyle = strong ? 'rgba(255,255,255,0.16)' : 'rgba(0,0,0,0.4)';
-    ctx.strokeStyle = strong ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.72)';
-    ctx.lineWidth = strong ? 3 : 2;
+    ctx.fillStyle = strong ? 'rgba(255, 202, 54, 0.18)' : 'rgba(0,0,0,0.4)';
+    ctx.strokeStyle = strong ? '#ffd447' : 'rgba(255,255,255,0.72)';
+    ctx.lineWidth = strong ? 4 : 2;
     ctx.fillRect(x, y, w, h);
     ctx.strokeRect(x, y, w, h);
     ctx.font = h < 44 ? 'bold 18px Arial' : 'bold 24px Arial';
@@ -14182,11 +14182,27 @@ window.addEventListener('load', () => {
 
     CharacterSelect.moveSelection = function (direction, game) {
       const activeGame = game || this.getGame();
+      const previousIndex = this.selectedIndex;
       for (let step = 0; step < this.heroes.length; step++) {
         this.selectedIndex = (this.selectedIndex + direction + this.heroes.length) % this.heroes.length;
         if (!this.isHeroDisabled(activeGame, this.heroes[this.selectedIndex])) break;
       }
-      AudioManager.playSfx('menuMove', 0.85, { playbackRate: direction < 0 ? 0.95 : 1.05 });
+      if (this.selectedIndex !== previousIndex) this.playFocusMove();
+    };
+
+    CharacterSelect.playFocusMove = function () {
+      AudioManager.playSfx('menuMove', 0.8);
+    };
+
+    CharacterSelect.setFooterFocus = function (focus) {
+      if (this.footerFocus === focus) return false;
+      this.footerFocus = focus;
+      this.playFocusMove();
+      return true;
+    };
+
+    CharacterSelect.moveFooterFocus = function () {
+      this.setFooterFocus(this.footerFocus === 'confirm' ? 'back' : 'confirm');
     };
 
     CharacterSelect.setSelection = function (index, game) {
@@ -14197,7 +14213,7 @@ window.addEventListener('load', () => {
       }
       if (index === this.selectedIndex) return true;
       this.selectedIndex = index;
-      AudioManager.playSfx('menuMove', 0.85);
+      this.playFocusMove();
       return true;
     };
 
@@ -14318,13 +14334,13 @@ window.addEventListener('load', () => {
 
       for (let i = 0; i < this.heroes.length; i++) {
         const disabled = this.isHeroDisabled(this.gameRef, this.heroes[i]);
-        this.drawCard(ctx, images, this.heroes[i], i, i === this.selectedIndex && !disabled);
+        this.drawCard(ctx, images, this.heroes[i], i, i === this.selectedIndex && !disabled && !this.footerFocus);
       }
 
       const back = this.getBackBox();
       const confirm = this.getConfirmBox();
       this.drawButton(ctx, back.x, back.y, back.w, back.h, 'НАЗАД', this.footerFocus === 'back');
-      this.drawButton(ctx, confirm.x, confirm.y, confirm.w, confirm.h, mode === 'casualty' ? 'ПРОДОЛЖИТЬ' : (mode === 'switchHero' ? 'СМЕНИТЬ' : 'ДАЛЕЕ'), this.footerFocus === 'confirm' || !this.footerFocus);
+      this.drawButton(ctx, confirm.x, confirm.y, confirm.w, confirm.h, mode === 'casualty' ? 'ПРОДОЛЖИТЬ' : (mode === 'switchHero' ? 'СМЕНИТЬ' : 'ДАЛЕЕ'), this.footerFocus === 'confirm');
 
       ctx.font = '18px Arial';
       ctx.textAlign = 'center';
@@ -15219,12 +15235,10 @@ window.addEventListener('load', () => {
       }
 
       if (Input.consume('arrowdown') || Input.consume('s')) {
-        this.footerFocus = 'confirm';
-        AudioManager.playSfx('menuMove', 0.65);
+        this.setFooterFocus('confirm');
       }
       if (Input.consume('arrowup') || Input.consume('w')) {
-        if (this.footerFocus) AudioManager.playSfx('menuMove', 0.65);
-        this.footerFocus = null;
+        this.setFooterFocus(null);
       }
       if (Input.consume('arrowleft') || Input.consume('a')) {
         if (this.footerFocus) this.moveFooterFocus(-1);
