@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.114",
+  "buildVersion": "0.4.115",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -644,7 +644,7 @@ const GAME_CONFIG = {
       "name": "Siberia 01",
       "region": "siberia",
       "background": "assets/backgrounds/2/street01.png",
-      "music": "levelTheme",
+      "music": "siberiaTheme",
       "waves": [
         {
           "trigger": "onEnter",
@@ -677,7 +677,7 @@ const GAME_CONFIG = {
       "name": "Siberia 02",
       "region": "siberia",
       "background": "assets/backgrounds/2/street02.png",
-      "music": "levelTheme",
+      "music": "siberiaTheme",
       "waves": [
         {
           "trigger": "onEnter",
@@ -721,7 +721,7 @@ const GAME_CONFIG = {
       "name": "Siberia 03",
       "region": "siberia",
       "background": "assets/backgrounds/2/street03.png",
-      "music": "levelTheme",
+      "music": "siberiaTheme",
       "waves": [
         {
           "trigger": "onEnter",
@@ -1278,6 +1278,7 @@ window.Assets = {
       street01Theme:'assets/audio/music/Dalnii_vostok.mp3',
       street02Theme:'assets/audio/music/Dalnii_vostok.mp3',
       street03Theme:'assets/audio/music/menu-theme.mp3',
+      siberiaTheme:'assets/audio/music/Sibir.mp3',
       bossTheme:'assets/audio/music/Gundos music.mp3'
     },
     sfx:{
