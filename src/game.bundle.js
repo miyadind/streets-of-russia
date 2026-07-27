@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.123",
+  "buildVersion": "0.4.124",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -4276,6 +4276,7 @@ class SuckerEnemy extends DogRegimeEnemy {
       this.alive = false;
       this.state = 'dead';
       this.deadTimer = 0;
+      if (scene && scene.maybeDropPickup) scene.maybeDropPickup(this, { source: 'player' });
       return;
     }
     this.registerFastRetreatHit(player.facing);
@@ -6736,15 +6737,20 @@ class LevelScene {
     if (!enemy || enemy.pickupDropped) return;
     enemy.pickupDropped = true;
     if (options.source !== 'player') return;
-    if (enemy.enemyType !== 'zetnik') return;
-    if (enemy.gundosMinion || enemy.gundosGuarding || enemy.redirectedToBoss) return;
-    if (this.gundosArenaActive || this.gundosIntroActive || this.gundosVictoryPending) return;
 
     const rawX = Number.isFinite(enemy.x) ? enemy.x : GAME_CONFIG.width / 2;
     const rawY = Number.isFinite(enemy.y) ? enemy.y : GAME_CONFIG.laneBottom;
     const x = Math.max(70, Math.min(GAME_CONFIG.width - 70, rawX));
     const y = Math.max(GAME_CONFIG.laneTop + 35, Math.min(GAME_CONFIG.laneBottom, rawY));
-    this.dropPickup('pirozhok', x, y);
+
+    if (enemy.enemyType === 'zetnik') {
+      if (enemy.gundosMinion || enemy.gundosGuarding || enemy.redirectedToBoss) return;
+      if (this.gundosArenaActive || this.gundosIntroActive || this.gundosVictoryPending) return;
+      this.dropPickup('medkit', x, y);
+      return;
+    }
+
+    if (enemy.enemyType === 'sucker') this.dropPickup('tea', x, y);
   }
 
   flushPickupDrops() {
@@ -19163,11 +19169,11 @@ window.HeroVoiceLines = {
   alexey: [
     {
       src: 'assets/audio/sfx/Navalnii1.mp3',
-      text: 'Чего боится эта жаба, сидящая на трубе? Чего боятся эти бункерные воры больше всего? Вы сами отлично знаете: выхода людей на улицы. Потому что это та вещь, этот политический фактор, который нельзя игнорировать. Он самый главный, самый важный, это суть политики. Поэтому не бойтесь выходить на улицы. Выходите не за меня, выходите за себя, за своё будущее.'
+      text: 'Чего боится эта жаба, сидящая на трубе? Чего боятся эти бункерные воры больше всего? Вы сами отлично знаете: выхода людей на улицы. Потому что это та вещь, этот политический фактор, который нельзя игнорировать. Он самый главный, самый важный, это суть политики. Поэтому не бойтесь выходить на улицы. Выходите не за меня, выходите за себя, и за своё будущее.'
     },
     {
       src: 'assets/audio/sfx/Navalnii2.mp3',
-      text: 'Ну не сдавайтесь. Не надо, нельзя сдаваться. Если это произошло, это означает, что мы необыкновенно сильны в этот момент, раз они решили меня убить. И нужно использовать эту силу. Не сдаваться. Помните о том, что мы огромная сила, которая находится под гнётом вот этих вот плохих чуваков, лишь потому что мы не можем осознать, насколько действительно мы сильны. Всё, что нужно для торжества зла, — это бездействие добрых людей. Поэтому бездействовать не надо.'
+      text: 'Ну не сдавайтесь. Не надо, нельзя сдаваться. Если это произошло, это означает, что мы необыкновенно сильны в этот момент, раз они решили меня убить. И нужно использовать эту силу. Не сдаваться. Помните о том, что мы огромная сила, которая находится под гнётом вот этих вот чуваков плохих, лишь потому что мы не можем осознать, насколько действительно мы сильны. Всё, что нужно для торжества зла — это бездействие добрых людей. Поэтому бездействовать не надо.'
     },
     {
       src: 'assets/audio/sfx/Navalnii3.mp3',

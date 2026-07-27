@@ -707,15 +707,20 @@ class LevelScene {
     if (!enemy || enemy.pickupDropped) return;
     enemy.pickupDropped = true;
     if (options.source !== 'player') return;
-    if (enemy.enemyType !== 'zetnik') return;
-    if (enemy.gundosMinion || enemy.gundosGuarding || enemy.redirectedToBoss) return;
-    if (this.gundosArenaActive || this.gundosIntroActive || this.gundosVictoryPending) return;
 
     const rawX = Number.isFinite(enemy.x) ? enemy.x : GAME_CONFIG.width / 2;
     const rawY = Number.isFinite(enemy.y) ? enemy.y : GAME_CONFIG.laneBottom;
     const x = Math.max(70, Math.min(GAME_CONFIG.width - 70, rawX));
     const y = Math.max(GAME_CONFIG.laneTop + 35, Math.min(GAME_CONFIG.laneBottom, rawY));
-    this.dropPickup('pirozhok', x, y);
+
+    if (enemy.enemyType === 'zetnik') {
+      if (enemy.gundosMinion || enemy.gundosGuarding || enemy.redirectedToBoss) return;
+      if (this.gundosArenaActive || this.gundosIntroActive || this.gundosVictoryPending) return;
+      this.dropPickup('medkit', x, y);
+      return;
+    }
+
+    if (enemy.enemyType === 'sucker') this.dropPickup('tea', x, y);
   }
 
   flushPickupDrops() {

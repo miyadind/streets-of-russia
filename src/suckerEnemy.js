@@ -206,6 +206,7 @@ class SuckerEnemy extends DogRegimeEnemy {
       this.alive = false;
       this.state = 'dead';
       this.deadTimer = 0;
+      if (scene && scene.maybeDropPickup) scene.maybeDropPickup(this, { source: 'player' });
       return;
     }
     this.registerFastRetreatHit(player.facing);
