@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.129",
+  "buildVersion": "0.4.130",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -86,7 +86,7 @@ const GAME_CONFIG = {
     "anna": {
       "name": "Анна",
       "role": "fast",
-      "hp": 85,
+      "hp": 100,
       "speed": 4.725,
       "damage": 12,
       "scale": 0.11,
@@ -102,10 +102,12 @@ const GAME_CONFIG = {
       },
       "strength": 3,
       "speedStat": 7,
-      "health": 4,
+      "health": 5,
       "color": "#c163ff",
       "abilities": {
-        "noKnockdown": true
+        "noKnockdown": true,
+        "bossProjectileDamageMultiplier": 0.5,
+        "combo3DamageMultiplier": 2
       },
       "tagline": "Быстрая, резкая, опасная на дистанции",
       "bio": "Журналистка, которая идёт туда, куда другие боятся смотреть. В игре Анна выигрывает не грубой силой, а скоростью, манёвром и точными ударами.",
@@ -288,6 +290,7 @@ const GAME_CONFIG = {
       "hp": 125,
       "speed": 2.025,
       "damage": 14,
+      "attackDamageSource": "ranged",
       "scale": 0.13,
       "walkScale": 0.95,
       "visibleHeight": 0,
@@ -2583,7 +2586,9 @@ class Player {
 
     const source = options.source || 'melee';
     let damageAmount = Math.max(0, amount || 0);
-    if (source === 'ranged' && Number.isFinite(this.abilities.rangedDamageMultiplier)) {
+    if (options.bossAttack && Number.isFinite(this.abilities.bossProjectileDamageMultiplier)) {
+      damageAmount *= Math.max(0, this.abilities.bossProjectileDamageMultiplier);
+    } else if (source === 'ranged' && Number.isFinite(this.abilities.rangedDamageMultiplier)) {
       damageAmount *= Math.max(0, this.abilities.rangedDamageMultiplier);
     } else if (source === 'ranged' && this.abilities.rangedImmune) {
       AudioManager.playSfx('menuMove', 0.45, { playbackRate: 0.72 });
@@ -2776,7 +2781,8 @@ class Player {
   getAttackData() {
     if (this.comboStep === 1) return { duration: 170, activeStart: 25, activeEnd: 120, damage: this.damage, knockback: 24, range: 46 };
     if (this.comboStep === 2) return { duration: 190, activeStart: 30, activeEnd: 135, damage: this.damage + 5, knockback: 32, range: 52 };
-    return { duration: 240, activeStart: 34, activeEnd: 160, damage: this.damage + 14, knockback: 68, range: 62 };
+    const combo3Multiplier = Number(this.abilities.combo3DamageMultiplier) || 1;
+    return { duration: 240, activeStart: 34, activeEnd: 160, damage: Math.round((this.damage + 14) * combo3Multiplier), knockback: 68, range: 62 };
   }
 
   getHitbox() {
@@ -3000,6 +3006,7 @@ class DogRegimeEnemy {
     const config = GAME_CONFIG.enemies[this.enemyType] || GAME_CONFIG.enemies.dogRegime;
     this.speed = config.speed;
     this.damage = config.damage;
+    this.attackDamageSource = config.attackDamageSource || 'melee';
     this.maxHp = config.hp;
     this.scale = config.scale || GAME_CONFIG.enemyScale;
     this.attackScale = config.attackScale || 1;
@@ -3395,7 +3402,7 @@ class DogRegimeEnemy {
       const player = scene.player;
       if (this.canClubReachPlayer(player, false)) {
         const hit = player.receiveDamage(this.damage, {
-          source: 'melee',
+          source: this.attackDamageSource,
           knockbackX: this.facing * 18
         });
         if (hit) scene.hitStop = 42;
@@ -3701,7 +3708,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
     })) return;
 
     const hit = player.receiveDamage(this.damage, {
-      source: 'ranged',
+      source: 'melee',
       knockbackX: 0,
       knockdownMs: this.knockdownMs,
       forceKnockdown: true,
@@ -3816,7 +3823,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
         })) {
       this.gundosHitPlayer = true;
       player.receiveDamage(this.damage, {
-        source: 'ranged',
+        source: 'melee',
         knockbackX: 0,
         knockdownMs: this.knockdownMs,
         forceKnockdown: true,
@@ -3936,7 +3943,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
         })) return;
 
     const hit = player.receiveDamage(this.damage, {
-      source: 'ranged',
+      source: 'melee',
       knockbackX: 0,
       knockdownMs: this.knockdownMs,
       forceKnockdown: true,
@@ -4336,7 +4343,7 @@ class SuckerEnemy extends DogRegimeEnemy {
   pinPlayer(scene) {
     const player = scene.player;
     const hit = player.receiveDamage(this.damage, {
-      source: 'ranged',
+      source: 'melee',
       knockbackX: 0,
       knockdownMs: 180,
       forceKnockdown: true,
@@ -7415,6 +7422,7 @@ const DevPanel = {
       buildVersion: DEFAULT_GAME_CONFIG.buildVersion,
       'heroes.alexey.speed': DEFAULT_GAME_CONFIG.heroes.alexey.speed,
       'heroes.anna.speed': DEFAULT_GAME_CONFIG.heroes.anna.speed,
+      'heroes.anna.hp': DEFAULT_GAME_CONFIG.heroes.anna.hp,
       'heroes.boris.speed': DEFAULT_GAME_CONFIG.heroes.boris.speed,
       'enemies.dogRegime.speed': DEFAULT_GAME_CONFIG.enemies.dogRegime.speed,
       'enemies.zetnik.speed': DEFAULT_GAME_CONFIG.enemies.zetnik.speed,
@@ -11250,6 +11258,7 @@ window.addEventListener('load', () => {
     hp: 125,
     speed: 2.025,
     damage: 14,
+    attackDamageSource: 'ranged',
     scale: 0.13,
     walkScale: 0.95,
     visibleHeight: 0,
@@ -16050,6 +16059,7 @@ window.addEventListener('load', () => {
         const fireballDamage = Number(GAME_CONFIG.enemies.gundos.fireballDamage) || 24;
         const hit = player.receiveDamage(fireballDamage, {
           source: 'ranged',
+          bossAttack: true,
           knockbackX: -46,
           hitStunMs: 160,
           invulnerableMs: 260

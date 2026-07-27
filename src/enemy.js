@@ -36,6 +36,7 @@ class DogRegimeEnemy {
     const config = GAME_CONFIG.enemies[this.enemyType] || GAME_CONFIG.enemies.dogRegime;
     this.speed = config.speed;
     this.damage = config.damage;
+    this.attackDamageSource = config.attackDamageSource || 'melee';
     this.maxHp = config.hp;
     this.scale = config.scale || GAME_CONFIG.enemyScale;
     this.attackScale = config.attackScale || 1;
@@ -431,7 +432,7 @@ class DogRegimeEnemy {
       const player = scene.player;
       if (this.canClubReachPlayer(player, false)) {
         const hit = player.receiveDamage(this.damage, {
-          source: 'melee',
+          source: this.attackDamageSource,
           knockbackX: this.facing * 18
         });
         if (hit) scene.hitStop = 42;

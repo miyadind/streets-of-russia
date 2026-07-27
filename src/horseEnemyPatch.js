@@ -25,6 +25,7 @@
     hp: 125,
     speed: 2.025,
     damage: 14,
+    attackDamageSource: 'ranged',
     scale: 0.13,
     walkScale: 0.95,
     visibleHeight: 0,

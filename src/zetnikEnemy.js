@@ -132,7 +132,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
     })) return;
 
     const hit = player.receiveDamage(this.damage, {
-      source: 'ranged',
+      source: 'melee',
       knockbackX: 0,
       knockdownMs: this.knockdownMs,
       forceKnockdown: true,
@@ -247,7 +247,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
         })) {
       this.gundosHitPlayer = true;
       player.receiveDamage(this.damage, {
-        source: 'ranged',
+        source: 'melee',
         knockbackX: 0,
         knockdownMs: this.knockdownMs,
         forceKnockdown: true,
@@ -367,7 +367,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
         })) return;
 
     const hit = player.receiveDamage(this.damage, {
-      source: 'ranged',
+      source: 'melee',
       knockbackX: 0,
       knockdownMs: this.knockdownMs,
       forceKnockdown: true,

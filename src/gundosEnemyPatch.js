@@ -182,6 +182,7 @@
         const fireballDamage = Number(GAME_CONFIG.enemies.gundos.fireballDamage) || 24;
         const hit = player.receiveDamage(fireballDamage, {
           source: 'ranged',
+          bossAttack: true,
           knockbackX: -46,
           hitStunMs: 160,
           invulnerableMs: 260

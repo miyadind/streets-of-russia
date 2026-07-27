@@ -130,7 +130,9 @@ class Player {
 
     const source = options.source || 'melee';
     let damageAmount = Math.max(0, amount || 0);
-    if (source === 'ranged' && Number.isFinite(this.abilities.rangedDamageMultiplier)) {
+    if (options.bossAttack && Number.isFinite(this.abilities.bossProjectileDamageMultiplier)) {
+      damageAmount *= Math.max(0, this.abilities.bossProjectileDamageMultiplier);
+    } else if (source === 'ranged' && Number.isFinite(this.abilities.rangedDamageMultiplier)) {
       damageAmount *= Math.max(0, this.abilities.rangedDamageMultiplier);
     } else if (source === 'ranged' && this.abilities.rangedImmune) {
       AudioManager.playSfx('menuMove', 0.45, { playbackRate: 0.72 });
@@ -323,7 +325,8 @@ class Player {
   getAttackData() {
     if (this.comboStep === 1) return { duration: 170, activeStart: 25, activeEnd: 120, damage: this.damage, knockback: 24, range: 46 };
     if (this.comboStep === 2) return { duration: 190, activeStart: 30, activeEnd: 135, damage: this.damage + 5, knockback: 32, range: 52 };
-    return { duration: 240, activeStart: 34, activeEnd: 160, damage: this.damage + 14, knockback: 68, range: 62 };
+    const combo3Multiplier = Number(this.abilities.combo3DamageMultiplier) || 1;
+    return { duration: 240, activeStart: 34, activeEnd: 160, damage: Math.round((this.damage + 14) * combo3Multiplier), knockback: 68, range: 62 };
   }
 
   getHitbox() {

@@ -261,7 +261,7 @@ class SuckerEnemy extends DogRegimeEnemy {
   pinPlayer(scene) {
     const player = scene.player;
     const hit = player.receiveDamage(this.damage, {
-      source: 'ranged',
+      source: 'melee',
       knockbackX: 0,
       knockdownMs: 180,
       forceKnockdown: true,

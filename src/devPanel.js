@@ -633,6 +633,7 @@ const DevPanel = {
       buildVersion: DEFAULT_GAME_CONFIG.buildVersion,
       'heroes.alexey.speed': DEFAULT_GAME_CONFIG.heroes.alexey.speed,
       'heroes.anna.speed': DEFAULT_GAME_CONFIG.heroes.anna.speed,
+      'heroes.anna.hp': DEFAULT_GAME_CONFIG.heroes.anna.hp,
       'heroes.boris.speed': DEFAULT_GAME_CONFIG.heroes.boris.speed,
       'enemies.dogRegime.speed': DEFAULT_GAME_CONFIG.enemies.dogRegime.speed,
       'enemies.zetnik.speed': DEFAULT_GAME_CONFIG.enemies.zetnik.speed,
