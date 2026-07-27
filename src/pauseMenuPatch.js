@@ -1,7 +1,7 @@
 (function () {
   if (typeof GameApp === 'undefined') return;
 
-  const PAUSE_ITEMS = ['resume', 'switchHero', 'bestiary', 'developer', 'menu'];
+  const PAUSE_ITEMS = ['resume', 'switchHero', 'bestiary', 'audio', 'developer', 'menu'];
   const GOIDA_SFX = {
     z: { key: 'hotkeyZ', src: 'assets/sounds/Z.mp3' },
     x: { key: 'hotkeyX', src: 'assets/sounds/X.mp3' }
@@ -12,23 +12,27 @@
   }
 
   function resumeRect() {
-    return { x: 390, y: 148, w: 500, h: 62 };
+    return { x: 390, y: 118, w: 500, h: 54 };
   }
 
   function switchHeroRect() {
-    return { x: 390, y: 222, w: 500, h: 62 };
+    return { x: 390, y: 182, w: 500, h: 54 };
   }
 
   function bestiaryRect() {
-    return { x: 390, y: 296, w: 500, h: 62 };
+    return { x: 390, y: 246, w: 500, h: 54 };
+  }
+
+  function audioRect() {
+    return { x: 390, y: 310, w: 500, h: 54 };
   }
 
   function developerRect() {
-    return { x: 390, y: 370, w: 500, h: 62 };
+    return { x: 390, y: 374, w: 500, h: 54 };
   }
 
   function menuRect() {
-    return { x: 390, y: 444, w: 500, h: 62 };
+    return { x: 390, y: 438, w: 500, h: 54 };
   }
 
   function getPauseItemRects() {
@@ -36,6 +40,7 @@
       { key: 'resume', label: 'ПРОДОЛЖИТЬ', rect: resumeRect(), fontSize: 30 },
       { key: 'switchHero', label: 'СМЕНИТЬ ПЕРСОНАЖА', rect: switchHeroRect(), fontSize: 28 },
       { key: 'bestiary', label: 'ТВАРИ', rect: bestiaryRect(), fontSize: 28 },
+      { key: 'audio', label: 'НАСТРОЙКИ ЗВУКА', rect: audioRect(), fontSize: 26 },
       { key: 'developer', label: 'РЕЖИМ РАЗРАБОТЧИКА', rect: developerRect(), fontSize: 25 },
       { key: 'menu', label: 'В МЕНЮ', rect: menuRect(), fontSize: 30 }
     ];
@@ -79,7 +84,47 @@
 
   function setPaused(game, paused) {
     game.paused = paused;
-    if (paused) game.pauseSelection = 0;
+    if (paused) {
+      game.pauseSelection = 0;
+      game.pauseAudioSettings = false;
+      game.pauseAudioSelection = 0;
+    }
+  }
+
+  function getAudioRows() {
+    return [
+      { key: 'sound', label: 'ОБЩИЙ ЗВУК', y: 220 },
+      { key: 'music', label: 'МУЗЫКА', y: 302 },
+      { key: 'sfx', label: 'ЭФФЕКТЫ', y: 384 },
+      { key: 'back', label: 'НАЗАД', y: 484 }
+    ];
+  }
+
+  function getAudioControlRects(row) {
+    return {
+      row: { x: 350, y: row.y, w: 580, h: 60 },
+      minus: { x: 640, y: row.y + 9, w: 52, h: 42 },
+      plus: { x: 852, y: row.y + 9, w: 52, h: 42 }
+    };
+  }
+
+  function ensureAudioSelection(game) {
+    if (!Number.isFinite(game.pauseAudioSelection)) game.pauseAudioSelection = 0;
+    game.pauseAudioSelection = Math.max(0, Math.min(getAudioRows().length - 1, game.pauseAudioSelection));
+  }
+
+  function changeAudioSetting(key, direction) {
+    if (key === 'music') {
+      AudioManager.setMusicVolume(GAME_CONFIG.settings.musicVolume + direction * 0.05);
+      return;
+    }
+    if (key === 'sfx') AudioManager.setSfxVolume(GAME_CONFIG.settings.sfxVolume + direction * 0.05);
+  }
+
+  function activateAudioRow(game, key) {
+    if (key === 'sound') AudioManager.toggleSound();
+    else if (key === 'back') game.pauseAudioSettings = false;
+    AudioManager.playSfx('menuSelect', 0.65);
   }
 
   function startQuickHeroSwitch(game) {
@@ -158,6 +203,12 @@
       if (game.openBestiary) game.openBestiary('level');
       return;
     }
+    if (key === 'audio') {
+      game.pauseAudioSettings = true;
+      game.pauseAudioSelection = 0;
+      AudioManager.playSfx('menuSelect', 0.65);
+      return;
+    }
     if (key === 'developer') {
       openDeveloperPanel(game);
       return;
@@ -173,12 +224,46 @@
   GameApp.prototype.update = function (dt) {
     if (this.state === 'level') {
       if (Input.consume('escape')) {
+        if (this.paused && this.pauseAudioSettings) {
+          this.pauseAudioSettings = false;
+          AudioManager.playSfx('menuBack', 0.65);
+          return;
+        }
         setPaused(this, !this.paused);
         AudioManager.playSfx('menuSelect', 0.65);
         return;
       }
 
       if (this.paused) {
+        if (this.pauseAudioSettings) {
+          ensureAudioSelection(this);
+          const rows = getAudioRows();
+          if (Input.consume('arrowup') || Input.consume('w')) {
+            this.pauseAudioSelection = (this.pauseAudioSelection + rows.length - 1) % rows.length;
+            AudioManager.playSfx('menuMove', 0.7);
+            return;
+          }
+          if (Input.consume('arrowdown') || Input.consume('s')) {
+            this.pauseAudioSelection = (this.pauseAudioSelection + 1) % rows.length;
+            AudioManager.playSfx('menuMove', 0.7);
+            return;
+          }
+          if (Input.consume('arrowleft') || Input.consume('a')) {
+            changeAudioSetting(rows[this.pauseAudioSelection].key, -1);
+            AudioManager.playSfx('menuMove', 0.7);
+            return;
+          }
+          if (Input.consume('arrowright') || Input.consume('d')) {
+            changeAudioSetting(rows[this.pauseAudioSelection].key, 1);
+            AudioManager.playSfx('menuMove', 0.7);
+            return;
+          }
+          if (Input.consume('enter') || Input.consume('space')) {
+            activateAudioRow(this, rows[this.pauseAudioSelection].key);
+            return;
+          }
+        }
+
         ensurePauseSelection(this);
 
         if (Input.consume('arrowup') || Input.consume('w')) {
@@ -208,6 +293,26 @@
         }
 
         if (this.paused) {
+          if (this.pauseAudioSettings) {
+            const rows = getAudioRows();
+            for (let i = 0; i < rows.length; i++) {
+              const controls = getAudioControlRects(rows[i]);
+              if (inRect(click, controls.minus)) {
+                changeAudioSetting(rows[i].key, -1);
+                return;
+              }
+              if (inRect(click, controls.plus)) {
+                changeAudioSetting(rows[i].key, 1);
+                return;
+              }
+              if (inRect(click, controls.row)) {
+                this.pauseAudioSelection = i;
+                activateAudioRow(this, rows[i].key);
+                return;
+              }
+            }
+            return;
+          }
           const items = getPauseItemRects();
           for (let i = 0; i < items.length; i++) {
             if (!inRect(click, items[i].rect)) continue;
@@ -250,6 +355,55 @@
     drawButton(ctx, pauseRect(), 'MENU', false, 18);
 
     if (!this.paused) return;
+    if (this.pauseAudioSettings) {
+      ensureAudioSelection(this);
+      const rows = getAudioRows();
+      ctx.save();
+      ctx.fillStyle = 'rgba(0,0,0,0.58)';
+      ctx.fillRect(0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
+      ctx.font = 'bold 40px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#fff';
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 7;
+      ctx.strokeText('НАСТРОЙКИ ЗВУКА', GAME_CONFIG.width / 2, 152);
+      ctx.fillText('НАСТРОЙКИ ЗВУКА', GAME_CONFIG.width / 2, 152);
+      ctx.restore();
+
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const controls = getAudioControlRects(row);
+        const selected = i === this.pauseAudioSelection;
+        const isSound = row.key === 'sound';
+        const isBack = row.key === 'back';
+        const value = row.key === 'music' ? GAME_CONFIG.settings.musicVolume : row.key === 'sfx' ? GAME_CONFIG.settings.sfxVolume : null;
+        ctx.save();
+        ctx.fillStyle = selected ? 'rgba(130,0,0,0.86)' : 'rgba(0,0,0,0.58)';
+        ctx.strokeStyle = selected ? '#ffd447' : 'rgba(255,255,255,0.7)';
+        ctx.lineWidth = selected ? 4 : 2;
+        ctx.fillRect(controls.row.x, controls.row.y, controls.row.w, controls.row.h);
+        ctx.strokeRect(controls.row.x, controls.row.y, controls.row.w, controls.row.h);
+        ctx.font = 'bold 24px Arial';
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(row.label, controls.row.x + 22, controls.row.y + controls.row.h / 2 + 1);
+        if (isSound) {
+          ctx.textAlign = 'right';
+          ctx.fillStyle = AudioManager.isSoundOn() ? '#8cff8c' : '#ff7777';
+          ctx.fillText(AudioManager.isSoundOn() ? 'ВКЛ' : 'ВЫКЛ', controls.row.x + controls.row.w - 24, controls.row.y + controls.row.h / 2 + 1);
+        } else if (!isBack) {
+          ctx.fillStyle = 'rgba(255,255,255,0.18)';
+          ctx.fillRect(706, controls.row.y + 22, 130, 16);
+          ctx.fillStyle = '#55d5ff';
+          ctx.fillRect(706, controls.row.y + 22, 130 * value, 16);
+          drawButton(ctx, controls.minus, '-', false, 26);
+          drawButton(ctx, controls.plus, '+', false, 26);
+        }
+        ctx.restore();
+      }
+      return;
+    }
     ensurePauseSelection(this);
 
     ctx.save();
@@ -264,7 +418,7 @@
     ctx.fillText('ПАУЗА', GAME_CONFIG.width / 2, 148);
     ctx.font = '18px Arial';
     ctx.fillStyle = 'rgba(255,255,255,0.72)';
-    ctx.fillText('↑/↓ — выбор   Enter/Space — подтвердить   Esc — назад', GAME_CONFIG.width / 2, 540);
+    ctx.fillText('↑/↓ — выбор   Enter/Space — подтвердить   Esc — назад', GAME_CONFIG.width / 2, 600);
     ctx.restore();
 
     const items = getPauseItemRects();

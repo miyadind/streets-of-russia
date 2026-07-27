@@ -195,7 +195,13 @@ const AudioManager = {
   getMusicVolume() {
     if (!this.isSoundOn() || !this.isMusicEnabled()) return 0;
     const base = GAME_CONFIG.settings && GAME_CONFIG.settings.musicVolume != null ? GAME_CONFIG.settings.musicVolume : 0.45;
-    return Math.max(0, Math.min(1, base));
+    const ducking = this.voiceDucking ? 0.28 : 1;
+    return Math.max(0, Math.min(1, base * ducking));
+  },
+
+  setVoiceDucking(active) {
+    this.voiceDucking = !!active;
+    if (this.currentMusic) this.currentMusic.volume = this.getMusicVolume();
   },
 
   setMusicVolume(value) {

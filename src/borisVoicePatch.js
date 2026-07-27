@@ -67,6 +67,7 @@
     game.heroVoiceAudio = null;
     game.heroVoicePlaying = false;
     game.heroVoiceDialogue = null;
+    AudioManager.setVoiceDucking(false);
   }
 
   function playVoice(game, index) {
@@ -88,6 +89,7 @@
       audio
     };
     game.heroVoiceIdleMs = 0;
+    AudioManager.setVoiceDucking(true);
     AudioManager.registerExternalAudio(audio, { owner: 'heroVoice', channel: 'sfx' });
 
     const finish = () => {
