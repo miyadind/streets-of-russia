@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.124",
+  "buildVersion": "0.4.125",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -19204,6 +19204,7 @@ window.HeroVoiceLines = {
 
   const HERO_CLIPS = window.HeroVoiceLines || {};
   const IDLE_DELAY_MS = 30000;
+  const VOICE_TEXT_HOLD_MS = 1000;
 
   function getActiveClips(game) {
     const player = game && game.scene && game.scene.player;
@@ -19256,6 +19257,10 @@ window.HeroVoiceLines = {
       game.heroVoiceAudio = null;
       game.heroVoicePlaying = false;
       game.heroVoiceIdleMs = 0;
+      if (game.heroVoiceDialogue && game.heroVoiceDialogue.audio === audio) {
+        game.heroVoiceDialogue.finishedAt = performance.now();
+      }
+      AudioManager.setVoiceDucking(false);
     };
     audio.addEventListener('ended', finish, { once: true });
     audio.addEventListener('error', finish, { once: true });
@@ -19345,43 +19350,40 @@ window.HeroVoiceLines = {
 
   function drawVoiceBubble(game, ctx) {
     const dialogue = game && game.heroVoiceDialogue;
-    const player = game && game.scene && game.scene.player;
-    if (!dialogue || !player || dialogue.heroKey !== player.heroKey) return;
+    if (!dialogue) return;
+
+    if (dialogue.finishedAt && performance.now() - dialogue.finishedAt >= VOICE_TEXT_HOLD_MS) {
+      game.heroVoiceDialogue = null;
+      return;
+    }
 
     const audio = dialogue.audio;
     const duration = audio && Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : 0;
-    const progress = duration && audio ? Math.max(0.06, Math.min(1, audio.currentTime / duration)) : 1;
+    const progress = dialogue.finishedAt ? 1 : (duration && audio ? Math.max(0.06, Math.min(1, audio.currentTime / duration)) : 1);
     const visibleText = dialogue.text.slice(0, Math.max(1, Math.ceil(dialogue.text.length * progress)));
 
     ctx.save();
-    ctx.font = 'bold 18px Arial';
-    const maxWidth = 430;
-    const lines = wrapText(ctx, visibleText, maxWidth - 34);
-    const lineHeight = 23;
-    const bubbleWidth = Math.min(maxWidth, Math.max(150, ...lines.map(line => ctx.measureText(line).width + 34)));
-    const bubbleHeight = lines.length * lineHeight + 28;
-    const body = player.getHurtbox ? player.getHurtbox() : { y: player.y - 120 };
-    const x = Math.max(16, Math.min(GAME_CONFIG.width - bubbleWidth - 16, player.x - bubbleWidth / 2));
-    const y = Math.max(104, body.y - bubbleHeight - 26);
+    ctx.font = 'bold 17px Arial';
+    const bubbleWidth = 540;
+    const lineHeight = 22;
+    const maxLines = 4;
+    const allLines = wrapText(ctx, visibleText, bubbleWidth - 32);
+    const lines = allLines.slice(-maxLines);
+    const bubbleHeight = maxLines * lineHeight + 24;
+    const x = 16;
+    const y = 104;
 
     ctx.fillStyle = 'rgba(8, 12, 18, 0.92)';
     ctx.strokeStyle = '#ffd447';
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 2;
     ctx.fillRect(x, y, bubbleWidth, bubbleHeight);
     ctx.strokeRect(x, y, bubbleWidth, bubbleHeight);
-    ctx.fillStyle = '#ffd447';
-    ctx.beginPath();
-    ctx.moveTo(player.x - 10, y + bubbleHeight);
-    ctx.lineTo(player.x + 10, y + bubbleHeight);
-    ctx.lineTo(player.x, y + bubbleHeight + 14);
-    ctx.closePath();
-    ctx.fill();
 
     ctx.fillStyle = '#ffffff';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
     for (let index = 0; index < lines.length; index++) {
-      ctx.fillText(lines[index], x + 17, y + 14 + index * lineHeight);
+      ctx.fillText(lines[index], x + 16, y + 13 + index * lineHeight);
     }
     ctx.restore();
   }
