@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.122",
+  "buildVersion": "0.4.123",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -15074,7 +15074,10 @@ window.addEventListener('load', () => {
 
   const previousStartLevel = GameApp.prototype.startLevel;
   GameApp.prototype.startLevel = function () {
-    this.resetTeamRun();
+    // A region transition creates a new scene, but it is still the same run.
+    // Keep the active hero's current HP before the old scene is replaced.
+    this.ensureTeamHpState();
+    this.saveCurrentHeroHp();
     previousStartLevel.call(this);
     if (this.scene && this.campaignMap && Number.isFinite(this.campaignMap.activeIndex)) {
       const targetIndex = window.CampaignRuntime
@@ -19178,11 +19181,11 @@ window.HeroVoiceLines = {
     },
     {
       src: 'assets/audio/sfx/Anna2.mp3',
-      text: 'Адам Кадыров, омерзительный младший сын Кадырова, который возглавляет на сегодняшний день этот эскадрон смерти при Кадырове. Кадыров — это Сталин наших дней.'
+      text: 'Рамзан Кадыров, омерзительный младший сын Кадырова, который возглавляет на сегодняшний день этот эскадрон смерти при Кадырове. Кадыров — это Сталин наших дней.'
     },
     {
       src: 'assets/audio/sfx/Anna3.mp3',
-      text: 'Война — это знакомство с Путиным, потому что он был избран на волне этого мощнейшего военного пиара.'
+      text: 'Война — это знак равенства с Путиным, потому что и Путин знак равенства с войной, потому что он был избран на волне этого мощнейшего военного пиара.'
     }
   ]
 };

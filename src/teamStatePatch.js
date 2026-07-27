@@ -96,7 +96,10 @@
 
   const previousStartLevel = GameApp.prototype.startLevel;
   GameApp.prototype.startLevel = function () {
-    this.resetTeamRun();
+    // A region transition creates a new scene, but it is still the same run.
+    // Keep the active hero's current HP before the old scene is replaced.
+    this.ensureTeamHpState();
+    this.saveCurrentHeroHp();
     previousStartLevel.call(this);
     if (this.scene && this.campaignMap && Number.isFinite(this.campaignMap.activeIndex)) {
       const targetIndex = window.CampaignRuntime
