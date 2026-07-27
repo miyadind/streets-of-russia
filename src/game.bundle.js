@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.118",
+  "buildVersion": "0.4.119",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -16360,6 +16360,7 @@ window.addEventListener('load', () => {
     defeat(scene) {
       if (!this.alive) return;
       this.alive = false;
+      this.deathFacing = -(this.facing || -1);
       this.blocksWaveClear = false;
       this.deathTimer = 0;
       this.stopVoice();
@@ -16420,7 +16421,8 @@ window.addEventListener('load', () => {
         ctx.globalAlpha = 0.55;
       }
       ctx.translate(this.x, this.y);
-      if (this.facing < 0) ctx.scale(-1, 1);
+      const renderFacing = this.alive ? this.facing : (this.deathFacing || this.facing);
+      if (renderFacing < 0) ctx.scale(-1, 1);
       ctx.drawImage(image, -width / 2, -height + drawOffsetY, width, height);
       ctx.restore();
       this.drawHealthBar(ctx);

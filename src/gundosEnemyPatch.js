@@ -538,6 +538,7 @@
     defeat(scene) {
       if (!this.alive) return;
       this.alive = false;
+      this.deathFacing = -(this.facing || -1);
       this.blocksWaveClear = false;
       this.deathTimer = 0;
       this.stopVoice();
@@ -598,7 +599,8 @@
         ctx.globalAlpha = 0.55;
       }
       ctx.translate(this.x, this.y);
-      if (this.facing < 0) ctx.scale(-1, 1);
+      const renderFacing = this.alive ? this.facing : (this.deathFacing || this.facing);
+      if (renderFacing < 0) ctx.scale(-1, 1);
       ctx.drawImage(image, -width / 2, -height + drawOffsetY, width, height);
       ctx.restore();
       this.drawHealthBar(ctx);
