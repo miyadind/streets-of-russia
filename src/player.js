@@ -259,7 +259,7 @@ class Player {
         if (enemy.enemyType === 'gundosFireball') continue;
         if (enemy.enemyType === 'sucker' && (enemy.state === 'windup' || enemy.state === 'slide') && this.canCounterSlide(enemy)) {
           this.attackHasHit = true;
-          enemy.interruptSlide(this);
+          enemy.interruptSlide(this, scene);
           scene.hitStop = GAME_CONFIG.playerHitStopMs;
           break;
         }

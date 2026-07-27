@@ -145,7 +145,7 @@ class SuckerEnemy extends DogRegimeEnemy {
     this.slideY = this.y;
 
     if (player.canCounterSlide(this)) {
-      this.interruptSlide(player);
+      this.interruptSlide(player, scene);
       scene.hitStop = GAME_CONFIG.playerHitStopMs;
       return;
     }
@@ -168,7 +168,7 @@ class SuckerEnemy extends DogRegimeEnemy {
     const player = scene.player;
 
     if (player.canCounterSlide(this)) {
-      this.interruptSlide(player);
+      this.interruptSlide(player, scene);
       scene.hitStop = GAME_CONFIG.playerHitStopMs;
       return;
     }
@@ -192,7 +192,7 @@ class SuckerEnemy extends DogRegimeEnemy {
     }
   }
 
-  interruptSlide(player) {
+  interruptSlide(player, scene) {
     if (player && player.playComboHitSound) player.playComboHitSound();
     this.hp -= player.damage + 8;
     this.flash = 160;

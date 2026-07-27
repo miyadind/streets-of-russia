@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.125",
+  "buildVersion": "0.4.126",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -2707,7 +2707,7 @@ class Player {
         if (enemy.enemyType === 'gundosFireball') continue;
         if (enemy.enemyType === 'sucker' && (enemy.state === 'windup' || enemy.state === 'slide') && this.canCounterSlide(enemy)) {
           this.attackHasHit = true;
-          enemy.interruptSlide(this);
+          enemy.interruptSlide(this, scene);
           scene.hitStop = GAME_CONFIG.playerHitStopMs;
           break;
         }
@@ -4215,7 +4215,7 @@ class SuckerEnemy extends DogRegimeEnemy {
     this.slideY = this.y;
 
     if (player.canCounterSlide(this)) {
-      this.interruptSlide(player);
+      this.interruptSlide(player, scene);
       scene.hitStop = GAME_CONFIG.playerHitStopMs;
       return;
     }
@@ -4238,7 +4238,7 @@ class SuckerEnemy extends DogRegimeEnemy {
     const player = scene.player;
 
     if (player.canCounterSlide(this)) {
-      this.interruptSlide(player);
+      this.interruptSlide(player, scene);
       scene.hitStop = GAME_CONFIG.playerHitStopMs;
       return;
     }
@@ -4262,7 +4262,7 @@ class SuckerEnemy extends DogRegimeEnemy {
     }
   }
 
-  interruptSlide(player) {
+  interruptSlide(player, scene) {
     if (player && player.playComboHitSound) player.playComboHitSound();
     this.hp -= player.damage + 8;
     this.flash = 160;
