@@ -4,7 +4,7 @@
   const STATS_KEY = 'streetsOfRussiaPlayerStatsV1';
   const DEFAULT_NAME = 'Игрок';
   const NAME_MAX = 15;
-  const VICTORY_BG_SRC = 'assets/backgrounds/1/gundos_victory.png?v=story-flow-2';
+  const VICTORY_BG_SRC = 'assets/backgrounds/1/gundos_victory.png?v=story-flow-3';
   const victoryBg = new Image();
   victoryBg.src = VICTORY_BG_SRC;
 

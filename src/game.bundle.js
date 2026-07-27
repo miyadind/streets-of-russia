@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.121",
+  "buildVersion": "0.4.122",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -18124,7 +18124,7 @@ window.addEventListener('load', () => {
   const STATS_KEY = 'streetsOfRussiaPlayerStatsV1';
   const DEFAULT_NAME = 'Игрок';
   const NAME_MAX = 15;
-  const VICTORY_BG_SRC = 'assets/backgrounds/1/gundos_victory.png?v=story-flow-2';
+  const VICTORY_BG_SRC = 'assets/backgrounds/1/gundos_victory.png?v=story-flow-3';
   const victoryBg = new Image();
   victoryBg.src = VICTORY_BG_SRC;
 
