@@ -420,7 +420,10 @@ class GameApp {
     this.setState('level');
     const levelKey = this.scene && this.scene.getLevelKey ? this.scene.getLevelKey() : null;
     const level = levelKey && GAME_CONFIG.levels ? GAME_CONFIG.levels[levelKey] : null;
-    AudioManager.playMusic((level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme', true);
+    const musicKey = window.CampaignRuntime && window.CampaignRuntime.getLevelMusicKey
+      ? window.CampaignRuntime.getLevelMusicKey(level)
+      : (level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme';
+    AudioManager.playMusic(musicKey, true);
   }
 
   update(dt) {

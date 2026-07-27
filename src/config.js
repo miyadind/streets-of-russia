@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  "buildVersion": "0.4.127",
+  "buildVersion": "0.4.128",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -154,6 +154,10 @@ const GAME_CONFIG = {
       "waveClear": "waveClear",
       "bossAppear": "bossAppear"
     }
+  },
+  "regionMusic": {
+    "far-east": "farEastTheme",
+    "siberia": "siberiaTheme"
   },
   "enemies": {
     "dogRegime": {
@@ -486,7 +490,7 @@ const GAME_CONFIG = {
           "dropY": 620
         }
       ],
-      "music": "street01Theme",
+      "music": "farEastTheme",
       "waves": [
         {
           "trigger": "onEnter",
@@ -530,7 +534,7 @@ const GAME_CONFIG = {
       "name": "Far East 02",
       "region": "far-east",
       "background": "assets/backgrounds/1/street02.png",
-      "music": "street02Theme",
+      "music": "farEastTheme",
       "waves": [
         {
           "trigger": "onEnter",
@@ -599,6 +603,7 @@ const GAME_CONFIG = {
       "region": "far-east",
       "background": "assets/backgrounds/1/street03.png",
       "music": "bossTheme",
+      "musicMode": "boss",
       "bossFireWall": {
         "x": 520,
         "y": 588,

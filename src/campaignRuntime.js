@@ -52,6 +52,16 @@
     return level && (level.region || level.regionKey || level.area || level.chapter) || '';
   }
 
+  function getLevelMusicKey(level) {
+    const fallback = (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme';
+    if (!level) return fallback;
+    if (level.musicMode === 'boss') return level.music || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.boss) || 'bossTheme';
+
+    const regionId = getLevelRegionId(level);
+    const regionMusic = GAME_CONFIG.regionMusic && GAME_CONFIG.regionMusic[regionId];
+    return regionMusic || level.music || fallback;
+  }
+
   function getActiveRegionIndex(game) {
     const map = game && game.campaignMap;
     return map && Number.isFinite(map.activeIndex) ? map.activeIndex : 0;
@@ -198,7 +208,7 @@
   function playSceneMusic(scene) {
     if (!scene || !scene.game || !scene.getLevelConfig) return;
     const level = scene.getLevelConfig();
-    const musicKey = (level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme';
+    const musicKey = getLevelMusicKey(level);
     AudioManager.playMusic(musicKey, true, true);
 
     // A campaign transition can change the screen after the first music call.
@@ -232,6 +242,7 @@
     getRegionDefinitions,
     findRegionDefinition,
     getLevelRegionId,
+    getLevelMusicKey,
     getActiveRegionIndex,
     getActiveRegionId,
     getRegionStartIndexById,

@@ -9,8 +9,7 @@ window.Assets = {
       menuThemeAlt:'assets/audio/music/Main_menu2.mp3',
       mapTheme:'assets/audio/music/Map.mp3',
       levelTheme:'assets/audio/music/menu-theme.mp3',
-      street01Theme:'assets/audio/music/Dalnii_vostok.mp3',
-      street02Theme:'assets/audio/music/Dalnii_vostok.mp3',
+      farEastTheme:'assets/audio/music/Dalnii_vostok.mp3',
       street03Theme:'assets/audio/music/menu-theme.mp3',
       siberiaTheme:'assets/audio/music/Sibir.mp3',
       bossTheme:'assets/audio/music/Gundos music.mp3'

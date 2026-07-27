@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.127",
+  "buildVersion": "0.4.128",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -161,6 +161,10 @@ const GAME_CONFIG = {
       "waveClear": "waveClear",
       "bossAppear": "bossAppear"
     }
+  },
+  "regionMusic": {
+    "far-east": "farEastTheme",
+    "siberia": "siberiaTheme"
   },
   "enemies": {
     "dogRegime": {
@@ -493,7 +497,7 @@ const GAME_CONFIG = {
           "dropY": 620
         }
       ],
-      "music": "street01Theme",
+      "music": "farEastTheme",
       "waves": [
         {
           "trigger": "onEnter",
@@ -537,7 +541,7 @@ const GAME_CONFIG = {
       "name": "Far East 02",
       "region": "far-east",
       "background": "assets/backgrounds/1/street02.png",
-      "music": "street02Theme",
+      "music": "farEastTheme",
       "waves": [
         {
           "trigger": "onEnter",
@@ -606,6 +610,7 @@ const GAME_CONFIG = {
       "region": "far-east",
       "background": "assets/backgrounds/1/street03.png",
       "music": "bossTheme",
+      "musicMode": "boss",
       "bossFireWall": {
         "x": 520,
         "y": 588,
@@ -1275,8 +1280,7 @@ window.Assets = {
       menuThemeAlt:'assets/audio/music/Main_menu2.mp3',
       mapTheme:'assets/audio/music/Map.mp3',
       levelTheme:'assets/audio/music/menu-theme.mp3',
-      street01Theme:'assets/audio/music/Dalnii_vostok.mp3',
-      street02Theme:'assets/audio/music/Dalnii_vostok.mp3',
+      farEastTheme:'assets/audio/music/Dalnii_vostok.mp3',
       street03Theme:'assets/audio/music/menu-theme.mp3',
       siberiaTheme:'assets/audio/music/Sibir.mp3',
       bossTheme:'assets/audio/music/Gundos music.mp3'
@@ -8793,6 +8797,16 @@ const CampaignMapScreen = {
     return level && (level.region || level.regionKey || level.area || level.chapter) || '';
   }
 
+  function getLevelMusicKey(level) {
+    const fallback = (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme';
+    if (!level) return fallback;
+    if (level.musicMode === 'boss') return level.music || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.boss) || 'bossTheme';
+
+    const regionId = getLevelRegionId(level);
+    const regionMusic = GAME_CONFIG.regionMusic && GAME_CONFIG.regionMusic[regionId];
+    return regionMusic || level.music || fallback;
+  }
+
   function getActiveRegionIndex(game) {
     const map = game && game.campaignMap;
     return map && Number.isFinite(map.activeIndex) ? map.activeIndex : 0;
@@ -8939,7 +8953,7 @@ const CampaignMapScreen = {
   function playSceneMusic(scene) {
     if (!scene || !scene.game || !scene.getLevelConfig) return;
     const level = scene.getLevelConfig();
-    const musicKey = (level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme';
+    const musicKey = getLevelMusicKey(level);
     AudioManager.playMusic(musicKey, true, true);
 
     // A campaign transition can change the screen after the first music call.
@@ -8973,6 +8987,7 @@ const CampaignMapScreen = {
     getRegionDefinitions,
     findRegionDefinition,
     getLevelRegionId,
+    getLevelMusicKey,
     getActiveRegionIndex,
     getActiveRegionId,
     getRegionStartIndexById,
@@ -10458,7 +10473,10 @@ class GameApp {
     this.setState('level');
     const levelKey = this.scene && this.scene.getLevelKey ? this.scene.getLevelKey() : null;
     const level = levelKey && GAME_CONFIG.levels ? GAME_CONFIG.levels[levelKey] : null;
-    AudioManager.playMusic((level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme', true);
+    const musicKey = window.CampaignRuntime && window.CampaignRuntime.getLevelMusicKey
+      ? window.CampaignRuntime.getLevelMusicKey(level)
+      : (level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme';
+    AudioManager.playMusic(musicKey, true);
   }
 
   update(dt) {
@@ -18276,7 +18294,10 @@ window.addEventListener('load', () => {
       if (game.scene.screenIndex !== targetIndex) {
         window.CampaignRuntime.setSceneScreen(game.scene, targetIndex);
         const level = game.scene.getLevelConfig ? game.scene.getLevelConfig() : null;
-        AudioManager.playMusic((level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme', true);
+        const musicKey = window.CampaignRuntime && window.CampaignRuntime.getLevelMusicKey
+          ? window.CampaignRuntime.getLevelMusicKey(level)
+          : (level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme';
+        AudioManager.playMusic(musicKey, true);
       }
       window.__lastRegionStart = {
         activeIndex: game.campaignMap && game.campaignMap.activeIndex,
@@ -18305,7 +18326,10 @@ window.addEventListener('load', () => {
     if (scene.spawnInitialWave) scene.spawnInitialWave();
 
     const level = scene.getLevelConfig ? scene.getLevelConfig() : null;
-    AudioManager.playMusic((level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme', true);
+    const musicKey = window.CampaignRuntime && window.CampaignRuntime.getLevelMusicKey
+      ? window.CampaignRuntime.getLevelMusicKey(level)
+      : (level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme';
+    AudioManager.playMusic(musicKey, true);
 
     window.__lastRegionStart = {
       activeIndex: game.campaignMap && game.campaignMap.activeIndex,

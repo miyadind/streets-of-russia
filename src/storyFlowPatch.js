@@ -147,7 +147,10 @@
       if (game.scene.screenIndex !== targetIndex) {
         window.CampaignRuntime.setSceneScreen(game.scene, targetIndex);
         const level = game.scene.getLevelConfig ? game.scene.getLevelConfig() : null;
-        AudioManager.playMusic((level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme', true);
+        const musicKey = window.CampaignRuntime && window.CampaignRuntime.getLevelMusicKey
+          ? window.CampaignRuntime.getLevelMusicKey(level)
+          : (level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme';
+        AudioManager.playMusic(musicKey, true);
       }
       window.__lastRegionStart = {
         activeIndex: game.campaignMap && game.campaignMap.activeIndex,
@@ -176,7 +179,10 @@
     if (scene.spawnInitialWave) scene.spawnInitialWave();
 
     const level = scene.getLevelConfig ? scene.getLevelConfig() : null;
-    AudioManager.playMusic((level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme', true);
+    const musicKey = window.CampaignRuntime && window.CampaignRuntime.getLevelMusicKey
+      ? window.CampaignRuntime.getLevelMusicKey(level)
+      : (level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme';
+    AudioManager.playMusic(musicKey, true);
 
     window.__lastRegionStart = {
       activeIndex: game.campaignMap && game.campaignMap.activeIndex,
