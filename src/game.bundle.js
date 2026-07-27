@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.128",
+  "buildVersion": "0.4.129",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -346,6 +346,7 @@ const GAME_CONFIG = {
       "medicRespawnMs": 12500,
       "fireballSpawnMinMs": 1250,
       "fireballSpawnMaxMs": 2350,
+      "fireballDamage": 24,
       "zetnikHitDamage": 1,
       "arenaMoveSpeed": 0,
       "arenaTop": 540,
@@ -15907,6 +15908,7 @@ window.addEventListener('load', () => {
     medicRespawnMs: 12500,
     fireballSpawnMinMs: 1250,
     fireballSpawnMaxMs: 2350,
+    fireballDamage: 24,
     zetnikHitDamage: 1,
     arenaMoveSpeed: 0,
     arenaTop: 540,
@@ -15934,6 +15936,7 @@ window.addEventListener('load', () => {
       medicRespawnMs: 12500,
       fireballSpawnMinMs: 1250,
       fireballSpawnMaxMs: 2350,
+      fireballDamage: 24,
       zetnikHitDamage: 1,
       arenaMoveSpeed: 0,
       arenaTop: 540,
@@ -16044,7 +16047,8 @@ window.addEventListener('load', () => {
         GAME_CONFIG.yHitTolerance
       );
       if (player && player.hp > 0 && hitsAssignedLane && Combat.overlap(this.getHurtbox(), playerBody)) {
-        const hit = player.receiveDamage(8, {
+        const fireballDamage = Number(GAME_CONFIG.enemies.gundos.fireballDamage) || 24;
+        const hit = player.receiveDamage(fireballDamage, {
           source: 'ranged',
           knockbackX: -46,
           hitStunMs: 160,

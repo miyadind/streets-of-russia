@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  "buildVersion": "0.4.128",
+  "buildVersion": "0.4.129",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -339,6 +339,7 @@ const GAME_CONFIG = {
       "medicRespawnMs": 12500,
       "fireballSpawnMinMs": 1250,
       "fireballSpawnMaxMs": 2350,
+      "fireballDamage": 24,
       "zetnikHitDamage": 1,
       "arenaMoveSpeed": 0,
       "arenaTop": 540,

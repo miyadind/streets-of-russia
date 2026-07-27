@@ -40,6 +40,7 @@
     medicRespawnMs: 12500,
     fireballSpawnMinMs: 1250,
     fireballSpawnMaxMs: 2350,
+    fireballDamage: 24,
     zetnikHitDamage: 1,
     arenaMoveSpeed: 0,
     arenaTop: 540,
@@ -67,6 +68,7 @@
       medicRespawnMs: 12500,
       fireballSpawnMinMs: 1250,
       fireballSpawnMaxMs: 2350,
+      fireballDamage: 24,
       zetnikHitDamage: 1,
       arenaMoveSpeed: 0,
       arenaTop: 540,
@@ -177,7 +179,8 @@
         GAME_CONFIG.yHitTolerance
       );
       if (player && player.hp > 0 && hitsAssignedLane && Combat.overlap(this.getHurtbox(), playerBody)) {
-        const hit = player.receiveDamage(8, {
+        const fireballDamage = Number(GAME_CONFIG.enemies.gundos.fireballDamage) || 24;
+        const hit = player.receiveDamage(fireballDamage, {
           source: 'ranged',
           knockbackX: -46,
           hitStunMs: 160,
