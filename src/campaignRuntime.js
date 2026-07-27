@@ -195,6 +195,22 @@
     }
   }
 
+  function playSceneMusic(scene) {
+    if (!scene || !scene.game || !scene.getLevelConfig) return;
+    const level = scene.getLevelConfig();
+    const musicKey = (level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme';
+    AudioManager.playMusic(musicKey, true, true);
+
+    // A campaign transition can change the screen after the first music call.
+    // Retry once after the new track has had time to load in the browser.
+    window.setTimeout(() => {
+      if (!scene.game || scene.game.state !== 'level' || scene.getLevelConfig() !== level) return;
+      if (AudioManager.currentMusicKey !== musicKey || (AudioManager.currentMusic && AudioManager.currentMusic.paused)) {
+        AudioManager.playMusic(musicKey, false, true);
+      }
+    }, 650);
+  }
+
   function startActiveRegionScene(game) {
     if (!game || !game.scene) return;
     const order = getLevelOrder();
@@ -203,9 +219,10 @@
     game.devStartLevelKey = null;
     if (game.scene.screenIndex === targetIndex) {
       placePlayerAtLevelStart(game.scene);
-      return;
+    } else {
+      setSceneScreen(game.scene, targetIndex);
     }
-    setSceneScreen(game.scene, targetIndex);
+    playSceneMusic(game.scene);
   }
 
   window.CampaignRuntime = {
@@ -226,6 +243,7 @@
     resetGundosSceneState,
     placePlayerAtLevelStart,
     setSceneScreen,
+    playSceneMusic,
     startActiveRegionScene
   };
 })();
