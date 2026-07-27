@@ -209,6 +209,7 @@ const AudioManager = {
 
   toggleSound() {
     GAME_CONFIG.settings.soundEnabled = GAME_CONFIG.settings.soundEnabled === false;
+    if (GAME_CONFIG.settings.soundEnabled === false) this.stopActiveSfx();
     this.refreshSettings();
     return GAME_CONFIG.settings.soundEnabled !== false;
   },
@@ -234,6 +235,24 @@ const AudioManager = {
     audio.addEventListener('ended', cleanup, { once: true });
     audio.addEventListener('error', cleanup, { once: true });
     return audio;
+  },
+
+  stopActiveSfx() {
+    for (const audio of this.activeSfx || []) {
+      try {
+        audio.pause();
+        audio.currentTime = 0;
+      } catch (error) {}
+    }
+    this.activeSfx = [];
+
+    for (const [audio, metadata] of this.externalAudio || []) {
+      if (metadata && metadata.channel === 'music') continue;
+      try {
+        audio.pause();
+        audio.currentTime = 0;
+      } catch (error) {}
+    }
   },
 
   getAssetDirectory(src) {
