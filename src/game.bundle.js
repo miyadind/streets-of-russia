@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.126",
+  "buildVersion": "0.4.127",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -19388,10 +19388,10 @@ window.HeroVoiceLines = {
     ctx.restore();
   }
 
-  const previousDraw = GameApp.prototype.draw;
-  GameApp.prototype.draw = function () {
-    previousDraw.call(this);
-    if (this.state === 'level') drawVoiceBubble(this, this.ctx);
+  const previousSceneDraw = LevelScene.prototype.draw;
+  LevelScene.prototype.draw = function (ctx) {
+    previousSceneDraw.call(this, ctx);
+    drawVoiceBubble(this.game, ctx);
   };
 })();
 

@@ -187,9 +187,9 @@
     ctx.restore();
   }
 
-  const previousDraw = GameApp.prototype.draw;
-  GameApp.prototype.draw = function () {
-    previousDraw.call(this);
-    if (this.state === 'level') drawVoiceBubble(this, this.ctx);
+  const previousSceneDraw = LevelScene.prototype.draw;
+  LevelScene.prototype.draw = function (ctx) {
+    previousSceneDraw.call(this, ctx);
+    drawVoiceBubble(this.game, ctx);
   };
 })();
