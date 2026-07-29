@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  "buildVersion": "0.4.134",
+  "buildVersion": "0.4.135",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -325,6 +325,7 @@ const GAME_CONFIG = {
       "speed": 1.8,
       "damage": 16,
       "scale": 0.115,
+      "mirrorSprite": false,
       "attackDamageSource": "ranged",
       "minDistanceX": 150,
       "preferredDistanceX": 235,
@@ -352,6 +353,7 @@ const GAME_CONFIG = {
       "speed": 2.2,
       "damage": 16,
       "scale": 0.12,
+      "finalAttackScale": 1.5,
       "attackDamageSource": "ranged",
       "minDistanceX": 105,
       "preferredDistanceX": 175,

@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.134",
+  "buildVersion": "0.4.135",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -332,6 +332,7 @@ const GAME_CONFIG = {
       "speed": 1.8,
       "damage": 16,
       "scale": 0.115,
+      "mirrorSprite": false,
       "attackDamageSource": "ranged",
       "minDistanceX": 150,
       "preferredDistanceX": 235,
@@ -359,6 +360,7 @@ const GAME_CONFIG = {
       "speed": 2.2,
       "damage": 16,
       "scale": 0.12,
+      "finalAttackScale": 1.5,
       "attackDamageSource": "ranged",
       "minDistanceX": 105,
       "preferredDistanceX": 175,
@@ -3111,6 +3113,8 @@ class DogRegimeEnemy {
     this.maxHp = config.hp;
     this.scale = config.scale || GAME_CONFIG.enemyScale;
     this.attackScale = config.attackScale || 1;
+    this.finalAttackScale = config.finalAttackScale || 1;
+    this.mirrorSprite = config.mirrorSprite !== false;
     this.minDistanceX = config.minDistanceX || 42;
     this.preferredDistanceX = config.preferredDistanceX || 76;
     this.tooFarDistanceX = config.tooFarDistanceX || Math.max(this.preferredDistanceX + 40, 140);
@@ -3613,6 +3617,9 @@ class DogRegimeEnemy {
       return this.attackTimer < windupMs ? attack[0] || enemyImages.idle : attack[1] || attack[0] || enemyImages.idle;
     }
     if (this.hitStun > 0) return enemyImages.idle;
+    if (this.enemyType === 'goydenish') {
+      return enemyImages.walk[this.facing === 1 ? 0 : 1] || enemyImages.idle;
+    }
     return enemyImages.walk[this.walkFrame] || enemyImages.idle;
   }
 
@@ -3622,7 +3629,9 @@ class DogRegimeEnemy {
     const baseScale = this.scale || GAME_CONFIG.enemyScale;
     const frameScale = typeof this.getFrameScale === 'function'
       ? this.getFrameScale(img, baseScale)
-      : (this.state === 'attack' ? baseScale * (this.attackScale || 1) : baseScale);
+      : (this.state === 'attack'
+        ? baseScale * (this.attackScale || 1) * (img === (this.getEnemyImages().attack || [])[1] ? this.finalAttackScale : 1)
+        : baseScale);
     const w = img.width * frameScale;
     const h = img.height * frameScale;
     const baseH = img.height * baseScale;
@@ -3636,7 +3645,7 @@ class DogRegimeEnemy {
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.translate(this.x, this.y);
-    if (this.facing === -1) ctx.scale(-1, 1);
+    if (this.facing === -1 && this.mirrorSprite) ctx.scale(-1, 1);
     ctx.drawImage(img, -w / 2 + drawOffsetX, -h + drawOffsetY, w, h);
     ctx.restore();
     ctx.globalAlpha = 1;
