@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.130",
+  "buildVersion": "0.4.131",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -107,7 +107,7 @@ const GAME_CONFIG = {
       "abilities": {
         "noKnockdown": true,
         "bossProjectileDamageMultiplier": 0.5,
-        "combo3DamageMultiplier": 2
+        "combo3Damage": 45
       },
       "tagline": "Быстрая, резкая, опасная на дистанции",
       "bio": "Журналистка, которая идёт туда, куда другие боятся смотреть. В игре Анна выигрывает не грубой силой, а скоростью, манёвром и точными ударами.",
@@ -2781,8 +2781,9 @@ class Player {
   getAttackData() {
     if (this.comboStep === 1) return { duration: 170, activeStart: 25, activeEnd: 120, damage: this.damage, knockback: 24, range: 46 };
     if (this.comboStep === 2) return { duration: 190, activeStart: 30, activeEnd: 135, damage: this.damage + 5, knockback: 32, range: 52 };
-    const combo3Multiplier = Number(this.abilities.combo3DamageMultiplier) || 1;
-    return { duration: 240, activeStart: 34, activeEnd: 160, damage: Math.round((this.damage + 14) * combo3Multiplier), knockback: 68, range: 62 };
+    const combo3Damage = Number(this.abilities.combo3Damage);
+    const damage = Number.isFinite(combo3Damage) ? combo3Damage : this.damage + 14;
+    return { duration: 240, activeStart: 34, activeEnd: 160, damage, knockback: 68, range: 62 };
   }
 
   getHitbox() {

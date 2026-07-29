@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  "buildVersion": "0.4.130",
+  "buildVersion": "0.4.131",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -100,7 +100,7 @@ const GAME_CONFIG = {
       "abilities": {
         "noKnockdown": true,
         "bossProjectileDamageMultiplier": 0.5,
-        "combo3DamageMultiplier": 2
+        "combo3Damage": 45
       },
       "tagline": "Быстрая, резкая, опасная на дистанции",
       "bio": "Журналистка, которая идёт туда, куда другие боятся смотреть. В игре Анна выигрывает не грубой силой, а скоростью, манёвром и точными ударами.",
