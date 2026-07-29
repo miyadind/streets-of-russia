@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.133",
+  "buildVersion": "0.4.134",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -26,7 +26,7 @@ const GAME_CONFIG = {
   "walkFrameMs": 220,
   "enemyWalkFrameMs": 260,
   "ySpeedMultiplier": 0.65,
-  "comboResetMs": 520,
+  "comboResetMs": 2000,
   "playerHitStopMs": 55,
   "playerHitStunMs": 380,
   "playerHurtFreezeMs": 280,
@@ -2545,6 +2545,7 @@ class Player {
     this.walkTimer = 0;
 
     this.comboStep = 0;
+    this.comboHits = 0;
     this.comboTimer = 0;
     this.attackTimer = 0;
     this.attackHasHit = false;
@@ -2588,8 +2589,13 @@ class Player {
       return;
     }
 
-    if (this.comboTimer > 0) this.comboTimer -= dt;
-    else this.comboStep = 0;
+    if (this.comboTimer > 0) {
+      this.comboTimer = Math.max(0, this.comboTimer - dt);
+      if (this.comboTimer <= 0) {
+        this.comboHits = 0;
+        if (this.state !== 'attack') this.comboStep = 0;
+      }
+    }
 
     if (Input.consume('space')) this.startAttack();
 
@@ -2731,6 +2737,7 @@ class Player {
     this.attackTimer = 0;
     this.attackHasHit = false;
     this.comboStep = 0;
+    this.comboHits = 0;
     this.comboTimer = 0;
     this.reviveText = '+' + restoredHp + ' HP';
     this.reviveTextTimer = GAME_CONFIG.playerReviveTextMs || 1250;
@@ -2745,14 +2752,30 @@ class Player {
   startAttack() {
     if (this.state === 'attack' || this.state === 'hurt' || this.state === 'knockdown' || this.state === 'pinned') return;
 
-    this.comboStep += 1;
-    if (this.comboStep > 3) this.comboStep = 1;
+    this.comboStep = this.comboHits > 0 && this.comboTimer > 0
+      ? Math.min(3, this.comboHits + 1)
+      : 1;
 
     this.playAttackSwingSound();
-    this.comboTimer = GAME_CONFIG.comboResetMs;
     this.state = 'attack';
     this.attackTimer = 0;
     this.attackHasHit = false;
+  }
+
+  registerComboHit() {
+    if (this.comboStep >= 3) {
+      this.comboHits = 0;
+      this.comboTimer = 0;
+      return;
+    }
+    this.comboHits = this.comboStep;
+    this.comboTimer = GAME_CONFIG.comboResetMs;
+  }
+
+  resetCombo() {
+    this.comboStep = 0;
+    this.comboHits = 0;
+    this.comboTimer = 0;
   }
 
   playAttackSwingSound() {
@@ -2770,6 +2793,7 @@ class Player {
 
   updateAttack(dt, scene) {
     this.attackTimer += dt;
+    if (this.comboStep > 1 && this.comboTimer <= 0) this.comboStep = 1;
     const data = this.getAttackData();
 
     if (!this.attackHasHit && this.attackTimer >= data.activeStart && this.attackTimer <= data.activeEnd) {
@@ -2787,6 +2811,7 @@ class Player {
         if (enemy.enemyType === 'sucker' && (enemy.state === 'windup' || enemy.state === 'slide') && this.canCounterSlide(enemy)) {
           this.attackHasHit = true;
           enemy.interruptSlide(this, scene);
+          this.registerComboHit();
           scene.hitStop = GAME_CONFIG.playerHitStopMs;
           break;
         }
@@ -2810,6 +2835,7 @@ class Player {
             } else {
               enemy.redirectToGundos(this);
             }
+            this.registerComboHit();
             scene.hitStop = GAME_CONFIG.playerHitStopMs;
             break;
           }
@@ -2823,6 +2849,7 @@ class Player {
           this.playComboHitSound();
           const wasAlive = enemy.alive;
           enemy.takeHit(data.damage, this.facing, data.knockback);
+          this.registerComboHit();
           if (enemy.enemyType !== 'bastard' && scene.addDamageText) {
             scene.addDamageText(data.damage, enemy);
           }
@@ -2846,6 +2873,7 @@ class Player {
     if (this.attackTimer >= data.duration) {
       this.state = 'idle';
       this.attackTimer = 0;
+      if (!this.attackHasHit || this.comboStep >= 3) this.resetCombo();
       this.attackHasHit = false;
     }
   }
@@ -6747,6 +6775,7 @@ class LevelScene {
   }
 
   update(dt) {
+    if (this.player) this.player.scene = this;
     if (Input.consume('q')) this.debug = !this.debug;
     if (Input.consume('escape')) this.game.setState('mainMenu');
 

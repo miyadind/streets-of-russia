@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  "buildVersion": "0.4.133",
+  "buildVersion": "0.4.134",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -19,7 +19,7 @@ const GAME_CONFIG = {
   "walkFrameMs": 220,
   "enemyWalkFrameMs": 260,
   "ySpeedMultiplier": 0.65,
-  "comboResetMs": 520,
+  "comboResetMs": 2000,
   "playerHitStopMs": 55,
   "playerHitStunMs": 380,
   "playerHurtFreezeMs": 280,

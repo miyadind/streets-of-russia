@@ -631,6 +631,7 @@ class LevelScene {
   }
 
   update(dt) {
+    if (this.player) this.player.scene = this;
     if (Input.consume('q')) this.debug = !this.debug;
     if (Input.consume('escape')) this.game.setState('mainMenu');
 
