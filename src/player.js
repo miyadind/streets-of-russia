@@ -140,6 +140,9 @@ class Player {
     }
 
     this.hp = Math.max(0, this.hp - damageAmount);
+    if (damageAmount > 0 && this.scene && this.scene.addDamageText) {
+      this.scene.addDamageText(damageAmount, this);
+    }
 
     if (options.knockbackX) {
       const knockbackMultiplier = source === 'melee' ? 2.1 : 1;
@@ -298,6 +301,9 @@ class Player {
           this.playComboHitSound();
           const wasAlive = enemy.alive;
           enemy.takeHit(data.damage, this.facing, data.knockback);
+          if (enemy.enemyType !== 'bastard' && scene.addDamageText) {
+            scene.addDamageText(data.damage, enemy);
+          }
           if (wasAlive && !enemy.alive && scene.maybeDropPickup) scene.maybeDropPickup(enemy, { source: 'player' });
           if (enemy.enemyType === 'bastard') {
             if (enemy.grantGundosMedicHeal) {

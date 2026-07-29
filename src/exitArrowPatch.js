@@ -167,6 +167,7 @@
       if (!pickup || pickup.remove || typeof pickup.draw !== 'function') continue;
       pickup.draw(ctx);
     }
+    if (this.drawDamageTexts) this.drawDamageTexts(ctx);
 
     if (this.encounterCleared) {
       const phase = performance.now() / 260;

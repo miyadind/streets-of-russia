@@ -532,7 +532,9 @@
     receiveZetnikHit(zetnik, scene) {
       if (!this.alive) return;
       const config = this.getConfig();
-      this.hp = Math.max(0, this.hp - (config.zetnikHitDamage || 1));
+      const damage = config.zetnikHitDamage || 1;
+      this.hp = Math.max(0, this.hp - damage);
+      if (scene && scene.addDamageText) scene.addDamageText(damage, this);
       this.flash = 220;
       AudioManager.playSfx('zetnikCrash', 1, { playbackRate: 0.82, startAt: 0.01 });
       if (scene) scene.hitStop = Math.max(scene.hitStop || 0, 80);
@@ -934,6 +936,7 @@
       for (const enemy of this.enemies) entities.push({ type: 'enemy', y: enemy.y, ref: enemy });
       entities.sort((a, b) => a.y - b.y);
       for (const entity of entities) entity.ref.draw(ctx, this.debug);
+      if (this.drawDamageTexts) this.drawDamageTexts(ctx);
 
       if (this.gundosVictoryPending) {
         ctx.save();

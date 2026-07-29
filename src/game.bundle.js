@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.132",
+  "buildVersion": "0.4.133",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -2662,6 +2662,9 @@ class Player {
     }
 
     this.hp = Math.max(0, this.hp - damageAmount);
+    if (damageAmount > 0 && this.scene && this.scene.addDamageText) {
+      this.scene.addDamageText(damageAmount, this);
+    }
 
     if (options.knockbackX) {
       const knockbackMultiplier = source === 'melee' ? 2.1 : 1;
@@ -2820,6 +2823,9 @@ class Player {
           this.playComboHitSound();
           const wasAlive = enemy.alive;
           enemy.takeHit(data.damage, this.facing, data.knockback);
+          if (enemy.enemyType !== 'bastard' && scene.addDamageText) {
+            scene.addDamageText(data.damage, enemy);
+          }
           if (wasAlive && !enemy.alive && scene.maybeDropPickup) scene.maybeDropPickup(enemy, { source: 'player' });
           if (enemy.enemyType === 'bastard') {
             if (enemy.grantGundosMedicHeal) {
@@ -4344,6 +4350,7 @@ class SuckerEnemy extends DogRegimeEnemy {
   interruptSlide(player, scene) {
     if (player && player.playComboHitSound) player.playComboHitSound();
     this.hp -= player.damage + 8;
+    if (scene && scene.addDamageText) scene.addDamageText(player.damage + 8, this);
     this.flash = 160;
     this.hitStun = this.interruptedRecoveryMs;
     this.state = 'interrupted';
@@ -6243,8 +6250,10 @@ class LevelScene {
     this.images = images;
     this.screenIndex = 0;
     this.player = new Player(game.selectedHero || 'boris', images);
+    this.player.scene = this;
     this.enemies = [];
     this.pickups = [];
+    this.damageTexts = [];
     this.pendingPickupDrops = [];
     this.hitStop = 0;
     this.encounterActive = false;
@@ -6256,6 +6265,44 @@ class LevelScene {
     this.pendingWaveTimer = 0;
     this.scheduledGroups = [];
     this.spawnInitialWave();
+  }
+
+  addDamageText(amount, target) {
+    const damage = Math.max(0, Math.round(Number(amount) || 0));
+    if (!damage || !target) return;
+
+    this.damageTexts.push({
+      text: '-' + damage,
+      x: target.x,
+      y: target.y - 120,
+      age: 0,
+      duration: 820,
+      driftX: (Math.random() - 0.5) * 14
+    });
+  }
+
+  updateDamageTexts(dt) {
+    for (const text of this.damageTexts) text.age += dt;
+    this.damageTexts = this.damageTexts.filter(text => text.age < text.duration);
+  }
+
+  drawDamageTexts(ctx) {
+    ctx.save();
+    ctx.font = 'bold 26px Arial';
+    ctx.textAlign = 'center';
+    ctx.lineJoin = 'round';
+    for (const text of this.damageTexts) {
+      const progress = Math.max(0, Math.min(1, text.age / text.duration));
+      const alpha = progress < 0.7 ? 1 : (1 - progress) / 0.3;
+      const rise = progress * 52;
+      ctx.globalAlpha = Math.max(0, alpha);
+      ctx.lineWidth = 5;
+      ctx.strokeStyle = '#ffffff';
+      ctx.fillStyle = '#35bfff';
+      ctx.strokeText(text.text, text.x + text.driftX * progress, text.y - rise);
+      ctx.fillText(text.text, text.x + text.driftX * progress, text.y - rise);
+    }
+    ctx.restore();
   }
 
   getLevelKey() {
@@ -6730,6 +6777,7 @@ class LevelScene {
     this.cleanupEscapedZetniks();
     this.flushPickupDrops();
     for (const pickup of this.pickups) pickup.update(dt, this);
+    this.updateDamageTexts(dt);
     this.separateEnemies(dt);
     this.enemies = this.enemies.filter(enemy => !enemy.remove);
     this.pickups = this.pickups.filter(pickup => !pickup.remove);
@@ -6783,6 +6831,7 @@ class LevelScene {
 
     for (const entity of entities) entity.ref.draw(ctx, this.debug);
     for (const pickup of this.pickups) pickup.draw(ctx);
+    this.drawDamageTexts(ctx);
 
     if (this.encounterCleared) {
       ctx.font = 'bold 42px Arial';
@@ -14490,6 +14539,7 @@ window.addEventListener('load', () => {
       if (!pickup || pickup.remove || typeof pickup.draw !== 'function') continue;
       pickup.draw(ctx);
     }
+    if (this.drawDamageTexts) this.drawDamageTexts(ctx);
 
     if (this.encounterCleared) {
       const phase = performance.now() / 260;
@@ -16503,7 +16553,9 @@ window.addEventListener('load', () => {
     receiveZetnikHit(zetnik, scene) {
       if (!this.alive) return;
       const config = this.getConfig();
-      this.hp = Math.max(0, this.hp - (config.zetnikHitDamage || 1));
+      const damage = config.zetnikHitDamage || 1;
+      this.hp = Math.max(0, this.hp - damage);
+      if (scene && scene.addDamageText) scene.addDamageText(damage, this);
       this.flash = 220;
       AudioManager.playSfx('zetnikCrash', 1, { playbackRate: 0.82, startAt: 0.01 });
       if (scene) scene.hitStop = Math.max(scene.hitStop || 0, 80);
@@ -16905,6 +16957,7 @@ window.addEventListener('load', () => {
       for (const enemy of this.enemies) entities.push({ type: 'enemy', y: enemy.y, ref: enemy });
       entities.sort((a, b) => a.y - b.y);
       for (const entity of entities) entity.ref.draw(ctx, this.debug);
+      if (this.drawDamageTexts) this.drawDamageTexts(ctx);
 
       if (this.gundosVictoryPending) {
         ctx.save();

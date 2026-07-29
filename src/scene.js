@@ -134,8 +134,10 @@ class LevelScene {
     this.images = images;
     this.screenIndex = 0;
     this.player = new Player(game.selectedHero || 'boris', images);
+    this.player.scene = this;
     this.enemies = [];
     this.pickups = [];
+    this.damageTexts = [];
     this.pendingPickupDrops = [];
     this.hitStop = 0;
     this.encounterActive = false;
@@ -147,6 +149,44 @@ class LevelScene {
     this.pendingWaveTimer = 0;
     this.scheduledGroups = [];
     this.spawnInitialWave();
+  }
+
+  addDamageText(amount, target) {
+    const damage = Math.max(0, Math.round(Number(amount) || 0));
+    if (!damage || !target) return;
+
+    this.damageTexts.push({
+      text: '-' + damage,
+      x: target.x,
+      y: target.y - 120,
+      age: 0,
+      duration: 820,
+      driftX: (Math.random() - 0.5) * 14
+    });
+  }
+
+  updateDamageTexts(dt) {
+    for (const text of this.damageTexts) text.age += dt;
+    this.damageTexts = this.damageTexts.filter(text => text.age < text.duration);
+  }
+
+  drawDamageTexts(ctx) {
+    ctx.save();
+    ctx.font = 'bold 26px Arial';
+    ctx.textAlign = 'center';
+    ctx.lineJoin = 'round';
+    for (const text of this.damageTexts) {
+      const progress = Math.max(0, Math.min(1, text.age / text.duration));
+      const alpha = progress < 0.7 ? 1 : (1 - progress) / 0.3;
+      const rise = progress * 52;
+      ctx.globalAlpha = Math.max(0, alpha);
+      ctx.lineWidth = 5;
+      ctx.strokeStyle = '#ffffff';
+      ctx.fillStyle = '#35bfff';
+      ctx.strokeText(text.text, text.x + text.driftX * progress, text.y - rise);
+      ctx.fillText(text.text, text.x + text.driftX * progress, text.y - rise);
+    }
+    ctx.restore();
   }
 
   getLevelKey() {
@@ -621,6 +661,7 @@ class LevelScene {
     this.cleanupEscapedZetniks();
     this.flushPickupDrops();
     for (const pickup of this.pickups) pickup.update(dt, this);
+    this.updateDamageTexts(dt);
     this.separateEnemies(dt);
     this.enemies = this.enemies.filter(enemy => !enemy.remove);
     this.pickups = this.pickups.filter(pickup => !pickup.remove);
@@ -674,6 +715,7 @@ class LevelScene {
 
     for (const entity of entities) entity.ref.draw(ctx, this.debug);
     for (const pickup of this.pickups) pickup.draw(ctx);
+    this.drawDamageTexts(ctx);
 
     if (this.encounterCleared) {
       ctx.font = 'bold 42px Arial';
