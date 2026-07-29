@@ -89,6 +89,21 @@ class GameApp {
       bastardWalk1: Assets.bastard.walk[1],
       bastardWalk2: Assets.bastard.walk[2],
 
+      goydenishIdle: Assets.goydenish.idle,
+      goydenishWalk0: Assets.goydenish.walk[0],
+      goydenishWalk1: Assets.goydenish.walk[1],
+      goydenishAttack0: Assets.goydenish.attack[0],
+      goydenishAttack1: Assets.goydenish.attack[1],
+      goydenishDead: Assets.goydenish.dead,
+
+      negayIdle: Assets.negay.idle,
+      negayWalk0: Assets.negay.walk[0],
+      negayWalk1: Assets.negay.walk[1],
+      negayWalk2: Assets.negay.walk[2],
+      negayAttack0: Assets.negay.attack[0],
+      negayAttack1: Assets.negay.attack[1],
+      negayDead: Assets.negay.dead,
+
       pickupMedkit: Assets.pickups && Assets.pickups.medkit,
       pickupPirozhok: Assets.pickups && Assets.pickups.pirozhok,
       pickupTea: Assets.pickups && Assets.pickups.tea
@@ -169,6 +184,18 @@ class GameApp {
           loaded.bastardWalk1 || loaded.bastardIdle || loaded.dogWalk1,
           loaded.bastardWalk2 || loaded.bastardIdle || loaded.dogWalk0
         ]
+      },
+      goydenish: {
+        idle: loaded.goydenishIdle || loaded.dogIdle,
+        walk: [loaded.goydenishWalk0 || loaded.dogWalk0, loaded.goydenishWalk1 || loaded.goydenishWalk0 || loaded.dogWalk1],
+        attack: [loaded.goydenishAttack0 || loaded.dogAttack0, loaded.goydenishAttack1 || loaded.goydenishAttack0 || loaded.dogAttack1],
+        dead: loaded.goydenishDead || loaded.goydenishIdle || loaded.dogDead
+      },
+      negay: {
+        idle: loaded.negayIdle || loaded.dogIdle,
+        walk: [loaded.negayWalk0 || loaded.dogWalk0, loaded.negayWalk1 || loaded.negayWalk0 || loaded.dogWalk1, loaded.negayWalk2 || loaded.negayWalk0 || loaded.dogWalk0],
+        attack: [loaded.negayAttack0 || loaded.dogAttack0, loaded.negayAttack1 || loaded.negayAttack0 || loaded.dogAttack1],
+        dead: loaded.negayDead || loaded.negayIdle || loaded.dogDead
       }
     };
 

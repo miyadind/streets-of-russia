@@ -77,6 +77,18 @@ window.Assets = {
     fall:'assets/enemies/bastard/fall.png',
     walk:['assets/enemies/bastard/idle.png','assets/enemies/bastard/walk1.png','assets/enemies/bastard/walk2.png']
   },
+  goydenish:{
+    idle:'assets/enemies/goydenish/Idle.png',
+    walk:['assets/enemies/goydenish/walk1.png','assets/enemies/goydenish/walk2.png'],
+    attack:['assets/enemies/goydenish/Throw.png','assets/enemies/goydenish/Throw2.png'],
+    dead:'assets/enemies/goydenish/Idle.png'
+  },
+  negay:{
+    idle:'assets/enemies/NEgay/idle.png',
+    walk:['assets/enemies/NEgay/walk01.png','assets/enemies/NEgay/walk02.png','assets/enemies/NEgay/walk03.png'],
+    attack:['assets/enemies/NEgay/Whiplash.png','assets/enemies/NEgay/WhiplashFinal.png'],
+    dead:'assets/enemies/NEgay/knockdown.png'
+  },
   pickups:{
     medkit:'assets/pickups/medkit.png?v=pickup-rebuilt-2',
     pirozhok:'assets/pickups/pirozhok.png?v=pickup-rebuilt-2',

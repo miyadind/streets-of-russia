@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.131",
+  "buildVersion": "0.4.132",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -325,6 +325,60 @@ const GAME_CONFIG = {
       "slotSpacingY": 44,
       "flankDistanceX": 190,
       "pressureDistanceX": 225
+    },
+    "goydenish": {
+      "name": "Goydenish",
+      "hp": 105,
+      "speed": 1.8,
+      "damage": 16,
+      "scale": 0.115,
+      "attackDamageSource": "ranged",
+      "minDistanceX": 150,
+      "preferredDistanceX": 235,
+      "tooFarDistanceX": 330,
+      "attackMinDistanceX": 120,
+      "attackMaxDistanceX": 300,
+      "attackRangeX": 300,
+      "attackRangeY": 42,
+      "maxAttackers": 1,
+      "decisionMinMs": 240,
+      "decisionMaxMs": 540,
+      "strafeChance": 0.42,
+      "retreatChance": 0.28,
+      "attackChance": 0.68,
+      "closeRetreatChance": 0.8,
+      "postAttackRetreatMs": 460,
+      "attackCooldownMinMs": 720,
+      "attackCooldownMaxMs": 1040,
+      "bodyRadiusX": 44,
+      "bodyRadiusY": 21
+    },
+    "negay": {
+      "name": "NEgay",
+      "hp": 130,
+      "speed": 2.2,
+      "damage": 16,
+      "scale": 0.12,
+      "attackDamageSource": "ranged",
+      "minDistanceX": 105,
+      "preferredDistanceX": 175,
+      "tooFarDistanceX": 265,
+      "attackMinDistanceX": 90,
+      "attackMaxDistanceX": 240,
+      "attackRangeX": 240,
+      "attackRangeY": 40,
+      "maxAttackers": 1,
+      "decisionMinMs": 260,
+      "decisionMaxMs": 620,
+      "strafeChance": 0.48,
+      "retreatChance": 0.3,
+      "attackChance": 0.56,
+      "closeRetreatChance": 0.72,
+      "postAttackRetreatMs": 520,
+      "attackCooldownMinMs": 620,
+      "attackCooldownMaxMs": 940,
+      "bodyRadiusX": 48,
+      "bodyRadiusY": 22
     },
     "gundos": {
       "name": "gundos",
@@ -1351,6 +1405,18 @@ window.Assets = {
     idle:'assets/enemies/bastard/idle.png',
     fall:'assets/enemies/bastard/fall.png',
     walk:['assets/enemies/bastard/idle.png','assets/enemies/bastard/walk1.png','assets/enemies/bastard/walk2.png']
+  },
+  goydenish:{
+    idle:'assets/enemies/goydenish/Idle.png',
+    walk:['assets/enemies/goydenish/walk1.png','assets/enemies/goydenish/walk2.png'],
+    attack:['assets/enemies/goydenish/Throw.png','assets/enemies/goydenish/Throw2.png'],
+    dead:'assets/enemies/goydenish/Idle.png'
+  },
+  negay:{
+    idle:'assets/enemies/NEgay/idle.png',
+    walk:['assets/enemies/NEgay/walk01.png','assets/enemies/NEgay/walk02.png','assets/enemies/NEgay/walk03.png'],
+    attack:['assets/enemies/NEgay/Whiplash.png','assets/enemies/NEgay/WhiplashFinal.png'],
+    dead:'assets/enemies/NEgay/knockdown.png'
   },
   pickups:{
     medkit:'assets/pickups/medkit.png?v=pickup-rebuilt-2',
@@ -10152,6 +10218,21 @@ class GameApp {
       bastardWalk1: Assets.bastard.walk[1],
       bastardWalk2: Assets.bastard.walk[2],
 
+      goydenishIdle: Assets.goydenish.idle,
+      goydenishWalk0: Assets.goydenish.walk[0],
+      goydenishWalk1: Assets.goydenish.walk[1],
+      goydenishAttack0: Assets.goydenish.attack[0],
+      goydenishAttack1: Assets.goydenish.attack[1],
+      goydenishDead: Assets.goydenish.dead,
+
+      negayIdle: Assets.negay.idle,
+      negayWalk0: Assets.negay.walk[0],
+      negayWalk1: Assets.negay.walk[1],
+      negayWalk2: Assets.negay.walk[2],
+      negayAttack0: Assets.negay.attack[0],
+      negayAttack1: Assets.negay.attack[1],
+      negayDead: Assets.negay.dead,
+
       pickupMedkit: Assets.pickups && Assets.pickups.medkit,
       pickupPirozhok: Assets.pickups && Assets.pickups.pirozhok,
       pickupTea: Assets.pickups && Assets.pickups.tea
@@ -10232,6 +10313,18 @@ class GameApp {
           loaded.bastardWalk1 || loaded.bastardIdle || loaded.dogWalk1,
           loaded.bastardWalk2 || loaded.bastardIdle || loaded.dogWalk0
         ]
+      },
+      goydenish: {
+        idle: loaded.goydenishIdle || loaded.dogIdle,
+        walk: [loaded.goydenishWalk0 || loaded.dogWalk0, loaded.goydenishWalk1 || loaded.goydenishWalk0 || loaded.dogWalk1],
+        attack: [loaded.goydenishAttack0 || loaded.dogAttack0, loaded.goydenishAttack1 || loaded.goydenishAttack0 || loaded.dogAttack1],
+        dead: loaded.goydenishDead || loaded.goydenishIdle || loaded.dogDead
+      },
+      negay: {
+        idle: loaded.negayIdle || loaded.dogIdle,
+        walk: [loaded.negayWalk0 || loaded.dogWalk0, loaded.negayWalk1 || loaded.negayWalk0 || loaded.dogWalk1, loaded.negayWalk2 || loaded.negayWalk0 || loaded.dogWalk0],
+        attack: [loaded.negayAttack0 || loaded.dogAttack0, loaded.negayAttack1 || loaded.negayAttack0 || loaded.dogAttack1],
+        dead: loaded.negayDead || loaded.negayIdle || loaded.dogDead
       }
     };
 
@@ -16969,6 +17062,8 @@ window.addEventListener('load', () => {
       sucker: { w: 1024, h: 1536, scalePath: 'enemies.sucker.scale' },
       bastard: { w: 1122, h: 1402, scalePath: 'enemies.bastard.scale' },
       horse: { w: 1024, h: 1536, scalePath: 'enemies.horse.scale' },
+      goydenish: { w: 1024, h: 1536, scalePath: 'enemies.goydenish.scale' },
+      negay: { w: 1024, h: 1536, scalePath: 'enemies.negay.scale' },
       gundos: { w: 1536, h: 1024, scalePath: 'enemies.gundos.scale' }
     }
   };
@@ -16982,6 +17077,8 @@ window.addEventListener('load', () => {
     skinnyEnemy: { bodyW: 0.36, minBodyW: 64, bodyH: 0.9, bodyTop: 0.99, pushW: 0.38, pushH: 0.16, attackY: 0.66, attackH: 0.27, attackW: 0.55 },
     sucker: { bodyW: 0.5, minBodyW: 82, bodyH: 0.88, bodyTop: 0.99, pushW: 0.46, pushH: 0.18, slideY: 0.66, slideH: 0.27, slideW: 0.62, biteY: 0.64, biteH: 0.28, biteW: 0.45 },
     horse: { bodyW: 0.32, minBodyW: 58, bodyH: 0.92, bodyTop: 0.99, pushW: 0.36, pushH: 0.16, attackY: 0.58, attackH: 0.34, attackW: 1.55 },
+    goydenish: { bodyW: 0.36, minBodyW: 64, bodyH: 0.9, bodyTop: 0.99, pushW: 0.38, pushH: 0.16, attackY: 0.62, attackH: 0.26, attackW: 2.45 },
+    negay: { bodyW: 0.34, minBodyW: 62, bodyH: 0.9, bodyTop: 0.99, pushW: 0.36, pushH: 0.16, attackY: 0.58, attackH: 0.32, attackW: 1.85 },
     gundos: { bodyW: 0.26, bodyH: 0.88, bodyTop: 0.98, pushW: 0.3, pushH: 0.18, attackY: 0.66, attackH: 0.3, attackW: 0.42 }
   };
 
@@ -17094,6 +17191,8 @@ window.addEventListener('load', () => {
       sucker: makeSuckerBoxes(),
       bastard: makeEnemyBoxes('bastard', 'humanEnemy'),
       horse: makeEnemyBoxes('horse', 'horse'),
+      goydenish: makeEnemyBoxes('goydenish', 'goydenish'),
+      negay: makeEnemyBoxes('negay', 'negay'),
       gundos: makeEnemyBoxes('gundos', 'gundos')
     }
   };
@@ -17344,7 +17443,8 @@ window.addEventListener('load', () => {
       if (!this.attackHasHit && this.attackTimer >= activeStart && this.attackTimer <= activeEnd) {
         const player = scene.player;
         if (this.canClubReachPlayer(player, false)) {
-          const hit = player.receiveDamage(this.damage, { source: 'melee', knockbackX: this.facing * 18 });
+          const source = this.attackDamageSource || 'melee';
+          const hit = player.receiveDamage(this.damage, { source, knockbackX: this.facing * 18 });
           if (hit) scene.hitStop = 42;
         }
         this.attackHasHit = true;
@@ -17426,6 +17526,8 @@ window.addEventListener('load', () => {
         { group: 'enemies', key: 'sucker', label: 'Enemy: Sucker' },
         { group: 'enemies', key: 'bastard', label: 'Enemy: Bastard' },
         { group: 'enemies', key: 'horse', label: 'Enemy: Horse' },
+        { group: 'enemies', key: 'goydenish', label: 'Enemy: Goydenish' },
+        { group: 'enemies', key: 'negay', label: 'Enemy: NEgay' },
         { group: 'enemies', key: 'gundos', label: 'Enemy: Gundos' }
       ];
     };
