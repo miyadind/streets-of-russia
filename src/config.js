@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  "buildVersion": "0.4.142",
+  "buildVersion": "0.4.143",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -332,7 +332,10 @@ const GAME_CONFIG = {
       "attackRecoveryMs": 360,
       "projectileDamage": 16,
       "projectileSpeed": 7.2,
-      "projectileScale": 0.095,
+      "projectileScale": 0.15,
+      "projectileHitboxSize": 150,
+      "keepOnScreen": true,
+      "screenMarginX": 70,
       "attackDamageSource": "ranged",
       "minDistanceX": 150,
       "preferredDistanceX": 235,

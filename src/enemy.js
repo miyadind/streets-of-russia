@@ -9,6 +9,7 @@ class GoydenishZProjectile {
     this.speed = Number(config.projectileSpeed) || 7.2;
     this.damage = Number(config.projectileDamage) || 16;
     this.scale = Number(config.projectileScale) || 0.095;
+    this.hitboxSize = Number(config.projectileHitboxSize) || 112;
     this.owner = owner || null;
     this.reflected = false;
     this.reflectedDamage = 0;
@@ -62,7 +63,13 @@ class GoydenishZProjectile {
   }
 
   getAttackBox() {
-    return { x: this.x - 56, y: this.laneY - 126, w: 112, h: 112 };
+    const size = this.hitboxSize;
+    return {
+      x: this.x - size / 2,
+      y: this.laneY - size - 10,
+      w: size,
+      h: size
+    };
   }
 
   getHurtbox() {
@@ -180,7 +187,10 @@ class DogRegimeEnemy {
   }
 
   clampToScreen() {
-    const margin = this.alive ? (GAME_CONFIG.enemyOffscreenMargin || 180) : 45;
+    const tuning = GAME_CONFIG.enemies[this.enemyType] || {};
+    const margin = tuning.keepOnScreen
+      ? Math.max(0, Number(tuning.screenMarginX) || 0)
+      : (this.alive ? (GAME_CONFIG.enemyOffscreenMargin || 180) : 45);
     this.x = Math.max(-margin, Math.min(GAME_CONFIG.width + margin, this.x));
     this.y = Math.max(GAME_CONFIG.laneTop, Math.min(GAME_CONFIG.laneBottom, this.y));
   }
