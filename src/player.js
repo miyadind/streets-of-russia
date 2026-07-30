@@ -283,7 +283,22 @@ class Player {
 
       const hitbox = this.getHitbox();
       for (const enemy of scene.enemies) {
-        if (!enemy.alive || enemy.nonPhysical || enemy.canBeHit === false) continue;
+        if (!enemy.alive) continue;
+        if (enemy.enemyType === 'goydenishZ') {
+          if (Combat.canMeleeHit(this, enemy, {
+            attackBox: hitbox,
+            targetBox: enemy.getHurtbox(),
+            laneTolerance: GAME_CONFIG.yHitTolerance
+          })) {
+            this.attackHasHit = true;
+            this.playComboHitSound();
+            enemy.deflect(this, data.damage, scene);
+            this.registerComboHit();
+            break;
+          }
+          continue;
+        }
+        if (enemy.nonPhysical || enemy.canBeHit === false) continue;
         // Projectiles are hazards, not punchable enemies.
         if (enemy.enemyType === 'gundosFireball') continue;
         if (enemy.enemyType === 'sucker' && (enemy.state === 'windup' || enemy.state === 'slide') && this.canCounterSlide(enemy)) {

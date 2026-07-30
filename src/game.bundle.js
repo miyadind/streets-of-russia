@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.138",
+  "buildVersion": "0.4.139",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -2819,7 +2819,22 @@ class Player {
 
       const hitbox = this.getHitbox();
       for (const enemy of scene.enemies) {
-        if (!enemy.alive || enemy.nonPhysical || enemy.canBeHit === false) continue;
+        if (!enemy.alive) continue;
+        if (enemy.enemyType === 'goydenishZ') {
+          if (Combat.canMeleeHit(this, enemy, {
+            attackBox: hitbox,
+            targetBox: enemy.getHurtbox(),
+            laneTolerance: GAME_CONFIG.yHitTolerance
+          })) {
+            this.attackHasHit = true;
+            this.playComboHitSound();
+            enemy.deflect(this, data.damage, scene);
+            this.registerComboHit();
+            break;
+          }
+          continue;
+        }
+        if (enemy.nonPhysical || enemy.canBeHit === false) continue;
         // Projectiles are hazards, not punchable enemies.
         if (enemy.enemyType === 'gundosFireball') continue;
         if (enemy.enemyType === 'sucker' && (enemy.state === 'windup' || enemy.state === 'slide') && this.canCounterSlide(enemy)) {
@@ -3084,7 +3099,7 @@ class Player {
 
 /* ===== src/enemy.js ===== */
 class GoydenishZProjectile {
-  constructor(x, y, direction, image, config) {
+  constructor(x, y, direction, image, config, owner) {
     this.enemyType = 'goydenishZ';
     this.x = x;
     this.y = y;
@@ -3094,17 +3109,34 @@ class GoydenishZProjectile {
     this.speed = Number(config.projectileSpeed) || 7.2;
     this.damage = Number(config.projectileDamage) || 16;
     this.scale = Number(config.projectileScale) || 0.095;
+    this.owner = owner || null;
+    this.reflected = false;
+    this.reflectedDamage = 0;
+    this.spin = 0;
+    this.spinSpeed = 0.0105;
     this.alive = true;
     this.remove = false;
     this.blocksWaveClear = false;
     this.nonPhysical = true;
-    this.canBeHit = false;
+    this.canBeHit = true;
+  }
+
+  deflect(player, damage, scene) {
+    if (!player) return false;
+    this.direction = player.facing >= 0 ? 1 : -1;
+    this.reflected = true;
+    this.reflectedDamage = Math.max(1, Number(damage) || 1);
+    this.spinSpeed = Math.abs(this.spinSpeed) * this.direction * 1.45;
+    if (scene) scene.hitStop = Math.max(scene.hitStop || 0, GAME_CONFIG.playerHitStopMs || 40);
+    return true;
   }
 
   update(dt, scene) {
-    this.x += this.direction * this.speed * Math.max(0.65, Math.min(1.55, dt / 16.67));
+    const frameScale = Math.max(0.65, Math.min(1.55, dt / 16.67));
+    this.x += this.direction * this.speed * frameScale;
+    this.spin += this.spinSpeed * dt;
     const player = scene && scene.player;
-    if (player && player.hp > 0 && Combat.canProjectileHit(this, player, {
+    if (!this.reflected && player && player.hp > 0 && Combat.canProjectileHit(this, player, {
       laneY: this.laneY,
       laneTolerance: GAME_CONFIG.yHitTolerance
     })) {
@@ -3115,6 +3147,15 @@ class GoydenishZProjectile {
         invulnerableMs: 240
       });
       if (hit && scene) scene.hitStop = Math.max(scene.hitStop || 0, 36);
+      this.remove = true;
+    }
+    if (this.reflected && this.owner && this.owner.alive && Combat.canProjectileHit(this, this.owner, {
+      laneY: this.laneY,
+      laneTolerance: GAME_CONFIG.yHitTolerance
+    })) {
+      this.owner.takeHit(this.reflectedDamage, this.direction, 42);
+      if (scene && scene.addDamageText) scene.addDamageText(this.reflectedDamage, this.owner);
+      if (scene) scene.hitStop = Math.max(scene.hitStop || 0, 58);
       this.remove = true;
     }
     if (this.x < -140 || this.x > GAME_CONFIG.width + 140) this.remove = true;
@@ -3134,18 +3175,23 @@ class GoydenishZProjectile {
       const w = this.image.width * this.scale;
       const h = this.image.height * this.scale;
       ctx.globalCompositeOperation = 'multiply';
-      ctx.drawImage(this.image, this.x - w / 2, this.y - h / 2, w, h);
+      ctx.translate(this.x, this.y);
+      ctx.rotate(this.spin);
+      ctx.drawImage(this.image, -w / 2, -h / 2, w, h);
     } else {
       ctx.fillStyle = '#f5d548';
       ctx.strokeStyle = '#171717';
       ctx.lineWidth = 4;
       ctx.font = 'bold 42px Arial';
       ctx.textAlign = 'center';
-      ctx.strokeText('Z', this.x, this.y + 14);
-      ctx.fillText('Z', this.x, this.y + 14);
+      ctx.translate(this.x, this.y);
+      ctx.rotate(this.spin);
+      ctx.strokeText('Z', 0, 14);
+      ctx.fillText('Z', 0, 14);
     }
     if (debug) {
       const box = this.getAttackBox();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.globalCompositeOperation = 'source-over';
       ctx.strokeStyle = 'rgba(255,220,0,0.95)';
       ctx.lineWidth = 2;
@@ -3737,7 +3783,7 @@ class DogRegimeEnemy {
       const imageSet = this.getEnemyImages();
       const spawnX = this.x + this.facing * 92;
       const spawnY = this.y - 94;
-      scene.enemies.push(new GoydenishZProjectile(spawnX, spawnY, this.facing, imageSet.projectile, config));
+      scene.enemies.push(new GoydenishZProjectile(spawnX, spawnY, this.facing, imageSet.projectile, config, this));
       this.attackHasHit = true;
     }
 
