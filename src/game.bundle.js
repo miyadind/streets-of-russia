@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.140",
+  "buildVersion": "0.4.141",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -1423,7 +1423,7 @@ window.Assets = {
     swingRight:'assets/enemies/goydenish/swing_R.png?v=goydenish-rebuilt-2',
     throwLeft:'assets/enemies/goydenish/throw_L.png?v=goydenish-rebuilt-2',
     throwRight:'assets/enemies/goydenish/throw_R.png?v=goydenish-rebuilt-2',
-    projectile:'assets/enemies/goydenish/Z.png?v=goydenish-rebuilt-2',
+    projectile:'assets/enemies/goydenish/Z.png?v=goydenish-rebuilt-3',
     dead:'assets/enemies/goydenish/Idle.png?v=goydenish-rebuilt-2'
   },
   negay:{
@@ -3174,7 +3174,7 @@ class GoydenishZProjectile {
     if (this.image && this.image.complete !== false && this.image.naturalWidth !== 0) {
       const w = this.image.width * this.scale;
       const h = this.image.height * this.scale;
-      ctx.globalCompositeOperation = 'multiply';
+      ctx.globalCompositeOperation = 'source-over';
       ctx.translate(this.x, this.y);
       ctx.rotate(this.spin);
       ctx.drawImage(this.image, -w / 2, -h / 2, w, h);

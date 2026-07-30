@@ -85,7 +85,7 @@ window.Assets = {
     swingRight:'assets/enemies/goydenish/swing_R.png?v=goydenish-rebuilt-2',
     throwLeft:'assets/enemies/goydenish/throw_L.png?v=goydenish-rebuilt-2',
     throwRight:'assets/enemies/goydenish/throw_R.png?v=goydenish-rebuilt-2',
-    projectile:'assets/enemies/goydenish/Z.png?v=goydenish-rebuilt-2',
+    projectile:'assets/enemies/goydenish/Z.png?v=goydenish-rebuilt-3',
     dead:'assets/enemies/goydenish/Idle.png?v=goydenish-rebuilt-2'
   },
   negay:{

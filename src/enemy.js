@@ -74,7 +74,7 @@ class GoydenishZProjectile {
     if (this.image && this.image.complete !== false && this.image.naturalWidth !== 0) {
       const w = this.image.width * this.scale;
       const h = this.image.height * this.scale;
-      ctx.globalCompositeOperation = 'multiply';
+      ctx.globalCompositeOperation = 'source-over';
       ctx.translate(this.x, this.y);
       ctx.rotate(this.spin);
       ctx.drawImage(this.image, -w / 2, -h / 2, w, h);
