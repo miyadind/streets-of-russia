@@ -190,10 +190,10 @@ class GameApp {
       },
       goydenish: {
         idle: loaded.goydenishIdle || loaded.dogIdle,
-        walk: {
-          left: loaded.goydenishWalkLeft || loaded.dogWalk0,
-          right: loaded.goydenishWalkRight || loaded.goydenishWalkLeft || loaded.dogWalk1
-        },
+        walk: [
+          loaded.goydenishWalkLeft || loaded.dogWalk0,
+          loaded.goydenishWalkRight || loaded.goydenishWalkLeft || loaded.dogWalk1
+        ],
         swing: {
           left: loaded.goydenishSwingLeft || loaded.goydenishIdle || loaded.dogAttack0,
           right: loaded.goydenishSwingRight || loaded.goydenishSwingLeft || loaded.goydenishIdle || loaded.dogAttack0

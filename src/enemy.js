@@ -387,7 +387,8 @@ class DogRegimeEnemy {
 
   getWalkFrameCount() {
     const enemyImages = this.getEnemyImages();
-    return Math.max(1, (enemyImages.walk || []).filter(Boolean).length);
+    const walkFrames = Array.isArray(enemyImages.walk) ? enemyImages.walk : Object.values(enemyImages.walk || {});
+    return Math.max(1, walkFrames.filter(Boolean).length);
   }
 
   applyMovement(moveX, moveY, dt) {
@@ -623,7 +624,7 @@ class DogRegimeEnemy {
         return (enemyImages.throw || {})[side] || (enemyImages.swing || {})[side] || enemyImages.idle;
       }
       if (this.hitStun > 0 || this.intent === 'hold') return enemyImages.idle;
-      return (enemyImages.walk || {})[side] || enemyImages.idle;
+      return (enemyImages.walk || [])[this.walkFrame % 2] || enemyImages.idle;
     }
     if (this.state === 'attack') {
       const attack = enemyImages.attack || [];
