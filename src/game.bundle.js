@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.137",
+  "buildVersion": "0.4.138",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -3774,7 +3774,7 @@ class DogRegimeEnemy {
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.translate(this.x, this.y);
-    if (this.facing === -1 && this.mirrorSprite) ctx.scale(-1, 1);
+    if (this.facing === -1 && this.mirrorSprite !== false) ctx.scale(-1, 1);
     ctx.drawImage(img, -w / 2 + drawOffsetX, -h + drawOffsetY, w, h);
     ctx.restore();
     ctx.globalAlpha = 1;

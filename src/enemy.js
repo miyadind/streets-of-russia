@@ -689,7 +689,7 @@ class DogRegimeEnemy {
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.translate(this.x, this.y);
-    if (this.facing === -1 && this.mirrorSprite) ctx.scale(-1, 1);
+    if (this.facing === -1 && this.mirrorSprite !== false) ctx.scale(-1, 1);
     ctx.drawImage(img, -w / 2 + drawOffsetX, -h + drawOffsetY, w, h);
     ctx.restore();
     ctx.globalAlpha = 1;
