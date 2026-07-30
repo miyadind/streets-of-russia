@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.141",
+  "buildVersion": "0.4.142",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -3330,7 +3330,7 @@ class DogRegimeEnemy {
     const absY = Math.abs(player.y - this.y);
     this.facing = dx >= 0 ? 1 : -1;
 
-    if (this.isOffscreenX()) {
+    if (this.isOffscreenX() && this.enemyType !== 'goydenish') {
       this.intent = 'approach';
       this.retreatTimer = 0;
       this.decisionTimer = Math.min(this.decisionTimer, 80);
@@ -3339,6 +3339,11 @@ class DogRegimeEnemy {
     if (this.state === 'attack') {
       this.updateAttack(dt, scene);
       this.clampToScreen();
+      return;
+    }
+
+    if (this.enemyType === 'goydenish') {
+      this.updateGoydenishTactics(dt, scene, absY);
       return;
     }
 
@@ -3770,6 +3775,29 @@ class DogRegimeEnemy {
     if (this.state !== 'attack') return baseScale;
     const attack = this.getEnemyImages().attack || [];
     return baseScale * (this.attackScale || 1) * (img === attack[1] ? this.finalAttackScale : 1);
+  }
+
+  updateGoydenishTactics(dt, scene, absY) {
+    const player = scene.player;
+    const aligned = absY <= this.attackRangeY;
+    const activeAttackers = this.countActiveAttackers(scene);
+
+    if (aligned) {
+      this.intent = 'hold';
+      if (this.cooldown <= 0 && activeAttackers < this.maxAttackers) {
+        this.state = 'attack';
+        this.intent = 'attack';
+        this.attackFacing = this.facing || 1;
+        this.attackTimer = 0;
+        this.attackHasHit = false;
+      }
+      this.clampToScreen();
+      return;
+    }
+
+    this.intent = 'align';
+    this.applyMovement(0, Math.sign(player.y - this.y), dt);
+    this.clampToScreen();
   }
 
   updateGoydenishAttack(dt, scene) {
