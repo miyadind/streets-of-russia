@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.145",
+  "buildVersion": "0.4.146",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -1371,7 +1371,8 @@ window.Assets = {
       waveClear:null,
       bossAppear:null,
       zetnikPreparing:'assets/enemies/zetnik/preparing.mp3?v=zetnik-audio-1',
-      zetnikCrash:'assets/enemies/zetnik/crash.mp3?v=zetnik-audio-1'
+      zetnikCrash:'assets/enemies/zetnik/crash.mp3?v=zetnik-audio-1',
+      goydenishThrow:'assets/enemies/goydenish/Throw.mp3?v=goydenish-throw-1'
     }
   },
   boris:{
@@ -3853,6 +3854,7 @@ class DogRegimeEnemy {
       const spawnX = this.x + this.facing * 92;
       const spawnY = this.y - 94;
       scene.enemies.push(new GoydenishZProjectile(spawnX, spawnY, this.facing, imageSet.projectile, config, this, this.y));
+      AudioManager.playSfx('goydenishThrow', 0.9, { owner: 'goydenish' });
       this.attackHasHit = true;
     }
 

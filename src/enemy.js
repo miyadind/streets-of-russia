@@ -748,6 +748,7 @@ class DogRegimeEnemy {
       const spawnX = this.x + this.facing * 92;
       const spawnY = this.y - 94;
       scene.enemies.push(new GoydenishZProjectile(spawnX, spawnY, this.facing, imageSet.projectile, config, this, this.y));
+      AudioManager.playSfx('goydenishThrow', 0.9, { owner: 'goydenish' });
       this.attackHasHit = true;
     }
 
