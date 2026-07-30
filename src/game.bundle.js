@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.143",
+  "buildVersion": "0.4.144",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -339,10 +339,12 @@ const GAME_CONFIG = {
       "attackRecoveryMs": 360,
       "projectileDamage": 16,
       "projectileSpeed": 7.2,
-      "projectileScale": 0.15,
-      "projectileHitboxSize": 150,
+      "projectileScale": 0.0375,
+      "projectileHitboxSize": 38,
       "keepOnScreen": true,
       "screenMarginX": 70,
+      "fleeDistanceX": 270,
+      "fleeSpeedMultiplier": 2.2,
       "attackDamageSource": "ranged",
       "minDistanceX": 150,
       "preferredDistanceX": 235,
@@ -3540,14 +3542,14 @@ class DogRegimeEnemy {
     return Math.max(1, walkFrames.filter(Boolean).length);
   }
 
-  applyMovement(moveX, moveY, dt) {
+  applyMovement(moveX, moveY, dt, speedMultiplier = 1) {
     if (moveX === 0 && moveY === 0) return;
     if (this.isOffscreenX()) moveX = this.x < 45 ? 1 : -1;
     const len = Math.hypot(moveX, moveY);
     moveX /= len;
     moveY /= len;
-    this.x += moveX * this.speed;
-    this.y += moveY * this.speed * GAME_CONFIG.ySpeedMultiplier;
+    this.x += moveX * this.speed * speedMultiplier;
+    this.y += moveY * this.speed * GAME_CONFIG.ySpeedMultiplier * speedMultiplier;
     this.clampToScreen();
 
     this.walkTimer += dt;
@@ -3792,8 +3794,18 @@ class DogRegimeEnemy {
 
   updateGoydenishTactics(dt, scene, absY) {
     const player = scene.player;
+    const config = GAME_CONFIG.enemies.goydenish || {};
+    const distanceX = Math.abs(player.x - this.x);
     const aligned = absY <= this.attackRangeY;
     const activeAttackers = this.countActiveAttackers(scene);
+
+    if (distanceX <= (config.fleeDistanceX || 270)) {
+      this.intent = 'flee';
+      const escapeDirection = this.x <= player.x ? -1 : 1;
+      this.applyMovement(escapeDirection, 0, dt, config.fleeSpeedMultiplier || 2);
+      this.clampToScreen();
+      return;
+    }
 
     if (aligned) {
       this.intent = 'hold';
