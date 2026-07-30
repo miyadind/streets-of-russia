@@ -78,10 +78,15 @@ window.Assets = {
     walk:['assets/enemies/bastard/idle.png','assets/enemies/bastard/walk1.png','assets/enemies/bastard/walk2.png']
   },
   goydenish:{
-    idle:'assets/enemies/goydenish/Idle.png',
-    walk:['assets/enemies/goydenish/walk1.png','assets/enemies/goydenish/walk2.png'],
-    attack:['assets/enemies/goydenish/Throw.png','assets/enemies/goydenish/Throw2.png'],
-    dead:'assets/enemies/goydenish/Idle.png'
+    idle:'assets/enemies/goydenish/Idle.png?v=goydenish-rebuilt-2',
+    walkLeft:'assets/enemies/goydenish/walk_L.png?v=goydenish-rebuilt-2',
+    walkRight:'assets/enemies/goydenish/walk_R.png?v=goydenish-rebuilt-2',
+    swingLeft:'assets/enemies/goydenish/swing_L.png?v=goydenish-rebuilt-2',
+    swingRight:'assets/enemies/goydenish/swing_R.png?v=goydenish-rebuilt-2',
+    throwLeft:'assets/enemies/goydenish/throw_L.png?v=goydenish-rebuilt-2',
+    throwRight:'assets/enemies/goydenish/throw_R.png?v=goydenish-rebuilt-2',
+    projectile:'assets/enemies/goydenish/Z.png?v=goydenish-rebuilt-2',
+    dead:'assets/enemies/goydenish/Idle.png?v=goydenish-rebuilt-2'
   },
   negay:{
     idle:'assets/enemies/NEgay/idle.png',

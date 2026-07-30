@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.135",
+  "buildVersion": "0.4.136",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -333,6 +333,13 @@ const GAME_CONFIG = {
       "damage": 16,
       "scale": 0.115,
       "mirrorSprite": false,
+      "attackIdleMs": 360,
+      "attackWindupMs": 880,
+      "attackActiveMs": 90,
+      "attackRecoveryMs": 360,
+      "projectileDamage": 16,
+      "projectileSpeed": 7.2,
+      "projectileScale": 0.095,
       "attackDamageSource": "ranged",
       "minDistanceX": 150,
       "preferredDistanceX": 235,
@@ -1409,10 +1416,15 @@ window.Assets = {
     walk:['assets/enemies/bastard/idle.png','assets/enemies/bastard/walk1.png','assets/enemies/bastard/walk2.png']
   },
   goydenish:{
-    idle:'assets/enemies/goydenish/Idle.png',
-    walk:['assets/enemies/goydenish/walk1.png','assets/enemies/goydenish/walk2.png'],
-    attack:['assets/enemies/goydenish/Throw.png','assets/enemies/goydenish/Throw2.png'],
-    dead:'assets/enemies/goydenish/Idle.png'
+    idle:'assets/enemies/goydenish/Idle.png?v=goydenish-rebuilt-2',
+    walkLeft:'assets/enemies/goydenish/walk_L.png?v=goydenish-rebuilt-2',
+    walkRight:'assets/enemies/goydenish/walk_R.png?v=goydenish-rebuilt-2',
+    swingLeft:'assets/enemies/goydenish/swing_L.png?v=goydenish-rebuilt-2',
+    swingRight:'assets/enemies/goydenish/swing_R.png?v=goydenish-rebuilt-2',
+    throwLeft:'assets/enemies/goydenish/throw_L.png?v=goydenish-rebuilt-2',
+    throwRight:'assets/enemies/goydenish/throw_R.png?v=goydenish-rebuilt-2',
+    projectile:'assets/enemies/goydenish/Z.png?v=goydenish-rebuilt-2',
+    dead:'assets/enemies/goydenish/Idle.png?v=goydenish-rebuilt-2'
   },
   negay:{
     idle:'assets/enemies/NEgay/idle.png',
@@ -2807,7 +2819,7 @@ class Player {
 
       const hitbox = this.getHitbox();
       for (const enemy of scene.enemies) {
-        if (!enemy.alive) continue;
+        if (!enemy.alive || enemy.nonPhysical || enemy.canBeHit === false) continue;
         // Projectiles are hazards, not punchable enemies.
         if (enemy.enemyType === 'gundosFireball') continue;
         if (enemy.enemyType === 'sucker' && (enemy.state === 'windup' || enemy.state === 'slide') && this.canCounterSlide(enemy)) {
@@ -3071,6 +3083,78 @@ class Player {
 
 
 /* ===== src/enemy.js ===== */
+class GoydenishZProjectile {
+  constructor(x, y, direction, image, config) {
+    this.enemyType = 'goydenishZ';
+    this.x = x;
+    this.y = y;
+    this.laneY = y;
+    this.direction = direction >= 0 ? 1 : -1;
+    this.image = image || null;
+    this.speed = Number(config.projectileSpeed) || 7.2;
+    this.damage = Number(config.projectileDamage) || 16;
+    this.scale = Number(config.projectileScale) || 0.095;
+    this.alive = true;
+    this.remove = false;
+    this.blocksWaveClear = false;
+    this.nonPhysical = true;
+    this.canBeHit = false;
+  }
+
+  update(dt, scene) {
+    this.x += this.direction * this.speed * Math.max(0.65, Math.min(1.55, dt / 16.67));
+    const player = scene && scene.player;
+    if (player && player.hp > 0 && Combat.canProjectileHit(this, player, {
+      laneY: this.laneY,
+      laneTolerance: GAME_CONFIG.yHitTolerance
+    })) {
+      const hit = player.receiveDamage(this.damage, {
+        source: 'ranged',
+        knockbackX: this.direction * 22,
+        hitStunMs: 150,
+        invulnerableMs: 240
+      });
+      if (hit && scene) scene.hitStop = Math.max(scene.hitStop || 0, 36);
+      this.remove = true;
+    }
+    if (this.x < -140 || this.x > GAME_CONFIG.width + 140) this.remove = true;
+  }
+
+  getAttackBox() {
+    return { x: this.x - 46, y: this.y - 30, w: 92, h: 60 };
+  }
+
+  getHurtbox() {
+    return this.getAttackBox();
+  }
+
+  draw(ctx, debug = false) {
+    ctx.save();
+    if (this.image && this.image.complete !== false && this.image.naturalWidth !== 0) {
+      const w = this.image.width * this.scale;
+      const h = this.image.height * this.scale;
+      ctx.globalCompositeOperation = 'multiply';
+      ctx.drawImage(this.image, this.x - w / 2, this.y - h / 2, w, h);
+    } else {
+      ctx.fillStyle = '#f5d548';
+      ctx.strokeStyle = '#171717';
+      ctx.lineWidth = 4;
+      ctx.font = 'bold 42px Arial';
+      ctx.textAlign = 'center';
+      ctx.strokeText('Z', this.x, this.y + 14);
+      ctx.fillText('Z', this.x, this.y + 14);
+    }
+    if (debug) {
+      const box = this.getAttackBox();
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.strokeStyle = 'rgba(255,220,0,0.95)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(box.x, box.y, box.w, box.h);
+    }
+    ctx.restore();
+  }
+}
+
 class DogRegimeEnemy {
   constructor(x, y, images, id = 0, enemyType = 'dogRegime') {
     this.id = id;
@@ -3115,6 +3199,10 @@ class DogRegimeEnemy {
     this.attackScale = config.attackScale || 1;
     this.finalAttackScale = config.finalAttackScale || 1;
     this.mirrorSprite = config.mirrorSprite !== false;
+    this.attackIdleMs = config.attackIdleMs || 0;
+    this.attackWindupMs = config.attackWindupMs || GAME_CONFIG.enemyWindupMs;
+    this.attackActiveMs = config.attackActiveMs || GAME_CONFIG.enemyActiveMs;
+    this.attackRecoveryMs = config.attackRecoveryMs || GAME_CONFIG.enemyRecoveryMs;
     this.minDistanceX = config.minDistanceX || 42;
     this.preferredDistanceX = config.preferredDistanceX || 76;
     this.tooFarDistanceX = config.tooFarDistanceX || Math.max(this.preferredDistanceX + 40, 140);
@@ -3611,16 +3699,56 @@ class DogRegimeEnemy {
     const enemyImages = this.getEnemyImages();
     if (!this.alive) return enemyImages.dead;
     if (this.state === 'knockdown') return enemyImages.dead || enemyImages.idle;
+    if (this.enemyType === 'goydenish') {
+      const side = this.facing === 1 ? 'right' : 'left';
+      if (this.state === 'attack') {
+        const config = GAME_CONFIG.enemies.goydenish || {};
+        if (this.attackTimer < (config.attackIdleMs || 0)) return enemyImages.idle;
+        if (this.attackTimer < (this.attackWindupMs || GAME_CONFIG.enemyWindupMs)) return (enemyImages.swing || {})[side] || enemyImages.idle;
+        return (enemyImages.throw || {})[side] || (enemyImages.swing || {})[side] || enemyImages.idle;
+      }
+      if (this.hitStun > 0 || this.intent === 'hold') return enemyImages.idle;
+      return (enemyImages.walk || {})[side] || enemyImages.idle;
+    }
     if (this.state === 'attack') {
       const attack = enemyImages.attack || [];
       const windupMs = this.attackWindupMs || GAME_CONFIG.enemyWindupMs;
       return this.attackTimer < windupMs ? attack[0] || enemyImages.idle : attack[1] || attack[0] || enemyImages.idle;
     }
     if (this.hitStun > 0) return enemyImages.idle;
-    if (this.enemyType === 'goydenish') {
-      return enemyImages.walk[this.facing === 1 ? 0 : 1] || enemyImages.idle;
-    }
     return enemyImages.walk[this.walkFrame] || enemyImages.idle;
+  }
+
+  getFrameScale(img, baseScale) {
+    if (this.state !== 'attack') return baseScale;
+    const attack = this.getEnemyImages().attack || [];
+    return baseScale * (this.attackScale || 1) * (img === attack[1] ? this.finalAttackScale : 1);
+  }
+
+  updateGoydenishAttack(dt, scene) {
+    this.attackTimer += dt;
+    const config = GAME_CONFIG.enemies.goydenish || {};
+    const windupMs = this.attackWindupMs || GAME_CONFIG.enemyWindupMs;
+    const activeMs = this.attackActiveMs || GAME_CONFIG.enemyActiveMs;
+    const recoveryMs = this.attackRecoveryMs || GAME_CONFIG.enemyRecoveryMs;
+
+    if (!this.attackHasHit && this.attackTimer >= windupMs) {
+      const imageSet = this.getEnemyImages();
+      const spawnX = this.x + this.facing * 92;
+      const spawnY = this.y - 94;
+      scene.enemies.push(new GoydenishZProjectile(spawnX, spawnY, this.facing, imageSet.projectile, config));
+      this.attackHasHit = true;
+    }
+
+    if (this.attackTimer >= windupMs + activeMs + recoveryMs) {
+      this.state = 'walk';
+      this.intent = 'hold';
+      this.decisionTimer = 180 + Math.random() * 180;
+      this.cooldown = this.attackCooldownMinMs + Math.random() * Math.max(1, this.attackCooldownMaxMs - this.attackCooldownMinMs);
+      this.attackTimer = 0;
+      this.attackHasHit = false;
+      this.attackFacing = null;
+    }
   }
 
   draw(ctx, debug = false) {
@@ -10306,10 +10434,13 @@ class GameApp {
       bastardWalk2: Assets.bastard.walk[2],
 
       goydenishIdle: Assets.goydenish.idle,
-      goydenishWalk0: Assets.goydenish.walk[0],
-      goydenishWalk1: Assets.goydenish.walk[1],
-      goydenishAttack0: Assets.goydenish.attack[0],
-      goydenishAttack1: Assets.goydenish.attack[1],
+      goydenishWalkLeft: Assets.goydenish.walkLeft,
+      goydenishWalkRight: Assets.goydenish.walkRight,
+      goydenishSwingLeft: Assets.goydenish.swingLeft,
+      goydenishSwingRight: Assets.goydenish.swingRight,
+      goydenishThrowLeft: Assets.goydenish.throwLeft,
+      goydenishThrowRight: Assets.goydenish.throwRight,
+      goydenishProjectile: Assets.goydenish.projectile,
       goydenishDead: Assets.goydenish.dead,
 
       negayIdle: Assets.negay.idle,
@@ -10403,8 +10534,19 @@ class GameApp {
       },
       goydenish: {
         idle: loaded.goydenishIdle || loaded.dogIdle,
-        walk: [loaded.goydenishWalk0 || loaded.dogWalk0, loaded.goydenishWalk1 || loaded.goydenishWalk0 || loaded.dogWalk1],
-        attack: [loaded.goydenishAttack0 || loaded.dogAttack0, loaded.goydenishAttack1 || loaded.goydenishAttack0 || loaded.dogAttack1],
+        walk: {
+          left: loaded.goydenishWalkLeft || loaded.dogWalk0,
+          right: loaded.goydenishWalkRight || loaded.goydenishWalkLeft || loaded.dogWalk1
+        },
+        swing: {
+          left: loaded.goydenishSwingLeft || loaded.goydenishIdle || loaded.dogAttack0,
+          right: loaded.goydenishSwingRight || loaded.goydenishSwingLeft || loaded.goydenishIdle || loaded.dogAttack0
+        },
+        throw: {
+          left: loaded.goydenishThrowLeft || loaded.goydenishSwingLeft || loaded.goydenishIdle || loaded.dogAttack1,
+          right: loaded.goydenishThrowRight || loaded.goydenishThrowLeft || loaded.goydenishSwingRight || loaded.goydenishIdle || loaded.dogAttack1
+        },
+        projectile: loaded.goydenishProjectile || null,
         dead: loaded.goydenishDead || loaded.goydenishIdle || loaded.dogDead
       },
       negay: {
@@ -17153,7 +17295,7 @@ window.addEventListener('load', () => {
       sucker: { w: 1024, h: 1536, scalePath: 'enemies.sucker.scale' },
       bastard: { w: 1122, h: 1402, scalePath: 'enemies.bastard.scale' },
       horse: { w: 1024, h: 1536, scalePath: 'enemies.horse.scale' },
-      goydenish: { w: 1024, h: 1536, scalePath: 'enemies.goydenish.scale' },
+      goydenish: { w: 1335, h: 1178, scalePath: 'enemies.goydenish.scale' },
       negay: { w: 1024, h: 1536, scalePath: 'enemies.negay.scale' },
       gundos: { w: 1536, h: 1024, scalePath: 'enemies.gundos.scale' }
     }
@@ -17502,6 +17644,10 @@ window.addEventListener('load', () => {
     };
 
     DogRegimeEnemy.prototype.updateAttack = function (dt, scene) {
+      if (this.enemyType === 'goydenish') {
+        this.updateGoydenishAttack(dt, scene);
+        return;
+      }
       if (this.enemyType === 'horse') {
         if (!this.attackFacing) this.attackFacing = this.facing || 1;
         if (!this.attackPositionLocked) {

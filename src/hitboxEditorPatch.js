@@ -26,7 +26,7 @@
       sucker: { w: 1024, h: 1536, scalePath: 'enemies.sucker.scale' },
       bastard: { w: 1122, h: 1402, scalePath: 'enemies.bastard.scale' },
       horse: { w: 1024, h: 1536, scalePath: 'enemies.horse.scale' },
-      goydenish: { w: 1024, h: 1536, scalePath: 'enemies.goydenish.scale' },
+      goydenish: { w: 1335, h: 1178, scalePath: 'enemies.goydenish.scale' },
       negay: { w: 1024, h: 1536, scalePath: 'enemies.negay.scale' },
       gundos: { w: 1536, h: 1024, scalePath: 'enemies.gundos.scale' }
     }
@@ -375,6 +375,10 @@
     };
 
     DogRegimeEnemy.prototype.updateAttack = function (dt, scene) {
+      if (this.enemyType === 'goydenish') {
+        this.updateGoydenishAttack(dt, scene);
+        return;
+      }
       if (this.enemyType === 'horse') {
         if (!this.attackFacing) this.attackFacing = this.facing || 1;
         if (!this.attackPositionLocked) {

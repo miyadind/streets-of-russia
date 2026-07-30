@@ -90,10 +90,13 @@ class GameApp {
       bastardWalk2: Assets.bastard.walk[2],
 
       goydenishIdle: Assets.goydenish.idle,
-      goydenishWalk0: Assets.goydenish.walk[0],
-      goydenishWalk1: Assets.goydenish.walk[1],
-      goydenishAttack0: Assets.goydenish.attack[0],
-      goydenishAttack1: Assets.goydenish.attack[1],
+      goydenishWalkLeft: Assets.goydenish.walkLeft,
+      goydenishWalkRight: Assets.goydenish.walkRight,
+      goydenishSwingLeft: Assets.goydenish.swingLeft,
+      goydenishSwingRight: Assets.goydenish.swingRight,
+      goydenishThrowLeft: Assets.goydenish.throwLeft,
+      goydenishThrowRight: Assets.goydenish.throwRight,
+      goydenishProjectile: Assets.goydenish.projectile,
       goydenishDead: Assets.goydenish.dead,
 
       negayIdle: Assets.negay.idle,
@@ -187,8 +190,19 @@ class GameApp {
       },
       goydenish: {
         idle: loaded.goydenishIdle || loaded.dogIdle,
-        walk: [loaded.goydenishWalk0 || loaded.dogWalk0, loaded.goydenishWalk1 || loaded.goydenishWalk0 || loaded.dogWalk1],
-        attack: [loaded.goydenishAttack0 || loaded.dogAttack0, loaded.goydenishAttack1 || loaded.goydenishAttack0 || loaded.dogAttack1],
+        walk: {
+          left: loaded.goydenishWalkLeft || loaded.dogWalk0,
+          right: loaded.goydenishWalkRight || loaded.goydenishWalkLeft || loaded.dogWalk1
+        },
+        swing: {
+          left: loaded.goydenishSwingLeft || loaded.goydenishIdle || loaded.dogAttack0,
+          right: loaded.goydenishSwingRight || loaded.goydenishSwingLeft || loaded.goydenishIdle || loaded.dogAttack0
+        },
+        throw: {
+          left: loaded.goydenishThrowLeft || loaded.goydenishSwingLeft || loaded.goydenishIdle || loaded.dogAttack1,
+          right: loaded.goydenishThrowRight || loaded.goydenishThrowLeft || loaded.goydenishSwingRight || loaded.goydenishIdle || loaded.dogAttack1
+        },
+        projectile: loaded.goydenishProjectile || null,
         dead: loaded.goydenishDead || loaded.goydenishIdle || loaded.dogDead
       },
       negay: {
