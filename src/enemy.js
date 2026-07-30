@@ -1,9 +1,9 @@
 class GoydenishZProjectile {
-  constructor(x, y, direction, image, config, owner) {
+  constructor(x, y, direction, image, config, owner, laneY) {
     this.enemyType = 'goydenishZ';
     this.x = x;
     this.y = y;
-    this.laneY = y;
+    this.laneY = Number.isFinite(laneY) ? laneY : y;
     this.direction = direction >= 0 ? 1 : -1;
     this.image = image || null;
     this.speed = Number(config.projectileSpeed) || 7.2;
@@ -62,7 +62,7 @@ class GoydenishZProjectile {
   }
 
   getAttackBox() {
-    return { x: this.x - 46, y: this.y - 30, w: 92, h: 60 };
+    return { x: this.x - 56, y: this.laneY - 126, w: 112, h: 112 };
   }
 
   getHurtbox() {
@@ -683,7 +683,7 @@ class DogRegimeEnemy {
       const imageSet = this.getEnemyImages();
       const spawnX = this.x + this.facing * 92;
       const spawnY = this.y - 94;
-      scene.enemies.push(new GoydenishZProjectile(spawnX, spawnY, this.facing, imageSet.projectile, config, this));
+      scene.enemies.push(new GoydenishZProjectile(spawnX, spawnY, this.facing, imageSet.projectile, config, this, this.y));
       this.attackHasHit = true;
     }
 
