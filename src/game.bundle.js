@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.144",
+  "buildVersion": "0.4.145",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -340,7 +340,7 @@ const GAME_CONFIG = {
       "projectileDamage": 16,
       "projectileSpeed": 7.2,
       "projectileScale": 0.0375,
-      "projectileHitboxSize": 38,
+      "projectileHitboxSize": 64,
       "keepOnScreen": true,
       "screenMarginX": 70,
       "fleeDistanceX": 270,
@@ -3171,7 +3171,7 @@ class GoydenishZProjectile {
     const size = this.hitboxSize;
     return {
       x: this.x - size / 2,
-      y: this.laneY - size - 10,
+      y: this.y - size / 2,
       w: size,
       h: size
     };
@@ -3801,8 +3801,24 @@ class DogRegimeEnemy {
 
     if (distanceX <= (config.fleeDistanceX || 270)) {
       this.intent = 'flee';
-      const escapeDirection = this.x <= player.x ? -1 : 1;
-      this.applyMovement(escapeDirection, 0, dt, config.fleeSpeedMultiplier || 2);
+      if (!this.fleeTargetSide) {
+        // Cross the player through a committed top/bottom route instead of shuffling against an edge.
+        this.fleeTargetSide = this.x <= player.x ? 1 : -1;
+        this.fleeRouteY = this.id % 2
+          ? GAME_CONFIG.laneTop + 28
+          : GAME_CONFIG.laneBottom - 28;
+      }
+
+      const targetX = this.fleeTargetSide > 0
+        ? GAME_CONFIG.width - (config.screenMarginX || 70)
+        : (config.screenMarginX || 70);
+      const movingPastPlayer = this.fleeTargetSide > 0 ? this.x < player.x : this.x > player.x;
+      const moveX = Math.abs(targetX - this.x) > 12 ? Math.sign(targetX - this.x) : 0;
+      const moveY = movingPastPlayer || Math.abs(this.fleeRouteY - this.y) > 18
+        ? Math.sign(this.fleeRouteY - this.y)
+        : 0;
+      this.applyMovement(moveX, moveY, dt, config.fleeSpeedMultiplier || 2);
+      if (moveX === 0 && moveY === 0) this.fleeTargetSide = 0;
       this.clampToScreen();
       return;
     }

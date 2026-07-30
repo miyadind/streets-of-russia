@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  "buildVersion": "0.4.144",
+  "buildVersion": "0.4.145",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -333,7 +333,7 @@ const GAME_CONFIG = {
       "projectileDamage": 16,
       "projectileSpeed": 7.2,
       "projectileScale": 0.0375,
-      "projectileHitboxSize": 38,
+      "projectileHitboxSize": 64,
       "keepOnScreen": true,
       "screenMarginX": 70,
       "fleeDistanceX": 270,
