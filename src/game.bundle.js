@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.152",
+  "buildVersion": "0.4.153",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -10907,7 +10907,12 @@ class GameApp {
 
     const key = this.getMenuMusicKey();
     const track = AudioManager.music && AudioManager.music[key];
-    if (!track || (track.dataset && track.dataset.failed === 'true') || !track.paused) return;
+    if (!track || (track.dataset && track.dataset.failed === 'true')) return;
+    const isActiveAndPlaying = AudioManager.currentMusic === track &&
+      AudioManager.currentMusicKey === key &&
+      !track.paused &&
+      AudioManager.musicActuallyPlaying;
+    if (isActiveAndPlaying) return;
 
     const now = performance.now();
     if (now < (this.nextMapMusicRetryAt || 0)) return;
@@ -10916,6 +10921,13 @@ class GameApp {
     // Retry without restarting the track once the browser has made it playable.
     this.nextMapMusicRetryAt = now + 750;
     AudioManager.playMusic(key, false, true);
+  }
+
+  startCampaignMapMusic() {
+    const key = this.getMenuMusicKey();
+    AudioManager.setMusicPauseReason('character-select', false);
+    AudioManager.playMusic(key, true, true);
+    this.nextMapMusicRetryAt = performance.now() + 300;
   }
 
   setState(nextState) {
@@ -10966,8 +10978,7 @@ class GameApp {
 
     if (nextState === 'campaignMap') {
       this.stopIntroAudioForStateChange();
-      AudioManager.playMusic(this.getMenuMusicKey(), false, true);
-      this.nextMapMusicRetryAt = performance.now() + 300;
+      this.startCampaignMapMusic();
       return;
     }
 
