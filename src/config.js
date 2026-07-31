@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  "buildVersion": "0.4.153",
+  "buildVersion": "0.4.154",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -337,7 +337,7 @@ const GAME_CONFIG = {
       "keepOnScreen": true,
       "screenMarginX": 70,
       "fleeDistanceX": 270,
-      "fleeSpeedMultiplier": 2.2,
+      "fleeSpeedMultiplier": 4.5,
       "attackDamageSource": "ranged",
       "minDistanceX": 150,
       "preferredDistanceX": 235,

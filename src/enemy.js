@@ -695,7 +695,7 @@ class DogRegimeEnemy {
     const aligned = absY <= this.attackRangeY;
     const activeAttackers = this.countActiveAttackers(scene);
 
-    if (distanceX <= (config.fleeDistanceX || 270)) {
+    if (this.fleeTargetSide || distanceX <= (config.fleeDistanceX || 270)) {
       this.intent = 'flee';
       if (!this.fleeTargetSide) {
         // Cross the player through a committed top/bottom route instead of shuffling against an edge.
