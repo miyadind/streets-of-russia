@@ -143,7 +143,10 @@
   function restartSceneAtActiveRegion(game) {
     if (!game || !game.scene) return;
     if (window.CampaignRuntime) {
-      const targetIndex = window.CampaignRuntime.getActiveRegionStartIndex(game);
+      const levelOrder = GAME_CONFIG.levelOrder || [];
+      const requestedIndex = game.devMapStartLevelKey ? levelOrder.indexOf(game.devMapStartLevelKey) : -1;
+      const targetIndex = requestedIndex >= 0 ? requestedIndex : window.CampaignRuntime.getActiveRegionStartIndex(game);
+      game.devMapStartLevelKey = null;
       if (game.scene.screenIndex !== targetIndex) {
         window.CampaignRuntime.setSceneScreen(game.scene, targetIndex);
         const level = game.scene.getLevelConfig ? game.scene.getLevelConfig() : null;

@@ -47,6 +47,7 @@
     }
 
     if (mode === 'campaignStart') {
+      game.devMapStartLevelKey = null;
       game.resumeTarget = 'campaignMap';
       game.setState('campaignMap');
       return;

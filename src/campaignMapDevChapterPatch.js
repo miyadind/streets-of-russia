@@ -76,6 +76,7 @@
     if (game) {
       const selection = getSelectedLevel(map);
       game.devStartLevelKey = selection.key;
+      game.devMapStartLevelKey = selection.key;
       if (window.CampaignFlow && window.CampaignFlow.openCharacterSelect) {
         window.CampaignFlow.openCharacterSelect(game, 'campaignStart');
       } else {
@@ -102,22 +103,22 @@
   function handleDevInput(map, game) {
     if (!enabled()) return false;
 
-    if (Input.consume('[')) {
+    if (Input.consume('[') || Input.consume('arrowleft')) {
       moveRegion(map, -1);
       return true;
     }
 
-    if (Input.consume(']')) {
+    if (Input.consume(']') || Input.consume('arrowright')) {
       moveRegion(map, 1);
       return true;
     }
 
-    if (Input.consume(',')) {
+    if (Input.consume(',') || Input.consume('arrowup')) {
       moveLevel(map, -1);
       return true;
     }
 
-    if (Input.consume('.')) {
+    if (Input.consume('.') || Input.consume('arrowdown')) {
       moveLevel(map, 1);
       return true;
     }

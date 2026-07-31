@@ -310,13 +310,17 @@
         });
         const result = this.voice.play();
         if (result && result.then) {
-          result.then(() => { this.voiceStarted = true; }).catch(() => {});
+          result.then(() => { this.voiceStarted = true; }).catch(() => {
+            this.voiceStarted = false;
+            AudioManager.setVoiceDucking(false, 'gundosVoice');
+          });
         } else {
           this.voiceStarted = true;
         }
         AudioManager.setVoiceDucking(true, 'gundosVoice');
       } catch (error) {
         this.voice = null;
+        AudioManager.setVoiceDucking(false, 'gundosVoice');
       }
     }
 

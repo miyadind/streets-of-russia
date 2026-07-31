@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.150",
+  "buildVersion": "0.4.151",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -9483,6 +9483,7 @@ const CampaignMapScreen = {
     }
 
     if (mode === 'campaignStart') {
+      game.devMapStartLevelKey = null;
       game.resumeTarget = 'campaignMap';
       game.setState('campaignMap');
       return;
@@ -16647,13 +16648,17 @@ window.addEventListener('load', () => {
         });
         const result = this.voice.play();
         if (result && result.then) {
-          result.then(() => { this.voiceStarted = true; }).catch(() => {});
+          result.then(() => { this.voiceStarted = true; }).catch(() => {
+            this.voiceStarted = false;
+            AudioManager.setVoiceDucking(false, 'gundosVoice');
+          });
         } else {
           this.voiceStarted = true;
         }
         AudioManager.setVoiceDucking(true, 'gundosVoice');
       } catch (error) {
         this.voice = null;
+        AudioManager.setVoiceDucking(false, 'gundosVoice');
       }
     }
 
@@ -18788,7 +18793,10 @@ window.addEventListener('load', () => {
   function restartSceneAtActiveRegion(game) {
     if (!game || !game.scene) return;
     if (window.CampaignRuntime) {
-      const targetIndex = window.CampaignRuntime.getActiveRegionStartIndex(game);
+      const levelOrder = GAME_CONFIG.levelOrder || [];
+      const requestedIndex = game.devMapStartLevelKey ? levelOrder.indexOf(game.devMapStartLevelKey) : -1;
+      const targetIndex = requestedIndex >= 0 ? requestedIndex : window.CampaignRuntime.getActiveRegionStartIndex(game);
+      game.devMapStartLevelKey = null;
       if (game.scene.screenIndex !== targetIndex) {
         window.CampaignRuntime.setSceneScreen(game.scene, targetIndex);
         const level = game.scene.getLevelConfig ? game.scene.getLevelConfig() : null;
@@ -19508,6 +19516,7 @@ window.addEventListener('load', () => {
     if (game) {
       const selection = getSelectedLevel(map);
       game.devStartLevelKey = selection.key;
+      game.devMapStartLevelKey = selection.key;
       if (window.CampaignFlow && window.CampaignFlow.openCharacterSelect) {
         window.CampaignFlow.openCharacterSelect(game, 'campaignStart');
       } else {
@@ -19534,22 +19543,22 @@ window.addEventListener('load', () => {
   function handleDevInput(map, game) {
     if (!enabled()) return false;
 
-    if (Input.consume('[')) {
+    if (Input.consume('[') || Input.consume('arrowleft')) {
       moveRegion(map, -1);
       return true;
     }
 
-    if (Input.consume(']')) {
+    if (Input.consume(']') || Input.consume('arrowright')) {
       moveRegion(map, 1);
       return true;
     }
 
-    if (Input.consume(',')) {
+    if (Input.consume(',') || Input.consume('arrowup')) {
       moveLevel(map, -1);
       return true;
     }
 
-    if (Input.consume('.')) {
+    if (Input.consume('.') || Input.consume('arrowdown')) {
       moveLevel(map, 1);
       return true;
     }
