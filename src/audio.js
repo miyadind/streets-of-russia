@@ -13,6 +13,7 @@ const AudioManager = {
   audioContexts: new Set(),
   musicPauseReasons: null,
   voiceDuckSources: null,
+  voiceDuckSequence: 0,
   enemyAppearType: null,
 
   init() {
@@ -30,6 +31,7 @@ const AudioManager = {
     this.audioContexts = new Set();
     this.musicPauseReasons = new Set();
     this.voiceDuckSources = new Set();
+    this.voiceDuckSequence = 0;
     this.enemyAppearType = null;
 
     for (const [key, src] of Object.entries((Assets.audio && Assets.audio.sfx) || {})) {
@@ -156,12 +158,15 @@ const AudioManager = {
   stopAllAudio() {
     this.stopMusic();
     for (const audio of this.activeSfx || []) {
+      if (audio.__voiceDuckSource) this.setVoiceDucking(false, audio.__voiceDuckSource);
       try {
         audio.pause();
         audio.currentTime = 0;
       } catch (error) {}
     }
     this.activeSfx = [];
+    if (this.voiceDuckSources) this.voiceDuckSources.clear();
+    this.voiceDucking = false;
     this.stopExternalAudio();
     this.pausedAudio = [];
     for (const context of this.audioContexts || []) {
@@ -250,6 +255,7 @@ const AudioManager = {
 
   stopActiveSfx() {
     for (const audio of this.activeSfx || []) {
+      if (audio.__voiceDuckSource) this.setVoiceDucking(false, audio.__voiceDuckSource);
       try {
         audio.pause();
         audio.currentTime = 0;
@@ -323,12 +329,30 @@ const AudioManager = {
       const audio = src.cloneNode(true);
       const playbackRate = options.playbackRate || options.rate || 1;
       const startAt = options.startAt || 0;
+      const duckSource = options.duckMusic
+        ? `${options.duckSource || key}:${++this.voiceDuckSequence}`
+        : null;
+      let duckReleased = false;
+      const releaseDuck = () => {
+        if (!duckSource || duckReleased) return;
+        duckReleased = true;
+        this.setVoiceDucking(false, duckSource);
+      };
 
       audio.volume = this.getSfxVolume(volume);
       audio.playbackRate = Math.max(0.5, Math.min(2, playbackRate));
       if (startAt > 0) audio.currentTime = startAt;
+      if (duckSource) {
+        audio.__voiceDuckSource = duckSource;
+        this.setVoiceDucking(true, duckSource);
+        audio.addEventListener('ended', releaseDuck, { once: true });
+        audio.addEventListener('error', releaseDuck, { once: true });
+      }
       this.trackSfx(audio);
-      audio.play().catch(() => this.playSyntheticSfx(key, volume, options));
+      audio.play().catch(() => {
+        releaseDuck();
+        this.playSyntheticSfx(key, volume, options);
+      });
     } catch (error) {
       console.warn('Cannot play sfx:', key, error);
       this.playSyntheticSfx(key, volume, options);
@@ -363,12 +387,27 @@ const AudioManager = {
       const audio = src.cloneNode(true);
       const playbackRate = options.playbackRate || options.rate || 1;
       const startAt = options.startAt || 0;
+      const duckSource = options.duckMusic
+        ? `${options.duckSource || key}:${++this.voiceDuckSequence}`
+        : null;
+      let duckReleased = false;
+      const releaseDuck = () => {
+        if (!duckSource || duckReleased) return;
+        duckReleased = true;
+        this.setVoiceDucking(false, duckSource);
+      };
 
       audio.volume = this.getSfxVolume(volume);
       audio.playbackRate = Math.max(0.5, Math.min(2, playbackRate));
       if (startAt > 0) audio.currentTime = startAt;
+      if (duckSource) {
+        audio.__voiceDuckSource = duckSource;
+        this.setVoiceDucking(true, duckSource);
+        audio.addEventListener('ended', releaseDuck, { once: true });
+        audio.addEventListener('error', releaseDuck, { once: true });
+      }
       this.trackSfx(audio);
-      audio.play().catch(() => {});
+      audio.play().catch(releaseDuck);
       return true;
     } catch (error) {
       return false;

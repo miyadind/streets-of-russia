@@ -302,7 +302,9 @@ class LevelScene {
     try {
       AudioManager.playOptionalSfx(this.getEnemyAppearSoundKey(type), 0.9, {
         src: this.getEnemyAppearSoundPath(type),
-        startAt: 0.01
+        startAt: 0.01,
+        duckMusic: type === 'negay',
+        duckSource: type === 'negay' ? 'negayAppearVoice' : undefined
       });
     } finally {
       AudioManager.enemyAppearType = previousAppearType || null;
