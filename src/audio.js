@@ -12,6 +12,7 @@ const AudioManager = {
   externalAudio: new Map(),
   audioContexts: new Set(),
   musicPauseReasons: null,
+  voiceDuckSources: null,
   enemyAppearType: null,
 
   init() {
@@ -28,6 +29,7 @@ const AudioManager = {
     this.externalAudio = new Map();
     this.audioContexts = new Set();
     this.musicPauseReasons = new Set();
+    this.voiceDuckSources = new Set();
     this.enemyAppearType = null;
 
     for (const [key, src] of Object.entries((Assets.audio && Assets.audio.sfx) || {})) {
@@ -195,12 +197,15 @@ const AudioManager = {
   getMusicVolume() {
     if (!this.isSoundOn() || !this.isMusicEnabled()) return 0;
     const base = GAME_CONFIG.settings && GAME_CONFIG.settings.musicVolume != null ? GAME_CONFIG.settings.musicVolume : 0.45;
-    const ducking = this.voiceDucking ? 0.28 : 1;
+    const ducking = this.voiceDucking || (this.voiceDuckSources && this.voiceDuckSources.size > 0) ? 0.28 : 1;
     return Math.max(0, Math.min(1, base * ducking));
   },
 
-  setVoiceDucking(active) {
-    this.voiceDucking = !!active;
+  setVoiceDucking(active, source = 'voice') {
+    if (!this.voiceDuckSources) this.voiceDuckSources = new Set();
+    if (active) this.voiceDuckSources.add(source);
+    else this.voiceDuckSources.delete(source);
+    this.voiceDucking = this.voiceDuckSources.size > 0;
     if (this.currentMusic) this.currentMusic.volume = this.getMusicVolume();
   },
 

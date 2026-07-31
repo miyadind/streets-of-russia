@@ -25,7 +25,7 @@
     game.heroVoiceAudio = null;
     game.heroVoicePlaying = false;
     game.heroVoiceDialogue = null;
-    AudioManager.setVoiceDucking(false);
+    AudioManager.setVoiceDucking(false, 'heroVoice');
   }
 
   function playVoice(game, index) {
@@ -47,7 +47,7 @@
       audio
     };
     game.heroVoiceIdleMs = 0;
-    AudioManager.setVoiceDucking(true);
+    AudioManager.setVoiceDucking(true, 'heroVoice');
     AudioManager.registerExternalAudio(audio, { owner: 'heroVoice', channel: 'sfx' });
 
     const finish = () => {
@@ -59,7 +59,7 @@
       if (game.heroVoiceDialogue && game.heroVoiceDialogue.audio === audio) {
         game.heroVoiceDialogue.finishedAt = performance.now();
       }
-      AudioManager.setVoiceDucking(false);
+      AudioManager.setVoiceDucking(false, 'heroVoice');
     };
     audio.addEventListener('ended', finish, { once: true });
     audio.addEventListener('error', finish, { once: true });

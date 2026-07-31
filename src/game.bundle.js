@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.147",
+  "buildVersion": "0.4.148",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -1929,6 +1929,7 @@ const AudioManager = {
   externalAudio: new Map(),
   audioContexts: new Set(),
   musicPauseReasons: null,
+  voiceDuckSources: null,
   enemyAppearType: null,
 
   init() {
@@ -1945,6 +1946,7 @@ const AudioManager = {
     this.externalAudio = new Map();
     this.audioContexts = new Set();
     this.musicPauseReasons = new Set();
+    this.voiceDuckSources = new Set();
     this.enemyAppearType = null;
 
     for (const [key, src] of Object.entries((Assets.audio && Assets.audio.sfx) || {})) {
@@ -2112,12 +2114,15 @@ const AudioManager = {
   getMusicVolume() {
     if (!this.isSoundOn() || !this.isMusicEnabled()) return 0;
     const base = GAME_CONFIG.settings && GAME_CONFIG.settings.musicVolume != null ? GAME_CONFIG.settings.musicVolume : 0.45;
-    const ducking = this.voiceDucking ? 0.28 : 1;
+    const ducking = this.voiceDucking || (this.voiceDuckSources && this.voiceDuckSources.size > 0) ? 0.28 : 1;
     return Math.max(0, Math.min(1, base * ducking));
   },
 
-  setVoiceDucking(active) {
-    this.voiceDucking = !!active;
+  setVoiceDucking(active, source = 'voice') {
+    if (!this.voiceDuckSources) this.voiceDuckSources = new Set();
+    if (active) this.voiceDuckSources.add(source);
+    else this.voiceDuckSources.delete(source);
+    this.voiceDucking = this.voiceDuckSources.size > 0;
     if (this.currentMusic) this.currentMusic.volume = this.getMusicVolume();
   },
 
@@ -16622,9 +16627,11 @@ window.addEventListener('load', () => {
         AudioManager.registerExternalAudio(this.voice, { owner: 'gundos', channel: 'sfx' });
         this.voice.addEventListener('ended', () => {
           this.voiceEnded = true;
+          AudioManager.setVoiceDucking(false, 'gundosVoice');
         });
         this.voice.addEventListener('error', () => {
           this.voice = null;
+          AudioManager.setVoiceDucking(false, 'gundosVoice');
         });
         const result = this.voice.play();
         if (result && result.then) {
@@ -16632,10 +16639,7 @@ window.addEventListener('load', () => {
         } else {
           this.voiceStarted = true;
         }
-        if (AudioManager.currentMusic) {
-          this.previousMusicVolume = AudioManager.currentMusic.volume;
-          AudioManager.currentMusic.volume = Math.min(0.12, AudioManager.getMusicVolume() * 0.28);
-        }
+        AudioManager.setVoiceDucking(true, 'gundosVoice');
       } catch (error) {
         this.voice = null;
       }
@@ -16693,7 +16697,7 @@ window.addEventListener('load', () => {
       if (this.introFinished) return;
       this.introFinished = true;
       if (!this.transformed) this.transform(scene);
-      if (AudioManager.currentMusic) AudioManager.currentMusic.volume = AudioManager.getMusicVolume();
+      AudioManager.setVoiceDucking(false, 'gundosVoice');
       if (scene) {
         scene.gundosIntroActive = false;
         scene.gundosIntroLocked = false;
@@ -16717,7 +16721,7 @@ window.addEventListener('load', () => {
       } catch (error) {}
       this.voice = null;
       AudioManager.unregisterExternalAudio(voice);
-      if (AudioManager.currentMusic) AudioManager.currentMusic.volume = AudioManager.getMusicVolume();
+      AudioManager.setVoiceDucking(false, 'gundosVoice');
     }
 
     pauseVoice() {
@@ -19723,7 +19727,7 @@ window.HeroVoiceLines = {
     game.heroVoiceAudio = null;
     game.heroVoicePlaying = false;
     game.heroVoiceDialogue = null;
-    AudioManager.setVoiceDucking(false);
+    AudioManager.setVoiceDucking(false, 'heroVoice');
   }
 
   function playVoice(game, index) {
@@ -19745,7 +19749,7 @@ window.HeroVoiceLines = {
       audio
     };
     game.heroVoiceIdleMs = 0;
-    AudioManager.setVoiceDucking(true);
+    AudioManager.setVoiceDucking(true, 'heroVoice');
     AudioManager.registerExternalAudio(audio, { owner: 'heroVoice', channel: 'sfx' });
 
     const finish = () => {
@@ -19757,7 +19761,7 @@ window.HeroVoiceLines = {
       if (game.heroVoiceDialogue && game.heroVoiceDialogue.audio === audio) {
         game.heroVoiceDialogue.finishedAt = performance.now();
       }
-      AudioManager.setVoiceDucking(false);
+      AudioManager.setVoiceDucking(false, 'heroVoice');
     };
     audio.addEventListener('ended', finish, { once: true });
     audio.addEventListener('error', finish, { once: true });

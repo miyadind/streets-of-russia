@@ -302,9 +302,11 @@
         AudioManager.registerExternalAudio(this.voice, { owner: 'gundos', channel: 'sfx' });
         this.voice.addEventListener('ended', () => {
           this.voiceEnded = true;
+          AudioManager.setVoiceDucking(false, 'gundosVoice');
         });
         this.voice.addEventListener('error', () => {
           this.voice = null;
+          AudioManager.setVoiceDucking(false, 'gundosVoice');
         });
         const result = this.voice.play();
         if (result && result.then) {
@@ -312,10 +314,7 @@
         } else {
           this.voiceStarted = true;
         }
-        if (AudioManager.currentMusic) {
-          this.previousMusicVolume = AudioManager.currentMusic.volume;
-          AudioManager.currentMusic.volume = Math.min(0.12, AudioManager.getMusicVolume() * 0.28);
-        }
+        AudioManager.setVoiceDucking(true, 'gundosVoice');
       } catch (error) {
         this.voice = null;
       }
@@ -373,7 +372,7 @@
       if (this.introFinished) return;
       this.introFinished = true;
       if (!this.transformed) this.transform(scene);
-      if (AudioManager.currentMusic) AudioManager.currentMusic.volume = AudioManager.getMusicVolume();
+      AudioManager.setVoiceDucking(false, 'gundosVoice');
       if (scene) {
         scene.gundosIntroActive = false;
         scene.gundosIntroLocked = false;
@@ -397,7 +396,7 @@
       } catch (error) {}
       this.voice = null;
       AudioManager.unregisterExternalAudio(voice);
-      if (AudioManager.currentMusic) AudioManager.currentMusic.volume = AudioManager.getMusicVolume();
+      AudioManager.setVoiceDucking(false, 'gundosVoice');
     }
 
     pauseVoice() {
