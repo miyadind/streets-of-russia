@@ -277,6 +277,7 @@ class DogRegimeEnemy {
       }
       this.attackTimer = 0;
       this.attackHasHit = false;
+      this.clubSwingSfxPlayed = false;
       this.clampToScreen();
       return;
     }

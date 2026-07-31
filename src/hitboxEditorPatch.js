@@ -398,6 +398,11 @@
       const activeEnd = windupMs + activeMs;
       const finalWhiplashAt = windupMs + activeMs * 0.45;
 
+      if (this.enemyType === 'dogRegime' && !this.clubSwingSfxPlayed && this.attackTimer >= Math.max(0, activeStart - 80)) {
+        AudioManager.playSfx('punch1', 0.72, { playbackRate: 0.76 });
+        this.clubSwingSfxPlayed = true;
+      }
+
       if (this.enemyType === 'horse' && !this.whiplashFinalSfxPlayed) {
         const horseConfig = GAME_CONFIG.enemies.horse || {};
         const leadMs = horseConfig.whiplashFinalSfxLeadMs == null ? 80 : horseConfig.whiplashFinalSfxLeadMs;
@@ -413,7 +418,10 @@
         if (this.canClubReachPlayer(player, false)) {
           const source = this.attackDamageSource || 'melee';
           const hit = player.receiveDamage(this.damage, { source, knockbackX: this.facing * 18 });
-          if (hit) scene.hitStop = 42;
+          if (hit) {
+            scene.hitStop = 42;
+            if (this.enemyType === 'dogRegime') AudioManager.playSfx('hit', 0.82, { playbackRate: 0.82 });
+          }
         }
         this.attackHasHit = true;
       }
@@ -428,6 +436,7 @@
         this.cooldown = min + Math.random() * Math.max(1, max - min);
         this.attackTimer = 0;
         this.attackHasHit = false;
+        this.clubSwingSfxPlayed = false;
         this.whiplashFinalSfxPlayed = false;
         this.attackFacing = null;
         this.attackPositionLocked = false;
