@@ -422,6 +422,17 @@ class LevelScene {
       }
 
       const spawn = this.getSpawnPoint(group.side, i, count);
+      if (group.type === 'sucker' && this.player) {
+        const edgeThreshold = 220;
+        const playerAtLeftEdge = this.player.x <= edgeThreshold;
+        const playerAtRightEdge = this.player.x >= GAME_CONFIG.width - edgeThreshold;
+        if (playerAtLeftEdge || playerAtRightEdge) {
+          const zone = this.getWalkZone();
+          // Do not spawn the charge enemy against the player at the same edge.
+          spawn.x = playerAtLeftEdge ? GAME_CONFIG.width - 140 : 140;
+          spawn.y = Math.max(zone.top, Math.min(zone.bottom, this.player.y));
+        }
+      }
       if ((group.alignToPlayerLane || isChargingZetnik) && this.player) {
         const zone = this.getWalkZone();
         spawn.y = Math.max(zone.top, Math.min(zone.bottom, this.player.y));
