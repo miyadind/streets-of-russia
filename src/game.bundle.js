@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.178",
+  "buildVersion": "0.4.179",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -9158,6 +9158,26 @@ const CampaignMapScreen = {
   },
 
   createImageSet(sources) {
+    const set = {
+      base: null,
+      active: {},
+      completed: {}
+    };
+    for (const id of this.order) {
+      set.active[id] = null;
+      set.completed[id] = null;
+    }
+    return set;
+  },
+
+  ensureImage(group, id) {
+    const collection = group === 'base' ? this.images : this.images && this.images[group];
+    const src = group === 'base'
+      ? this.sources.base
+      : this.sources[group] && this.sources[group][id];
+    const key = group === 'base' ? 'base' : id;
+    if (!collection || collection[key] || !src) return collection && collection[key];
+
     const makeImage = (src) => {
       if (!src) return null;
       const img = new Image();
@@ -9166,19 +9186,17 @@ const CampaignMapScreen = {
       img.src = src;
       return img;
     };
+    collection[key] = makeImage(src);
+    return collection[key];
+  },
 
-    const set = {
-      base: makeImage(sources.base),
-      active: {},
-      completed: {}
-    };
-
-    for (const id of this.order) {
-      set.active[id] = makeImage(sources.active && sources.active[id]);
-      set.completed[id] = makeImage(sources.completed && sources.completed[id]);
+  ensureVisibleImages() {
+    this.ensureImage('base');
+    const activeId = this.getActiveRegionId();
+    this.ensureImage('active', activeId);
+    for (let i = 0; i < this.activeIndex; i++) {
+      this.ensureImage('completed', this.order[i]);
     }
-
-    return set;
   },
 
   loadProgress() {
@@ -9232,6 +9250,7 @@ const CampaignMapScreen = {
   },
 
   draw(ctx) {
+    this.ensureVisibleImages();
     ctx.save();
 
     ctx.fillStyle = '#010815';
@@ -10619,7 +10638,12 @@ class GameApp {
     this.campaignMapMusicEntryId = -1;
     this.deferredAssetsReady = false;
     this.deferredImagesPromise = null;
+    this.startupAssetsReady = false;
+    this.startupAssetsPromise = null;
+    this.storyAssetsReady = false;
+    this.storyAssetsPromise = null;
     this.startingLevel = false;
+    this.imageRequests = new Map();
   }
 
   async init() {
@@ -10632,24 +10656,49 @@ class GameApp {
 
     this.images = await this.loadInitialImages();
     this.setState('splash');
-    this.deferredImagesPromise = new Promise((resolve) => {
+    this.storyAssetsPromise = new Promise((resolve) => {
       // Let the first splash frame paint before background loading starts.
       setTimeout(() => {
+        this.loadStoryAssets().then(() => {
+          this.storyAssetsReady = true;
+          resolve(this.images);
+        }).catch((error) => {
+          console.error('Story asset loading failed:', error);
+          this.storyAssetsReady = true;
+          resolve(this.images);
+        });
+      }, 0);
+    });
+
+    this.startupAssetsPromise = this.storyAssetsPromise.then(() => this.loadStartupAssets().then(() => {
+      this.startupAssetsReady = true;
+      return this.images;
+    }).catch((error) => {
+      console.error('Startup asset loading failed:', error);
+      this.startupAssetsReady = true;
+      return this.images;
+    }));
+
+    this.deferredImagesPromise = this.startupAssetsPromise.then(() => new Promise((resolve) => {
+      setTimeout(() => {
         this.loadImages().then((images) => {
-          this.images = images;
+          // Scenes keep a reference to this object, so merge instead of replacing it.
+          Object.assign(this.images, images);
           this.deferredAssetsReady = true;
-          resolve(images);
+          resolve(this.images);
         }).catch((error) => {
           console.error('Deferred asset loading failed:', error);
           this.deferredAssetsReady = true;
           resolve(this.images);
         });
       }, 0);
-    });
+    }));
   }
 
   loadSingleImage(src, label = src) {
-    return new Promise((resolve) => {
+    if (this.imageRequests.has(src)) return this.imageRequests.get(src);
+
+    const request = new Promise((resolve) => {
       if (!src) {
         resolve(null);
         return;
@@ -10662,6 +10711,8 @@ class GameApp {
       };
       image.src = src;
     });
+    this.imageRequests.set(src, request);
+    return request;
   }
 
   async loadInitialImages() {
@@ -10672,6 +10723,121 @@ class GameApp {
       enemies: {},
       pickups: {}
     };
+  }
+
+  async loadStoryAssets() {
+    const paths = {
+      intro: 'assets/backgrounds/Intro.png',
+      mapBase: 'assets/map/campaign/map_base.png',
+      mapFarEast: 'assets/map/campaign/active/01_far_east_active.png'
+    };
+    const loaded = {};
+    for (const [key, src] of Object.entries(paths)) {
+      loaded[key] = await this.loadSingleImage(src, src);
+    }
+
+    this.images.intro = loaded.intro;
+    if (this.campaignMap && this.campaignMap.images) {
+      this.campaignMap.images.base = loaded.mapBase;
+      this.campaignMap.images.active.farEast = loaded.mapFarEast;
+    }
+
+    if (this.intro) {
+      for (const audio of [this.intro.voice, this.intro.typewriterSound]) {
+        if (!audio) continue;
+        audio.preload = 'auto';
+        try { audio.load(); } catch (error) {}
+      }
+    }
+    this.preloadStartupMusic();
+  }
+
+  async loadStartupAssets() {
+    const paths = {
+      street0: Assets.backgrounds.level1[0],
+      street0Alt: 'assets/backgrounds/1/street01_1.png',
+      borisIdle: Assets.boris.idle,
+      borisWalk0: Assets.boris.walk[0],
+      borisWalk1: Assets.boris.walk[1],
+      borisWalk2: Assets.boris.walk[2],
+      borisPunch0: Assets.boris.punch[0],
+      borisPunch1: Assets.boris.punch[1],
+      borisPunch2: Assets.boris.punch[2],
+      borisKnockdown: Assets.boris.knockdown,
+      alexeyIdle: Assets.alexey.idle,
+      alexeyWalk0: Assets.alexey.walk[0],
+      alexeyWalk1: Assets.alexey.walk[1],
+      alexeyWalk2: Assets.alexey.walk[2],
+      alexeyPunch0: Assets.alexey.punch[0],
+      alexeyPunch1: Assets.alexey.punch[1],
+      alexeyPunch2: Assets.alexey.punch[2],
+      alexeyKnockdown: Assets.alexey.knockdown,
+      annaIdle: Assets.anna.idle,
+      annaWalk0: Assets.anna.walk[0],
+      annaWalk1: Assets.anna.walk[1],
+      annaWalk2: Assets.anna.walk[2],
+      annaPunch0: Assets.anna.punch[0],
+      annaPunch1: Assets.anna.punch[1],
+      annaPunch2: Assets.anna.punch[2],
+      annaKnockdown: Assets.anna.knockdown,
+      dogIdle: Assets.dog.idle,
+      dogWalk0: Assets.dog.walk[0],
+      dogWalk1: Assets.dog.walk[1],
+      dogAttack0: Assets.dog.attack[0],
+      dogAttack1: Assets.dog.attack[1],
+      dogDead: Assets.dog.dead,
+      pickupMedkit: Assets.pickups && Assets.pickups.medkit
+    };
+    const loaded = {};
+    for (const [key, src] of Object.entries(paths)) {
+      loaded[key] = await this.loadSingleImage(src, src);
+    }
+
+    this.images.streets = [loaded.street0];
+    this.images.levelInteractiveBackgrounds = {
+      'assets/backgrounds/1/street01_1.png': loaded.street0Alt
+    };
+    this.images.levelInteractiveImages = {};
+    this.images.heroes = {
+      boris: {
+        idle: loaded.borisIdle,
+        walk: [loaded.borisWalk0, loaded.borisWalk1, loaded.borisWalk2],
+        punch: [loaded.borisPunch0, loaded.borisPunch1, loaded.borisPunch2],
+        knockdown: loaded.borisKnockdown || loaded.borisIdle
+      },
+      alexey: {
+        idle: loaded.alexeyIdle,
+        walk: [loaded.alexeyWalk0, loaded.alexeyWalk1, loaded.alexeyWalk2],
+        punch: [loaded.alexeyPunch0, loaded.alexeyPunch1, loaded.alexeyPunch2],
+        knockdown: loaded.alexeyKnockdown || loaded.alexeyIdle
+      },
+      anna: {
+        idle: loaded.annaIdle,
+        walk: [loaded.annaWalk0, loaded.annaWalk1, loaded.annaWalk2],
+        punch: [loaded.annaPunch0, loaded.annaPunch1, loaded.annaPunch2],
+        knockdown: loaded.annaKnockdown || loaded.annaIdle
+      }
+    };
+    this.images.enemies = {
+      dogRegime: {
+        idle: loaded.dogIdle,
+        walk: [loaded.dogWalk0, loaded.dogWalk1],
+        attack: [loaded.dogAttack0, loaded.dogAttack1],
+        dead: loaded.dogDead
+      }
+    };
+    this.images.pickups = { medkit: loaded.pickupMedkit };
+
+  }
+
+  preloadStartupMusic() {
+    const keys = ['menuTheme', 'menuThemeAlt', 'mapTheme', 'farEastTheme', 'bossTheme'];
+    for (const key of keys) {
+      const audio = AudioManager.music && AudioManager.music[key];
+      if (!audio) continue;
+      audio.preload = 'metadata';
+      try { audio.load(); } catch (error) {}
+    }
   }
 
   async loadImages() {
@@ -11118,9 +11284,9 @@ class GameApp {
     if (this.startingLevel || this.state === 'level') return;
     this.startingLevel = true;
     try {
-      if (this.deferredImagesPromise && !this.deferredAssetsReady) {
+      if (this.startupAssetsPromise && !this.startupAssetsReady) {
         this.setState('levelLoading');
-        await this.deferredImagesPromise;
+        await this.startupAssetsPromise;
       }
 
       this.scene = new LevelScene(this, this.images);
@@ -11238,6 +11404,8 @@ class GameApp {
 
     if (this.state === 'loading') {
       this.drawLoading(ctx);
+    } else if (this.state === 'storyLoading') {
+      this.drawLoading(ctx, 'ПОДГОТОВКА ИСТОРИИ...');
     } else if (this.state === 'levelLoading') {
       this.drawLoading(ctx, 'ПОДГОТОВКА УРОВНЯ...');
     } else if (this.state === 'splash') {
@@ -12558,8 +12726,8 @@ window.addEventListener('load', () => {
 
   function loadPatchAudio(src, loop = false, volume = 0.35) {
     const audio = new Audio();
+    audio.preload = 'none';
     audio.src = src;
-    audio.preload = 'auto';
     audio.loop = loop;
     audio.volume = volume;
     audio.addEventListener('error', () => {
@@ -12656,8 +12824,11 @@ window.addEventListener('load', () => {
 
   const originalLoadImages = GameApp.prototype.loadImages;
   GameApp.prototype.loadImages = async function () {
+    const intro = this.loadSingleImage
+      ? await this.loadSingleImage(INTRO_BACKGROUND, INTRO_BACKGROUND)
+      : await loadPatchImage(INTRO_BACKGROUND);
     const loaded = await originalLoadImages.call(this);
-    loaded.intro = await loadPatchImage(INTRO_BACKGROUND);
+    loaded.intro = intro;
     return loaded;
   };
 
@@ -13605,8 +13776,13 @@ window.addEventListener('load', () => {
     this.stopIntroBackgroundMusic();
   };
 
-  GameApp.prototype.startIntro = function () {
+  GameApp.prototype.startIntro = async function () {
     if (!this.intro) return;
+
+    if (this.storyAssetsPromise && !this.storyAssetsReady) {
+      this.setState('storyLoading');
+      await this.storyAssetsPromise;
+    }
 
     ensureIntroMusic(this);
     installIntroVoiceEndHold(this);

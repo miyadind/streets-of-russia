@@ -56,6 +56,26 @@ const CampaignMapScreen = {
   },
 
   createImageSet(sources) {
+    const set = {
+      base: null,
+      active: {},
+      completed: {}
+    };
+    for (const id of this.order) {
+      set.active[id] = null;
+      set.completed[id] = null;
+    }
+    return set;
+  },
+
+  ensureImage(group, id) {
+    const collection = group === 'base' ? this.images : this.images && this.images[group];
+    const src = group === 'base'
+      ? this.sources.base
+      : this.sources[group] && this.sources[group][id];
+    const key = group === 'base' ? 'base' : id;
+    if (!collection || collection[key] || !src) return collection && collection[key];
+
     const makeImage = (src) => {
       if (!src) return null;
       const img = new Image();
@@ -64,19 +84,17 @@ const CampaignMapScreen = {
       img.src = src;
       return img;
     };
+    collection[key] = makeImage(src);
+    return collection[key];
+  },
 
-    const set = {
-      base: makeImage(sources.base),
-      active: {},
-      completed: {}
-    };
-
-    for (const id of this.order) {
-      set.active[id] = makeImage(sources.active && sources.active[id]);
-      set.completed[id] = makeImage(sources.completed && sources.completed[id]);
+  ensureVisibleImages() {
+    this.ensureImage('base');
+    const activeId = this.getActiveRegionId();
+    this.ensureImage('active', activeId);
+    for (let i = 0; i < this.activeIndex; i++) {
+      this.ensureImage('completed', this.order[i]);
     }
-
-    return set;
   },
 
   loadProgress() {
@@ -130,6 +148,7 @@ const CampaignMapScreen = {
   },
 
   draw(ctx) {
+    this.ensureVisibleImages();
     ctx.save();
 
     ctx.fillStyle = '#010815';

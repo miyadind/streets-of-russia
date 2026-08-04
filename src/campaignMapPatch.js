@@ -87,8 +87,8 @@
 
   function loadPatchAudio(src, loop = false, volume = 0.35) {
     const audio = new Audio();
+    audio.preload = 'none';
     audio.src = src;
-    audio.preload = 'auto';
     audio.loop = loop;
     audio.volume = volume;
     audio.addEventListener('error', () => {
@@ -185,8 +185,11 @@
 
   const originalLoadImages = GameApp.prototype.loadImages;
   GameApp.prototype.loadImages = async function () {
+    const intro = this.loadSingleImage
+      ? await this.loadSingleImage(INTRO_BACKGROUND, INTRO_BACKGROUND)
+      : await loadPatchImage(INTRO_BACKGROUND);
     const loaded = await originalLoadImages.call(this);
-    loaded.intro = await loadPatchImage(INTRO_BACKGROUND);
+    loaded.intro = intro;
     return loaded;
   };
 

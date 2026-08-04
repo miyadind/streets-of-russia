@@ -178,8 +178,13 @@
     this.stopIntroBackgroundMusic();
   };
 
-  GameApp.prototype.startIntro = function () {
+  GameApp.prototype.startIntro = async function () {
     if (!this.intro) return;
+
+    if (this.storyAssetsPromise && !this.storyAssetsReady) {
+      this.setState('storyLoading');
+      await this.storyAssetsPromise;
+    }
 
     ensureIntroMusic(this);
     installIntroVoiceEndHold(this);
