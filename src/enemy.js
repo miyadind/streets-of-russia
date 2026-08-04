@@ -760,12 +760,24 @@ class DogRegimeEnemy {
     const windupMs = this.attackWindupMs || GAME_CONFIG.enemyWindupMs;
     const activeMs = this.attackActiveMs || GAME_CONFIG.enemyActiveMs;
     const recoveryMs = this.attackRecoveryMs || GAME_CONFIG.enemyRecoveryMs;
+    const player = scene && scene.player;
+
+    if (!this.attackHasHit && player && player.hp > 0 && this.attackTimer < windupMs) {
+      const targetY = Math.max(GAME_CONFIG.laneTop, Math.min(GAME_CONFIG.laneBottom, player.y));
+      const frameScale = Math.max(0.65, Math.min(1.55, dt / 16.67));
+      const step = (Number(config.aimTrackSpeed) || 7.5) * GAME_CONFIG.ySpeedMultiplier * frameScale;
+      this.y += Math.sign(targetY - this.y) * Math.min(Math.abs(targetY - this.y), step);
+      this.facing = player.x >= this.x ? 1 : -1;
+    }
 
     if (!this.attackHasHit && this.attackTimer >= windupMs) {
       const imageSet = this.getEnemyImages();
+      const launchY = player && player.hp > 0
+        ? Math.max(GAME_CONFIG.laneTop, Math.min(GAME_CONFIG.laneBottom, player.y))
+        : this.y;
       const spawnX = this.x + this.facing * 92;
-      const spawnY = this.y - 94;
-      scene.enemies.push(new GoydenishZProjectile(spawnX, spawnY, this.facing, imageSet.projectile, config, this, this.y));
+      const spawnY = launchY - 94;
+      scene.enemies.push(new GoydenishZProjectile(spawnX, spawnY, this.facing, imageSet.projectile, config, this, launchY));
       AudioManager.playSfx('goydenishThrow', 0.9, {
         owner: 'goydenish',
         duckMusic: true,
