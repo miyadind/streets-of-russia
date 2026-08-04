@@ -13,6 +13,7 @@ class GoydenishZProjectile {
     this.owner = owner || null;
     this.reflected = false;
     this.reflectedDamage = 0;
+    this.reflectedTargetLaneY = null;
     this.spin = 0;
     this.spinSpeed = 0.0105;
     this.alive = true;
@@ -27,6 +28,7 @@ class GoydenishZProjectile {
     this.direction = player.facing >= 0 ? 1 : -1;
     this.reflected = true;
     this.reflectedDamage = Math.max(1, Number(damage) || 1);
+    this.reflectedTargetLaneY = this.owner && Number.isFinite(this.owner.y) ? this.owner.y : this.laneY;
     this.spinSpeed = Math.abs(this.spinSpeed) * this.direction * 1.45;
     if (scene) scene.hitStop = Math.max(scene.hitStop || 0, GAME_CONFIG.playerHitStopMs || 40);
     return true;
@@ -37,6 +39,16 @@ class GoydenishZProjectile {
     this.x += this.direction * this.speed * frameScale;
     this.spin += this.spinSpeed * dt;
     const player = scene && scene.player;
+
+    if (this.reflected && this.owner && this.owner.alive) {
+      this.reflectedTargetLaneY = this.owner.y;
+      const laneStep = this.speed * 0.92 * frameScale;
+      this.laneY += Math.sign(this.reflectedTargetLaneY - this.laneY) * Math.min(
+        Math.abs(this.reflectedTargetLaneY - this.laneY),
+        laneStep
+      );
+      this.y = this.laneY - 94;
+    }
     if (!this.reflected && player && player.hp > 0 && Combat.canProjectileHit(this, player, {
       laneY: this.laneY,
       laneTolerance: GAME_CONFIG.yHitTolerance
