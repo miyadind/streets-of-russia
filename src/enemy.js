@@ -697,36 +697,13 @@ class DogRegimeEnemy {
     const distanceX = Math.abs(player.x - this.x);
     const aligned = absY <= this.attackRangeY;
     const activeAttackers = this.countActiveAttackers(scene);
-    const preferredSide = this.getGoydenishPreferredSide(scene);
+    const fleeDirection = this.x <= player.x ? -1 : 1;
+    const screenMarginX = config.screenMarginX || 70;
+    const atScreenEdge = this.x <= screenMarginX + 12 || this.x >= GAME_CONFIG.width - screenMarginX - 12;
 
-    if (!this.fleeTargetSide && preferredSide && (this.x - player.x) * preferredSide < 0) {
-      // A pair claims opposite sides and routes around the player to get there.
-      this.fleeTargetSide = preferredSide;
-      this.fleeRouteY = this.id % 2
-        ? GAME_CONFIG.laneTop + 28
-        : GAME_CONFIG.laneBottom - 28;
-    }
-
-    if (this.fleeTargetSide || distanceX <= (config.fleeDistanceX || 270)) {
+    if (distanceX <= (config.fleeDistanceX || 270) && !atScreenEdge) {
       this.intent = 'flee';
-      if (!this.fleeTargetSide) {
-        // Cross the player through a committed top/bottom route instead of shuffling against an edge.
-        this.fleeTargetSide = this.x <= player.x ? 1 : -1;
-        this.fleeRouteY = this.id % 2
-          ? GAME_CONFIG.laneTop + 28
-          : GAME_CONFIG.laneBottom - 28;
-      }
-
-      const targetX = this.fleeTargetSide > 0
-        ? GAME_CONFIG.width - (config.screenMarginX || 70)
-        : (config.screenMarginX || 70);
-      const movingPastPlayer = this.fleeTargetSide > 0 ? this.x < player.x : this.x > player.x;
-      const moveX = Math.abs(targetX - this.x) > 12 ? Math.sign(targetX - this.x) : 0;
-      const moveY = movingPastPlayer || Math.abs(this.fleeRouteY - this.y) > 18
-        ? Math.sign(this.fleeRouteY - this.y)
-        : 0;
-      this.applyMovement(moveX, moveY, dt, config.fleeSpeedMultiplier || 2);
-      if (moveX === 0 && moveY === 0) this.fleeTargetSide = 0;
+      this.applyMovement(fleeDirection, 0, dt, config.fleeSpeedMultiplier || 2);
       this.clampToScreen();
       return;
     }
@@ -750,14 +727,6 @@ class DogRegimeEnemy {
     this.intent = 'align';
     this.applyMovement(0, Math.sign(player.y - this.y), dt);
     this.clampToScreen();
-  }
-
-  getGoydenishPreferredSide(scene) {
-    const goydenishes = (scene.enemies || [])
-      .filter(enemy => enemy && enemy.alive && enemy.enemyType === 'goydenish')
-      .sort((a, b) => a.id - b.id);
-    if (goydenishes.length < 2) return 0;
-    return goydenishes.indexOf(this) % 2 === 0 ? -1 : 1;
   }
 
   updateGoydenishAttack(dt, scene) {
