@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.182",
+  "buildVersion": "0.4.183",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -580,7 +580,13 @@ const GAME_CONFIG = {
               "type": "dogRegime",
               "count": 1,
               "side": "right",
-              "delayMs": 7000
+              "delayMs": 0
+            },
+            {
+              "type": "dogRegime",
+              "count": 1,
+              "side": "left",
+              "delayMs": 5000
             }
           ]
         },
@@ -588,10 +594,16 @@ const GAME_CONFIG = {
           "trigger": "afterWaveCleared",
           "enemies": [
             {
-              "type": "dogRegime",
+              "type": "horse",
               "count": 1,
               "side": "right",
-              "delayMs": 2500
+              "delayMs": 0
+            },
+            {
+              "type": "zetnik",
+              "count": 1,
+              "side": "left",
+              "delayMs": 5000
             }
           ]
         }
@@ -624,7 +636,7 @@ const GAME_CONFIG = {
               "type": "dogRegime",
               "count": 2,
               "side": "right",
-              "delayMs": 2500
+              "delayMs": 0
             }
           ]
         },
@@ -635,20 +647,13 @@ const GAME_CONFIG = {
               "type": "dogRegime",
               "count": 1,
               "side": "left",
-              "delayMs": 1800
+              "delayMs": 0
             },
             {
               "type": "zetnik",
               "count": 1,
-              "side": "left",
-              "delayMs": 4800,
-              "alignToPlayerLane": true
-            },
-            {
-              "type": "horse",
-              "count": 1,
               "side": "right",
-              "delayMs": 7800
+              "delayMs": 0
             }
           ]
         },
@@ -659,7 +664,7 @@ const GAME_CONFIG = {
               "type": "sucker",
               "count": 1,
               "side": "right",
-              "delayMs": 3500
+              "delayMs": 0
             }
           ]
         }
