@@ -488,6 +488,8 @@
     GameApp.prototype.resetTeamRun = function () {
       this.defeatedHeroes = { alexey: false, anna: false, boris: false };
       this.peopleSupport = 25;
+      this.supportFigures = [];
+      this.supportFigureDrops = [];
       this.characterSelectMode = null;
       this.casualtyRespawn = null;
       this.gameOverRegionStartIndex = 0;

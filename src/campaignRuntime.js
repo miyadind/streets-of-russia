@@ -177,6 +177,7 @@
     scene.gundosArenaActive = false;
     scene.gundosVictoryPending = false;
     scene.gundosVictoryDelayMs = 0;
+    scene.bossVictoryReady = false;
     scene.activeGundos = null;
     scene.gundosFloatTexts = [];
   }

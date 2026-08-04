@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.189",
+  "buildVersion": "0.4.190",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -712,6 +712,30 @@ const GAME_CONFIG = {
       "background": "assets/backgrounds/1/street03.png",
       "music": "bossTheme",
       "musicMode": "boss",
+      "interactives": [
+        {
+          "id": "fruitKiosk",
+          "type": "breakableObject",
+          "hitsToReplace": 3,
+          "laneY": 625,
+          "laneTolerance": 60,
+          "hitbox": {
+            "x": 780,
+            "y": 375,
+            "w": 240,
+            "h": 180
+          },
+          "effectRect": {
+            "x": 800,
+            "y": 445,
+            "w": 200,
+            "h": 110
+          },
+          "dropPickup": "supportFigure",
+          "dropX": 900,
+          "dropY": 650
+        }
+      ],
       "bossFireWall": {
         "x": 520,
         "y": 588,
@@ -7346,8 +7370,8 @@ class LevelScene {
   dropPickup(type, x, y) {
     if (!type) return;
     if (type === 'supportFigure') {
-      const index = 1 + Math.floor(Math.random() * 19);
-      type = 'support' + String(index).padStart(2, '0');
+      type = this.reserveSupportFigure();
+      if (!type) return;
     }
     const rawX = Number.isFinite(x) ? x : GAME_CONFIG.width / 2;
     const rawY = Number.isFinite(y) ? y : GAME_CONFIG.laneBottom;
@@ -7359,8 +7383,26 @@ class LevelScene {
 
   addSupportFigure(type) {
     if (!type || !type.startsWith('support')) return;
-    this.supportFigures.push(type);
-    if (this.game) this.game.supportFigures = this.supportFigures.slice();
+    if (!this.supportFigures.includes(type)) this.supportFigures.push(type);
+    if (this.game) {
+      const collected = Array.isArray(this.game.supportFigures) ? this.game.supportFigures : [];
+      if (!collected.includes(type)) collected.push(type);
+      this.game.supportFigures = collected;
+    }
+  }
+
+  reserveSupportFigure() {
+    const allFigures = Array.from({ length: 19 }, (_, index) => 'support' + String(index + 1).padStart(2, '0'));
+    const game = this.game || {};
+    const reserved = Array.isArray(game.supportFigureDrops) ? game.supportFigureDrops : [];
+    const collected = Array.isArray(game.supportFigures) ? game.supportFigures : [];
+    const unavailable = new Set([...reserved, ...collected]);
+    const available = allFigures.filter(type => !unavailable.has(type));
+    if (!available.length) return null;
+    const type = available[Math.floor(Math.random() * available.length)];
+    if (!Array.isArray(game.supportFigureDrops)) game.supportFigureDrops = [];
+    game.supportFigureDrops.push(type);
+    return type;
   }
 
   maybeDropPickup(enemy, options = {}) {
@@ -9620,6 +9662,7 @@ const CampaignMapScreen = {
     scene.gundosArenaActive = false;
     scene.gundosVictoryPending = false;
     scene.gundosVictoryDelayMs = 0;
+    scene.bossVictoryReady = false;
     scene.activeGundos = null;
     scene.gundosFloatTexts = [];
   }
@@ -11626,6 +11669,10 @@ window.addEventListener('load', () => {
     return item && item.type === 'vehicleObstacle';
   }
 
+  function isBreakableSupportObject(item) {
+    return item && (item.type === 'breakablePoster' || item.type === 'breakableObject');
+  }
+
   function getVehicleObstacles(level) {
     return getInteractivesForLevel(level).filter(isVehicleObstacle);
   }
@@ -11840,7 +11887,7 @@ window.addEventListener('load', () => {
   LevelScene.prototype.getLevelBackgroundImage = function () {
     const level = this.getLevelConfig();
     for (const item of getInteractivesForLevel(level)) {
-      if (item.type !== 'breakablePoster') continue;
+      if (!isBreakableSupportObject(item)) continue;
       const state = getPosterState(this, item);
       if (state.replaced && item.altBackground) {
         const replacement = this.images.levelInteractiveBackgrounds && this.images.levelInteractiveBackgrounds[item.altBackground];
@@ -11854,7 +11901,7 @@ window.addEventListener('load', () => {
   LevelScene.prototype.updateLevelInteractives = function (dt) {
     const level = this.getLevelConfig();
     for (const item of getInteractivesForLevel(level)) {
-      if (item.type !== 'breakablePoster') continue;
+      if (!isBreakableSupportObject(item)) continue;
       const state = getPosterState(this, item);
       if (state.flashMs > 0) state.flashMs = Math.max(0, state.flashMs - dt);
       if (canHitPoster(this, item, state)) hitPoster(this, item, state);
@@ -11896,7 +11943,7 @@ window.addEventListener('load', () => {
         continue;
       }
 
-      if (item.type !== 'breakablePoster') continue;
+      if (!isBreakableSupportObject(item)) continue;
       const state = getPosterState(this, item);
       if (!state.replaced) drawPosterDamage(ctx, item, state);
 
@@ -15656,6 +15703,8 @@ window.addEventListener('load', () => {
     GameApp.prototype.resetTeamRun = function () {
       this.defeatedHeroes = { alexey: false, anna: false, boris: false };
       this.peopleSupport = 25;
+      this.supportFigures = [];
+      this.supportFigureDrops = [];
       this.characterSelectMode = null;
       this.casualtyRespawn = null;
       this.gameOverRegionStartIndex = 0;
@@ -17537,6 +17586,7 @@ window.addEventListener('load', () => {
       this.gundosFloatTexts = [];
       this.gundosVictoryDelayMs = 0;
       this.gundosVictoryPending = false;
+      this.bossVictoryReady = false;
       previousSpawnInitialWave.call(this);
     };
 
@@ -17596,9 +17646,16 @@ window.addEventListener('load', () => {
     };
 
     LevelScene.prototype.startGundosVictoryDelay = function () {
-      if (this.gundosVictoryPending) return;
+      if (this.gundosVictoryPending || this.bossVictoryReady) return;
+      this.startBossVictoryExit((GAME_CONFIG.enemies.gundos && GAME_CONFIG.enemies.gundos.victoryDelayMs) || 4800);
+    };
+
+    // Bosses use this shared exit: let the defeat pose breathe, then reveal the
+    // regular green exit arrow. Future bosses can call this method directly.
+    LevelScene.prototype.startBossVictoryExit = function (delayMs) {
+      if (this.gundosVictoryPending || this.bossVictoryReady) return;
       this.gundosVictoryPending = true;
-      this.gundosVictoryDelayMs = (GAME_CONFIG.enemies.gundos && GAME_CONFIG.enemies.gundos.victoryDelayMs) || 4800;
+      this.gundosVictoryDelayMs = Math.max(0, Number(delayMs) || 0);
       this.encounterActive = false;
       this.encounterCleared = false;
       this.nonBlockingWaveTimer = 0;
@@ -17701,6 +17758,11 @@ window.addEventListener('load', () => {
     const previousNextScreen = LevelScene.prototype.nextScreen;
     LevelScene.prototype.nextScreen = function () {
       if (this.gundosVictoryPending) return;
+      if (this.bossVictoryReady) {
+        this.bossVictoryReady = false;
+        if (this.game && this.game.completeCampaignRegion) this.game.completeCampaignRegion();
+        return;
+      }
       previousNextScreen.call(this);
     };
 
@@ -17712,7 +17774,9 @@ window.addEventListener('load', () => {
         this.gundosVictoryDelayMs -= dt;
         if (this.gundosVictoryDelayMs <= 0) {
           this.gundosVictoryPending = false;
-          if (this.game && this.game.completeCampaignRegion) this.game.completeCampaignRegion();
+          this.bossVictoryReady = true;
+          this.encounterActive = false;
+          this.encounterCleared = true;
         }
       }
       this.updateGundosFloatTexts(dt);
@@ -17769,6 +17833,17 @@ window.addEventListener('load', () => {
         const text = 'ТВАРЬ ПОВЕРЖЕНА';
         ctx.strokeText(text, GAME_CONFIG.width / 2, 360);
         ctx.fillText(text, GAME_CONFIG.width / 2, 360);
+        ctx.restore();
+      }
+
+      if (this.bossVictoryReady) {
+        ctx.save();
+        ctx.font = 'bold 42px Arial';
+        ctx.fillStyle = 'lime';
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 5;
+        ctx.strokeText('\u2192', GAME_CONFIG.width - 90, 380);
+        ctx.fillText('\u2192', GAME_CONFIG.width - 90, 380);
         ctx.restore();
       }
 
@@ -19313,6 +19388,7 @@ window.addEventListener('load', () => {
     scene.gundosArenaActive = false;
     scene.gundosVictoryPending = false;
     scene.gundosVictoryDelayMs = 0;
+    scene.bossVictoryReady = false;
     scene.activeGundos = null;
     scene.gundosFloatTexts = [];
     placePlayerAtLevelStart(scene);

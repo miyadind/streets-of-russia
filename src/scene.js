@@ -767,8 +767,8 @@ class LevelScene {
   dropPickup(type, x, y) {
     if (!type) return;
     if (type === 'supportFigure') {
-      const index = 1 + Math.floor(Math.random() * 19);
-      type = 'support' + String(index).padStart(2, '0');
+      type = this.reserveSupportFigure();
+      if (!type) return;
     }
     const rawX = Number.isFinite(x) ? x : GAME_CONFIG.width / 2;
     const rawY = Number.isFinite(y) ? y : GAME_CONFIG.laneBottom;
@@ -780,8 +780,26 @@ class LevelScene {
 
   addSupportFigure(type) {
     if (!type || !type.startsWith('support')) return;
-    this.supportFigures.push(type);
-    if (this.game) this.game.supportFigures = this.supportFigures.slice();
+    if (!this.supportFigures.includes(type)) this.supportFigures.push(type);
+    if (this.game) {
+      const collected = Array.isArray(this.game.supportFigures) ? this.game.supportFigures : [];
+      if (!collected.includes(type)) collected.push(type);
+      this.game.supportFigures = collected;
+    }
+  }
+
+  reserveSupportFigure() {
+    const allFigures = Array.from({ length: 19 }, (_, index) => 'support' + String(index + 1).padStart(2, '0'));
+    const game = this.game || {};
+    const reserved = Array.isArray(game.supportFigureDrops) ? game.supportFigureDrops : [];
+    const collected = Array.isArray(game.supportFigures) ? game.supportFigures : [];
+    const unavailable = new Set([...reserved, ...collected]);
+    const available = allFigures.filter(type => !unavailable.has(type));
+    if (!available.length) return null;
+    const type = available[Math.floor(Math.random() * available.length)];
+    if (!Array.isArray(game.supportFigureDrops)) game.supportFigureDrops = [];
+    game.supportFigureDrops.push(type);
+    return type;
   }
 
   maybeDropPickup(enemy, options = {}) {

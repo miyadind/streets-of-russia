@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  "buildVersion": "0.4.189",
+  "buildVersion": "0.4.190",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -705,6 +705,30 @@ const GAME_CONFIG = {
       "background": "assets/backgrounds/1/street03.png",
       "music": "bossTheme",
       "musicMode": "boss",
+      "interactives": [
+        {
+          "id": "fruitKiosk",
+          "type": "breakableObject",
+          "hitsToReplace": 3,
+          "laneY": 625,
+          "laneTolerance": 60,
+          "hitbox": {
+            "x": 780,
+            "y": 375,
+            "w": 240,
+            "h": 180
+          },
+          "effectRect": {
+            "x": 800,
+            "y": 445,
+            "w": 200,
+            "h": 110
+          },
+          "dropPickup": "supportFigure",
+          "dropX": 900,
+          "dropY": 650
+        }
+      ],
       "bossFireWall": {
         "x": 520,
         "y": 588,

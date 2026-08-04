@@ -720,6 +720,7 @@
       this.gundosFloatTexts = [];
       this.gundosVictoryDelayMs = 0;
       this.gundosVictoryPending = false;
+      this.bossVictoryReady = false;
       previousSpawnInitialWave.call(this);
     };
 
@@ -779,9 +780,16 @@
     };
 
     LevelScene.prototype.startGundosVictoryDelay = function () {
-      if (this.gundosVictoryPending) return;
+      if (this.gundosVictoryPending || this.bossVictoryReady) return;
+      this.startBossVictoryExit((GAME_CONFIG.enemies.gundos && GAME_CONFIG.enemies.gundos.victoryDelayMs) || 4800);
+    };
+
+    // Bosses use this shared exit: let the defeat pose breathe, then reveal the
+    // regular green exit arrow. Future bosses can call this method directly.
+    LevelScene.prototype.startBossVictoryExit = function (delayMs) {
+      if (this.gundosVictoryPending || this.bossVictoryReady) return;
       this.gundosVictoryPending = true;
-      this.gundosVictoryDelayMs = (GAME_CONFIG.enemies.gundos && GAME_CONFIG.enemies.gundos.victoryDelayMs) || 4800;
+      this.gundosVictoryDelayMs = Math.max(0, Number(delayMs) || 0);
       this.encounterActive = false;
       this.encounterCleared = false;
       this.nonBlockingWaveTimer = 0;
@@ -884,6 +892,11 @@
     const previousNextScreen = LevelScene.prototype.nextScreen;
     LevelScene.prototype.nextScreen = function () {
       if (this.gundosVictoryPending) return;
+      if (this.bossVictoryReady) {
+        this.bossVictoryReady = false;
+        if (this.game && this.game.completeCampaignRegion) this.game.completeCampaignRegion();
+        return;
+      }
       previousNextScreen.call(this);
     };
 
@@ -895,7 +908,9 @@
         this.gundosVictoryDelayMs -= dt;
         if (this.gundosVictoryDelayMs <= 0) {
           this.gundosVictoryPending = false;
-          if (this.game && this.game.completeCampaignRegion) this.game.completeCampaignRegion();
+          this.bossVictoryReady = true;
+          this.encounterActive = false;
+          this.encounterCleared = true;
         }
       }
       this.updateGundosFloatTexts(dt);
@@ -952,6 +967,17 @@
         const text = 'ТВАРЬ ПОВЕРЖЕНА';
         ctx.strokeText(text, GAME_CONFIG.width / 2, 360);
         ctx.fillText(text, GAME_CONFIG.width / 2, 360);
+        ctx.restore();
+      }
+
+      if (this.bossVictoryReady) {
+        ctx.save();
+        ctx.font = 'bold 42px Arial';
+        ctx.fillStyle = 'lime';
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 5;
+        ctx.strokeText('\u2192', GAME_CONFIG.width - 90, 380);
+        ctx.fillText('\u2192', GAME_CONFIG.width - 90, 380);
         ctx.restore();
       }
 

@@ -9,6 +9,10 @@
     return item && item.type === 'vehicleObstacle';
   }
 
+  function isBreakableSupportObject(item) {
+    return item && (item.type === 'breakablePoster' || item.type === 'breakableObject');
+  }
+
   function getVehicleObstacles(level) {
     return getInteractivesForLevel(level).filter(isVehicleObstacle);
   }
@@ -223,7 +227,7 @@
   LevelScene.prototype.getLevelBackgroundImage = function () {
     const level = this.getLevelConfig();
     for (const item of getInteractivesForLevel(level)) {
-      if (item.type !== 'breakablePoster') continue;
+      if (!isBreakableSupportObject(item)) continue;
       const state = getPosterState(this, item);
       if (state.replaced && item.altBackground) {
         const replacement = this.images.levelInteractiveBackgrounds && this.images.levelInteractiveBackgrounds[item.altBackground];
@@ -237,7 +241,7 @@
   LevelScene.prototype.updateLevelInteractives = function (dt) {
     const level = this.getLevelConfig();
     for (const item of getInteractivesForLevel(level)) {
-      if (item.type !== 'breakablePoster') continue;
+      if (!isBreakableSupportObject(item)) continue;
       const state = getPosterState(this, item);
       if (state.flashMs > 0) state.flashMs = Math.max(0, state.flashMs - dt);
       if (canHitPoster(this, item, state)) hitPoster(this, item, state);
@@ -279,7 +283,7 @@
         continue;
       }
 
-      if (item.type !== 'breakablePoster') continue;
+      if (!isBreakableSupportObject(item)) continue;
       const state = getPosterState(this, item);
       if (!state.replaced) drawPosterDamage(ctx, item, state);
 
