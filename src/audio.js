@@ -340,6 +340,7 @@ const AudioManager = {
       };
 
       audio.volume = this.getSfxVolume(volume);
+      audio.__sfxVolumeMultiplier = volume;
       audio.playbackRate = Math.max(0.5, Math.min(2, playbackRate));
       if (startAt > 0) audio.currentTime = startAt;
       if (duckSource) {
@@ -398,6 +399,7 @@ const AudioManager = {
       };
 
       audio.volume = this.getSfxVolume(volume);
+      audio.__sfxVolumeMultiplier = volume;
       audio.playbackRate = Math.max(0.5, Math.min(2, playbackRate));
       if (startAt > 0) audio.currentTime = startAt;
       if (duckSource) {
@@ -615,14 +617,28 @@ const AudioManager = {
     for (const audio of paused) {
       if (!audio || audio.ended) continue;
       try {
+        if (!audio.paused) continue;
         if (this.externalAudio.has(audio) && !this.canResumeExternalAudio(audio)) continue;
-        if (audio === this.currentMusic) audio.volume = this.getMusicVolume();
+        if (audio === this.currentMusic) {
+          if (this.isMusicPausedByGame()) continue;
+          audio.volume = this.getMusicVolume();
+        } else if (this.activeSfx.includes(audio)) {
+          audio.volume = this.getSfxVolume(audio.__sfxVolumeMultiplier || 1);
+        }
         audio.play()
           .then(() => {
             if (audio === this.currentMusic) this.musicActuallyPlaying = true;
           })
           .catch(() => {});
       } catch (error) {}
+    }
+  },
+
+  syncManagedVolumes() {
+    if (this.currentMusic) this.currentMusic.volume = this.getMusicVolume();
+    for (const audio of this.activeSfx || []) {
+      if (!audio || audio.ended) continue;
+      audio.volume = this.getSfxVolume(audio.__sfxVolumeMultiplier || 1);
     }
   },
 
@@ -647,6 +663,10 @@ if (typeof document !== 'undefined' && !AudioManager.windowPauseListenersInstall
   document.addEventListener('visibilitychange', () => {
     AudioManager.setMusicPauseReason('hidden-tab', document.visibilityState !== 'visible');
     if (document.hidden) AudioManager.pauseAllAudio();
+    else {
+      AudioManager.syncManagedVolumes();
+      AudioManager.resumePausedAudio();
+    }
   });
 
   window.addEventListener('blur', () => {
@@ -656,6 +676,10 @@ if (typeof document !== 'undefined' && !AudioManager.windowPauseListenersInstall
 
   window.addEventListener('focus', () => {
     AudioManager.setMusicPauseReason('window-blur', false);
+    if (!document.hidden) {
+      AudioManager.syncManagedVolumes();
+      AudioManager.resumePausedAudio();
+    }
   });
 
   const stopForExit = () => AudioManager.stopAllAudio();
