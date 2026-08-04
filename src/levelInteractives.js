@@ -36,7 +36,7 @@
     const player = scene && scene.player;
     if (!player || state.replaced || player.attackHasHit || !isAttackActive(player)) return false;
     const attackBox = player.getHitbox && player.getHitbox();
-    const posterBox = item.hitbox;
+    const posterBox = item.effectRect || item.hitbox;
     if (!attackBox || !posterBox) return false;
 
     // Background objects are reached from their foot line, not by overlapping

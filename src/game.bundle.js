@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.184",
+  "buildVersion": "0.4.185",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -552,13 +552,13 @@ const GAME_CONFIG = {
           "type": "breakablePoster",
           "hitsToReplace": 3,
           "altBackground": "assets/backgrounds/1/street01_1.png",
-          "laneY": 620,
-          "laneTolerance": 42,
+          "laneY": 533,
+          "laneTolerance": 38,
           "hitbox": {
-            "x": 364,
-            "y": 328,
-            "w": 64,
-            "h": 142
+            "x": 342,
+            "y": 272,
+            "w": 128,
+            "h": 146
           },
           "effectRect": {
             "x": 360,
@@ -7969,14 +7969,18 @@ const DevPanel = {
   restoreStaleFarEastWaves(savedConfig) {
     const levels = savedConfig && savedConfig.levels;
     const farEastKeys = ['street01', 'street02', 'street03'];
-    if (!levels || !farEastKeys.some((key) => this.hasExperimentalFarEastEnemy(levels[key]))) return false;
+    const hasExperimentalWaves = levels && farEastKeys.some((key) => this.hasExperimentalFarEastEnemy(levels[key]));
+    const hasPosterRegression = savedConfig && savedConfig.buildVersion === '0.4.184';
+    if (!hasExperimentalWaves && !hasPosterRegression) return false;
 
-    // Saved dev exports used an unfinished Far East roster. Keep all other local tuning,
-    // but make the released Far East follow the version shipped with the game.
+    // Keep positional tuning intact. Only the unfinished roster is replaced.
     for (const key of farEastKeys) {
       if (DEFAULT_GAME_CONFIG.levels && DEFAULT_GAME_CONFIG.levels[key]) {
-        GAME_CONFIG.levels[key] = JSON.parse(JSON.stringify(DEFAULT_GAME_CONFIG.levels[key]));
+        GAME_CONFIG.levels[key].waves = JSON.parse(JSON.stringify(DEFAULT_GAME_CONFIG.levels[key].waves));
       }
+    }
+    if (hasPosterRegression && GAME_CONFIG.levels.street01 && DEFAULT_GAME_CONFIG.levels.street01) {
+      GAME_CONFIG.levels.street01.interactives = JSON.parse(JSON.stringify(DEFAULT_GAME_CONFIG.levels.street01.interactives));
     }
     return true;
   },
@@ -11558,7 +11562,7 @@ window.addEventListener('load', () => {
     const player = scene && scene.player;
     if (!player || state.replaced || player.attackHasHit || !isAttackActive(player)) return false;
     const attackBox = player.getHitbox && player.getHitbox();
-    const posterBox = item.hitbox;
+    const posterBox = item.effectRect || item.hitbox;
     if (!attackBox || !posterBox) return false;
 
     // Background objects are reached from their foot line, not by overlapping

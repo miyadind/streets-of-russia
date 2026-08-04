@@ -635,14 +635,18 @@ const DevPanel = {
   restoreStaleFarEastWaves(savedConfig) {
     const levels = savedConfig && savedConfig.levels;
     const farEastKeys = ['street01', 'street02', 'street03'];
-    if (!levels || !farEastKeys.some((key) => this.hasExperimentalFarEastEnemy(levels[key]))) return false;
+    const hasExperimentalWaves = levels && farEastKeys.some((key) => this.hasExperimentalFarEastEnemy(levels[key]));
+    const hasPosterRegression = savedConfig && savedConfig.buildVersion === '0.4.184';
+    if (!hasExperimentalWaves && !hasPosterRegression) return false;
 
-    // Saved dev exports used an unfinished Far East roster. Keep all other local tuning,
-    // but make the released Far East follow the version shipped with the game.
+    // Keep positional tuning intact. Only the unfinished roster is replaced.
     for (const key of farEastKeys) {
       if (DEFAULT_GAME_CONFIG.levels && DEFAULT_GAME_CONFIG.levels[key]) {
-        GAME_CONFIG.levels[key] = JSON.parse(JSON.stringify(DEFAULT_GAME_CONFIG.levels[key]));
+        GAME_CONFIG.levels[key].waves = JSON.parse(JSON.stringify(DEFAULT_GAME_CONFIG.levels[key].waves));
       }
+    }
+    if (hasPosterRegression && GAME_CONFIG.levels.street01 && DEFAULT_GAME_CONFIG.levels.street01) {
+      GAME_CONFIG.levels.street01.interactives = JSON.parse(JSON.stringify(DEFAULT_GAME_CONFIG.levels.street01.interactives));
     }
     return true;
   },
