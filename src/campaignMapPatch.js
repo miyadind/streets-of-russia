@@ -57,7 +57,7 @@
 
 Это Streets of Russia.`;
 
-  const INTRO_BACKGROUND = 'assets/backgrounds/Intro.png';
+  const INTRO_BACKGROUND = 'assets/backgrounds/Intro.png?v=intro-20260803-1';
   const INTRO_TYPEWRITER_SOUND = 'assets/audio/sfx/typewriter-key.mp3';
   const INTRO_VOICE = 'assets/audio/music/intro-voice.mp3';
   const INTRO_TYPE_SPEED = 24; // fallback characters per second when voice is unavailable

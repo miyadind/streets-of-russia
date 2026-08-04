@@ -103,7 +103,7 @@ class GameApp {
 
   async loadStoryAssets() {
     const paths = {
-      intro: 'assets/backgrounds/Intro.png',
+      intro: 'assets/backgrounds/Intro.png?v=intro-20260803-1',
       mapBase: 'assets/map/campaign/map_base.png',
       mapFarEast: 'assets/map/campaign/active/01_far_east_active.png'
     };

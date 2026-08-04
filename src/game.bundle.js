@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.179",
+  "buildVersion": "0.4.180",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -10727,7 +10727,7 @@ class GameApp {
 
   async loadStoryAssets() {
     const paths = {
-      intro: 'assets/backgrounds/Intro.png',
+      intro: 'assets/backgrounds/Intro.png?v=intro-20260803-1',
       mapBase: 'assets/map/campaign/map_base.png',
       mapFarEast: 'assets/map/campaign/active/01_far_east_active.png'
     };
@@ -12696,7 +12696,7 @@ window.addEventListener('load', () => {
 
 Это Streets of Russia.`;
 
-  const INTRO_BACKGROUND = 'assets/backgrounds/Intro.png';
+  const INTRO_BACKGROUND = 'assets/backgrounds/Intro.png?v=intro-20260803-1';
   const INTRO_TYPEWRITER_SOUND = 'assets/audio/sfx/typewriter-key.mp3';
   const INTRO_VOICE = 'assets/audio/music/intro-voice.mp3';
   const INTRO_TYPE_SPEED = 24; // fallback characters per second when voice is unavailable
