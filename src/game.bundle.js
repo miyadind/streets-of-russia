@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.181",
+  "buildVersion": "0.4.182",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -10715,6 +10715,20 @@ class GameApp {
     return request;
   }
 
+  async loadImageEntries(entries, concurrency = 6) {
+    const loaded = {};
+    let cursor = 0;
+    const workers = Array.from({ length: Math.max(1, Math.min(concurrency, entries.length)) }, async () => {
+      while (cursor < entries.length) {
+        const index = cursor++;
+        const [key, src] = entries[index];
+        loaded[key] = await this.loadSingleImage(src, src);
+      }
+    });
+    await Promise.all(workers);
+    return loaded;
+  }
+
   async loadInitialImages() {
     return {
       main: await this.loadSingleImage(Assets.backgrounds.main, Assets.backgrounds.main),
@@ -10731,10 +10745,7 @@ class GameApp {
       mapBase: 'assets/map/campaign/map_base.png',
       mapFarEast: 'assets/map/campaign/active/01_far_east_active.png'
     };
-    const loaded = {};
-    for (const [key, src] of Object.entries(paths)) {
-      loaded[key] = await this.loadSingleImage(src, src);
-    }
+    const loaded = await this.loadImageEntries(Object.entries(paths), 3);
 
     this.images.intro = loaded.intro;
     if (this.campaignMap && this.campaignMap.images) {
@@ -10788,10 +10799,7 @@ class GameApp {
       dogDead: Assets.dog.dead,
       pickupMedkit: Assets.pickups && Assets.pickups.medkit
     };
-    const loaded = {};
-    for (const [key, src] of Object.entries(paths)) {
-      loaded[key] = await this.loadSingleImage(src, src);
-    }
+    const loaded = await this.loadImageEntries(Object.entries(paths), 6);
 
     this.images.streets = [loaded.street0];
     this.images.levelInteractiveBackgrounds = {
@@ -10928,15 +10936,12 @@ class GameApp {
       pickupTea: Assets.pickups && Assets.pickups.tea
     };
 
-    const loaded = {};
-    const entries = Object.entries(paths);
-    for (const [key, src] of entries) {
-      loaded[key] = await this.loadSingleImage(src, src);
-    }
+    const levelBackgroundsPromise = this.loadLevelBackgrounds();
+    const loaded = await this.loadImageEntries(Object.entries(paths), 8);
 
     loaded.streets = [loaded.street0, loaded.street1, loaded.street2];
     if (GAME_CONFIG.levelOrder && GAME_CONFIG.levels) {
-      const dynamicStreets = await this.loadLevelBackgrounds(loaded.streets);
+      const dynamicStreets = await levelBackgroundsPromise;
       if (dynamicStreets.length) loaded.streets = dynamicStreets;
     }
 
@@ -11077,36 +11082,17 @@ class GameApp {
 
   async loadLevelBackgrounds(fallbackStreets = []) {
     const order = GAME_CONFIG.levelOrder || [];
+    const entries = order.map((key) => {
+      const level = GAME_CONFIG.levels && GAME_CONFIG.levels[key];
+      return [key, level && level.background];
+    });
+    const loaded = await this.loadImageEntries(entries, 8);
     const result = [];
     let previous = fallbackStreets[0] || null;
-    const cache = {};
-
-    const loadImage = (src) => new Promise((resolve) => {
-      if (!src) {
-        resolve(null);
-        return;
-      }
-      if (cache[src]) {
-        resolve(cache[src]);
-        return;
-      }
-      const img = new Image();
-      img.onload = () => {
-        cache[src] = img;
-        resolve(img);
-      };
-      img.onerror = () => {
-        console.warn('Missing level background:', src);
-        resolve(null);
-      };
-      img.src = src;
-    });
 
     for (let i = 0; i < order.length; i++) {
       const key = order[i];
-      const level = GAME_CONFIG.levels && GAME_CONFIG.levels[key];
-      const src = level && level.background;
-      const image = await loadImage(src);
+      const image = loaded[key];
       previous = image || previous || fallbackStreets[i] || fallbackStreets[0] || null;
       result.push(previous);
     }
