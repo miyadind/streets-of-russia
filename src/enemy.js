@@ -665,7 +665,7 @@ class DogRegimeEnemy {
     if (!this.alive) return enemyImages.dead;
     if (this.state === 'knockdown') return enemyImages.dead || enemyImages.idle;
     if (this.enemyType === 'goydenish') {
-      const side = this.facing === 1 ? 'right' : 'left';
+      const side = (this.state === 'attack' ? this.attackFacing : this.facing) === 1 ? 'right' : 'left';
       if (this.state === 'attack') {
         const config = GAME_CONFIG.enemies.goydenish || {};
         if (this.attackTimer < (config.attackIdleMs || 0)) return enemyImages.idle;
@@ -736,6 +736,9 @@ class DogRegimeEnemy {
         this.state = 'attack';
         this.intent = 'attack';
         this.attackFacing = this.facing || 1;
+        this.attackLockX = this.x;
+        this.attackLockY = this.y;
+        this.attackPositionLocked = true;
         this.attackTimer = 0;
         this.attackHasHit = false;
       }
@@ -764,13 +767,12 @@ class DogRegimeEnemy {
     const recoveryMs = this.attackRecoveryMs || GAME_CONFIG.enemyRecoveryMs;
     const player = scene && scene.player;
 
-    if (!this.attackHasHit && player && player.hp > 0 && this.attackTimer < windupMs) {
-      const targetY = Math.max(GAME_CONFIG.laneTop, Math.min(GAME_CONFIG.laneBottom, player.y));
-      const frameScale = Math.max(0.65, Math.min(1.55, dt / 16.67));
-      const step = (Number(config.aimTrackSpeed) || 7.5) * GAME_CONFIG.ySpeedMultiplier * frameScale;
-      this.y += Math.sign(targetY - this.y) * Math.min(Math.abs(targetY - this.y), step);
-      this.facing = player.x >= this.x ? 1 : -1;
+    // The attack pose is committed. Tracking during the swing made the sprite slide vertically.
+    if (this.attackPositionLocked) {
+      this.x = this.attackLockX;
+      this.y = this.attackLockY;
     }
+    this.facing = this.attackFacing || this.facing;
 
     if (!this.attackHasHit && this.attackTimer >= windupMs) {
       const imageSet = this.getEnemyImages();
@@ -796,6 +798,9 @@ class DogRegimeEnemy {
       this.attackTimer = 0;
       this.attackHasHit = false;
       this.attackFacing = null;
+      this.attackPositionLocked = false;
+      this.attackLockX = null;
+      this.attackLockY = null;
     }
   }
 
