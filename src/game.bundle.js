@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.171",
+  "buildVersion": "0.4.172",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -7980,6 +7980,8 @@ const DevPanel = {
       'enemies.horse.attackMaxDistanceX': 255,
       'enemies.horse.attackRangeX': 265,
       'enemies.horse.clubReachForward': 310,
+      'enemies.negay.scale': DEFAULT_GAME_CONFIG.enemies.negay.scale,
+      'enemies.negay.finalAttackScale': DEFAULT_GAME_CONFIG.enemies.negay.finalAttackScale,
       'enemies.gundos.speed': 1.875,
       'enemies.gundos.entranceY': 720,
       'enemies.gundos.arenaBottom': 720,
