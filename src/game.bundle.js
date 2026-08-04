@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.155",
+  "buildVersion": "0.4.156",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -10536,6 +10536,8 @@ class GameApp {
     this.runtimeError = null;
     this.runtimeErrorTimer = 0;
     this.suckerPinHintShown = false;
+    this.campaignMapEntryId = 0;
+    this.campaignMapMusicEntryId = -1;
   }
 
   async init() {
@@ -10930,9 +10932,19 @@ class GameApp {
     this.nextMapMusicRetryAt = performance.now() + 300;
   }
 
+  onCampaignMapOpened() {
+    if (this.state !== 'campaignMap' || this.campaignMapMusicEntryId === this.campaignMapEntryId) return;
+    this.campaignMapMusicEntryId = this.campaignMapEntryId;
+    this.startCampaignMapMusic();
+  }
+
   setState(nextState) {
     const previousState = this.state;
     this.state = nextState;
+    if (nextState === 'campaignMap' && previousState !== 'campaignMap') {
+      this.campaignMapEntryId += 1;
+      this.campaignMapMusicEntryId = -1;
+    }
     this.updateMusicForState(previousState, nextState);
     this.syncMusicPauseState();
   }
@@ -10978,7 +10990,6 @@ class GameApp {
 
     if (nextState === 'campaignMap') {
       this.stopIntroAudioForStateChange();
-      this.startCampaignMapMusic();
       return;
     }
 
@@ -11008,6 +11019,7 @@ class GameApp {
     this.syncMusicPauseState();
     DevPanel.update(this);
     this.syncMusicPauseState();
+    this.onCampaignMapOpened();
     this.ensureCampaignMapMusic();
 
     const click = Input.consumePointer();
