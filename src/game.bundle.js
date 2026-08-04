@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.176",
+  "buildVersion": "0.4.177",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -1434,7 +1434,7 @@ window.Assets = {
     throwLeft:'assets/enemies/goydenish/throw_L.png?v=goydenish-rebuilt-4',
     throwRight:'assets/enemies/goydenish/throw_R.png?v=goydenish-rebuilt-4',
     projectile:'assets/enemies/goydenish/Z.png?v=goydenish-rebuilt-4',
-    dead:'assets/enemies/goydenish/Idle.png?v=goydenish-rebuilt-4'
+    dead:'assets/enemies/goydenish/knockdown.png?v=goydenish-knockdown-1'
   },
   negay:{
     idle:'assets/enemies/NEgay/idle.png?v=negay-refresh-2',
