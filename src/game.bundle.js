@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.188",
+  "buildVersion": "0.4.189",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -8025,11 +8025,12 @@ const DevPanel = {
       this.deepMerge(GAME_CONFIG, data);
       this.migrateBuildDefaults(data);
       const restoredFarEast = this.restoreStaleFarEastWaves(data);
+      const repairedPosterDrop = this.repairReleasedPosterDrop();
       this.migrateConfig();
       this.ensureLevels();
-      if (restoredFarEast) {
+      if (restoredFarEast || repairedPosterDrop) {
         localStorage.setItem('streetsOfRussia.tuning', JSON.stringify(GAME_CONFIG));
-        this.setStatus('Restored Far East release waves');
+        this.setStatus('Applied released Far East settings');
       } else {
         this.setStatus('Loaded saved tuning');
       }
@@ -8037,6 +8038,16 @@ const DevPanel = {
       console.warn('Failed to load tuning', error);
       this.setStatus('Failed to load saved tuning');
     }
+  },
+
+  repairReleasedPosterDrop() {
+    const level = GAME_CONFIG.levels && GAME_CONFIG.levels.street01;
+    const defaults = DEFAULT_GAME_CONFIG.levels && DEFAULT_GAME_CONFIG.levels.street01;
+    const poster = level && level.interactives && level.interactives.find((item) => item.id === 'shamanPoster');
+    const defaultPoster = defaults && defaults.interactives && defaults.interactives.find((item) => item.id === 'shamanPoster');
+    if (!poster || !defaultPoster || poster.dropPickup === defaultPoster.dropPickup) return false;
+    poster.dropPickup = defaultPoster.dropPickup;
+    return true;
   },
 
   restoreStaleFarEastWaves(savedConfig) {
@@ -11649,11 +11660,7 @@ window.addEventListener('load', () => {
     // the artwork high above the pavement.
     const reachesPoster = attackBox.x < posterBox.x + posterBox.w &&
       attackBox.x + attackBox.w > posterBox.x;
-    return reachesPoster && Combat.actorOnLane(
-      player,
-      item.laneY,
-      item.laneTolerance || GAME_CONFIG.yHitTolerance
-    );
+    return reachesPoster;
   }
 
   function hitPoster(scene, item, state) {

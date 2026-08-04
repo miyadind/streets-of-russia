@@ -43,11 +43,7 @@
     // the artwork high above the pavement.
     const reachesPoster = attackBox.x < posterBox.x + posterBox.w &&
       attackBox.x + attackBox.w > posterBox.x;
-    return reachesPoster && Combat.actorOnLane(
-      player,
-      item.laneY,
-      item.laneTolerance || GAME_CONFIG.yHitTolerance
-    );
+    return reachesPoster;
   }
 
   function hitPoster(scene, item, state) {

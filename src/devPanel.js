@@ -618,11 +618,12 @@ const DevPanel = {
       this.deepMerge(GAME_CONFIG, data);
       this.migrateBuildDefaults(data);
       const restoredFarEast = this.restoreStaleFarEastWaves(data);
+      const repairedPosterDrop = this.repairReleasedPosterDrop();
       this.migrateConfig();
       this.ensureLevels();
-      if (restoredFarEast) {
+      if (restoredFarEast || repairedPosterDrop) {
         localStorage.setItem('streetsOfRussia.tuning', JSON.stringify(GAME_CONFIG));
-        this.setStatus('Restored Far East release waves');
+        this.setStatus('Applied released Far East settings');
       } else {
         this.setStatus('Loaded saved tuning');
       }
@@ -630,6 +631,16 @@ const DevPanel = {
       console.warn('Failed to load tuning', error);
       this.setStatus('Failed to load saved tuning');
     }
+  },
+
+  repairReleasedPosterDrop() {
+    const level = GAME_CONFIG.levels && GAME_CONFIG.levels.street01;
+    const defaults = DEFAULT_GAME_CONFIG.levels && DEFAULT_GAME_CONFIG.levels.street01;
+    const poster = level && level.interactives && level.interactives.find((item) => item.id === 'shamanPoster');
+    const defaultPoster = defaults && defaults.interactives && defaults.interactives.find((item) => item.id === 'shamanPoster');
+    if (!poster || !defaultPoster || poster.dropPickup === defaultPoster.dropPickup) return false;
+    poster.dropPickup = defaultPoster.dropPickup;
+    return true;
   },
 
   restoreStaleFarEastWaves(savedConfig) {
