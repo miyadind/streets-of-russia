@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.170",
+  "buildVersion": "0.4.171",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -1426,15 +1426,15 @@ window.Assets = {
     walk:['assets/enemies/bastard/idle.png','assets/enemies/bastard/walk1.png','assets/enemies/bastard/walk2.png']
   },
   goydenish:{
-    idle:'assets/enemies/goydenish/Idle.png?v=goydenish-rebuilt-2',
-    walkLeft:'assets/enemies/goydenish/walk_L.png?v=goydenish-rebuilt-2',
-    walkRight:'assets/enemies/goydenish/walk_R.png?v=goydenish-rebuilt-2',
-    swingLeft:'assets/enemies/goydenish/swing_L.png?v=goydenish-rebuilt-3',
-    swingRight:'assets/enemies/goydenish/swing_R.png?v=goydenish-rebuilt-2',
-    throwLeft:'assets/enemies/goydenish/throw_L.png?v=goydenish-rebuilt-2',
-    throwRight:'assets/enemies/goydenish/throw_R.png?v=goydenish-rebuilt-2',
-    projectile:'assets/enemies/goydenish/Z.png?v=goydenish-rebuilt-3',
-    dead:'assets/enemies/goydenish/Idle.png?v=goydenish-rebuilt-2'
+    idle:'assets/enemies/goydenish/Idle.png?v=goydenish-rebuilt-4',
+    walkLeft:'assets/enemies/goydenish/walk_L.png?v=goydenish-rebuilt-4',
+    walkRight:'assets/enemies/goydenish/walk_R.png?v=goydenish-rebuilt-4',
+    swingLeft:'assets/enemies/goydenish/swing_L.png?v=goydenish-rebuilt-4',
+    swingRight:'assets/enemies/goydenish/swing_R.png?v=goydenish-rebuilt-4',
+    throwLeft:'assets/enemies/goydenish/throw_L.png?v=goydenish-rebuilt-4',
+    throwRight:'assets/enemies/goydenish/throw_R.png?v=goydenish-rebuilt-4',
+    projectile:'assets/enemies/goydenish/Z.png?v=goydenish-rebuilt-4',
+    dead:'assets/enemies/goydenish/Idle.png?v=goydenish-rebuilt-4'
   },
   negay:{
     idle:'assets/enemies/NEgay/idle.png?v=negay-refresh-2',
