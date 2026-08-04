@@ -414,6 +414,11 @@
         }
       }
 
+      if (this.enemyType === 'negay' && !this.negayWhiplashSfxPlayed && this.attackTimer >= windupMs) {
+        AudioManager.playSfx('negayWhiplash', 0.9, { startAt: 0.01 });
+        this.negayWhiplashSfxPlayed = true;
+      }
+
       if (!this.attackHasHit && this.attackTimer >= activeStart && this.attackTimer <= activeEnd) {
         const player = scene.player;
         if (this.canClubReachPlayer(player, false)) {
@@ -439,6 +444,7 @@
         this.attackHasHit = false;
         this.clubSwingSfxPlayed = false;
         this.whiplashFinalSfxPlayed = false;
+        this.negayWhiplashSfxPlayed = false;
         this.attackFacing = null;
         this.attackPositionLocked = false;
         this.attackLockX = null;

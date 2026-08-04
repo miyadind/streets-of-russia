@@ -623,6 +623,7 @@ class DogRegimeEnemy {
       this.alive = false;
       this.state = 'dead';
       this.deadTimer = 0;
+      if (this.enemyType === 'negay') AudioManager.playSfx('negayDeath', 0.95, { startAt: 0.01 });
       this.clampToScreen();
       return;
     }

@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.164",
+  "buildVersion": "0.4.165",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -1374,7 +1374,9 @@ window.Assets = {
       bossAppear:null,
       zetnikPreparing:'assets/enemies/zetnik/preparing.mp3?v=zetnik-audio-1',
       zetnikCrash:'assets/enemies/zetnik/crash.mp3?v=zetnik-audio-1',
-      goydenishThrow:'assets/enemies/goydenish/Throw.mp3?v=goydenish-throw-1'
+      goydenishThrow:'assets/enemies/goydenish/Throw.mp3?v=goydenish-throw-1',
+      negayWhiplash:'assets/enemies/NEgay/WhiplashFinal.mp3?v=negay-sfx-1',
+      negayDeath:'assets/enemies/NEgay/death.mp3?v=negay-sfx-1'
     }
   },
   boris:{
@@ -3809,6 +3811,7 @@ class DogRegimeEnemy {
       this.alive = false;
       this.state = 'dead';
       this.deadTimer = 0;
+      if (this.enemyType === 'negay') AudioManager.playSfx('negayDeath', 0.95, { startAt: 0.01 });
       this.clampToScreen();
       return;
     }
@@ -17964,6 +17967,11 @@ window.addEventListener('load', () => {
         }
       }
 
+      if (this.enemyType === 'negay' && !this.negayWhiplashSfxPlayed && this.attackTimer >= windupMs) {
+        AudioManager.playSfx('negayWhiplash', 0.9, { startAt: 0.01 });
+        this.negayWhiplashSfxPlayed = true;
+      }
+
       if (!this.attackHasHit && this.attackTimer >= activeStart && this.attackTimer <= activeEnd) {
         const player = scene.player;
         if (this.canClubReachPlayer(player, false)) {
@@ -17989,6 +17997,7 @@ window.addEventListener('load', () => {
         this.attackHasHit = false;
         this.clubSwingSfxPlayed = false;
         this.whiplashFinalSfxPlayed = false;
+        this.negayWhiplashSfxPlayed = false;
         this.attackFacing = null;
         this.attackPositionLocked = false;
         this.attackLockX = null;
