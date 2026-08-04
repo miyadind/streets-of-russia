@@ -694,6 +694,15 @@ class DogRegimeEnemy {
     const distanceX = Math.abs(player.x - this.x);
     const aligned = absY <= this.attackRangeY;
     const activeAttackers = this.countActiveAttackers(scene);
+    const preferredSide = this.getGoydenishPreferredSide(scene);
+
+    if (!this.fleeTargetSide && preferredSide && (this.x - player.x) * preferredSide < 0) {
+      // A pair claims opposite sides and routes around the player to get there.
+      this.fleeTargetSide = preferredSide;
+      this.fleeRouteY = this.id % 2
+        ? GAME_CONFIG.laneTop + 28
+        : GAME_CONFIG.laneBottom - 28;
+    }
 
     if (this.fleeTargetSide || distanceX <= (config.fleeDistanceX || 270)) {
       this.intent = 'flee';
@@ -735,6 +744,14 @@ class DogRegimeEnemy {
     this.intent = 'align';
     this.applyMovement(0, Math.sign(player.y - this.y), dt);
     this.clampToScreen();
+  }
+
+  getGoydenishPreferredSide(scene) {
+    const goydenishes = (scene.enemies || [])
+      .filter(enemy => enemy && enemy.alive && enemy.enemyType === 'goydenish')
+      .sort((a, b) => a.id - b.id);
+    if (goydenishes.length < 2) return 0;
+    return goydenishes.indexOf(this) % 2 === 0 ? -1 : 1;
   }
 
   updateGoydenishAttack(dt, scene) {

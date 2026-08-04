@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  "buildVersion": "0.4.156",
+  "buildVersion": "0.4.157",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -354,8 +354,8 @@ const GAME_CONFIG = {
       "attackChance": 0.68,
       "closeRetreatChance": 0.8,
       "postAttackRetreatMs": 460,
-      "attackCooldownMinMs": 720,
-      "attackCooldownMaxMs": 1040,
+      "attackCooldownMinMs": 1100,
+      "attackCooldownMaxMs": 1550,
       "bodyRadiusX": 44,
       "bodyRadiusY": 21
     },
