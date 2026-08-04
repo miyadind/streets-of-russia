@@ -266,7 +266,8 @@
 
   if (typeof Player !== 'undefined') {
     Player.prototype.getHitbox = function () {
-      const key = this.comboStep === 3 ? 'attack3' : this.comboStep === 2 ? 'attack2' : 'attack1';
+      const visualStep = this.visualAttackStep || 1;
+      const key = visualStep === 3 ? 'attack3' : visualStep === 2 ? 'attack2' : 'attack1';
       return worldBox(this.x, this.y, this.facing, heroBox(this.heroKey, key));
     };
 

@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.161",
+  "buildVersion": "0.4.162",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -2637,6 +2637,7 @@ class Player {
     this.comboStep = 0;
     this.comboHits = 0;
     this.comboTimer = 0;
+    this.visualAttackStep = 0;
     this.attackTimer = 0;
     this.attackHasHit = false;
     this.hitStunTimer = 0;
@@ -2842,6 +2843,8 @@ class Player {
   startAttack() {
     if (this.state === 'attack' || this.state === 'hurt' || this.state === 'knockdown' || this.state === 'pinned') return;
 
+    // Animations always cycle through all three strikes. Combat power only advances after real hits.
+    this.visualAttackStep = (this.visualAttackStep % 3) + 1;
     this.comboStep = this.comboHits > 0 && this.comboTimer > 0
       ? Math.min(3, this.comboHits + 1)
       : 1;
@@ -2984,11 +2987,18 @@ class Player {
   }
 
   getAttackData() {
-    if (this.comboStep === 1) return { duration: 170, activeStart: 25, activeEnd: 120, damage: this.damage, knockback: 24, range: 46 };
-    if (this.comboStep === 2) return { duration: 190, activeStart: 30, activeEnd: 135, damage: this.damage + 5, knockback: 32, range: 52 };
+    const visualStep = this.visualAttackStep || 1;
+    const animation = visualStep === 1
+      ? { duration: 170, activeStart: 25, activeEnd: 120, range: 46 }
+      : visualStep === 2
+        ? { duration: 190, activeStart: 30, activeEnd: 135, range: 52 }
+        : { duration: 240, activeStart: 34, activeEnd: 160, range: 62 };
+
+    if (this.comboStep === 1) return { ...animation, damage: this.damage, knockback: 24 };
+    if (this.comboStep === 2) return { ...animation, damage: this.damage + 5, knockback: 32 };
     const combo3Damage = Number(this.abilities.combo3Damage);
     const damage = Number.isFinite(combo3Damage) ? combo3Damage : this.damage + 14;
-    return { duration: 240, activeStart: 34, activeEnd: 160, damage, knockback: 68, range: 62 };
+    return { ...animation, damage, knockback: 68 };
   }
 
   getHitbox() {
@@ -3108,7 +3118,7 @@ class Player {
     const heroImages = this.getHeroImages();
     if (this.state === 'knockdown' || this.state === 'pinned') return heroImages.knockdown || heroImages.idle;
     if (this.state === 'hurt') return heroImages.hurt || heroImages.idle;
-    if (this.state === 'attack') return heroImages.punch[this.comboStep - 1] || heroImages.punch[0] || heroImages.idle;
+    if (this.state === 'attack') return heroImages.punch[(this.visualAttackStep || 1) - 1] || heroImages.punch[0] || heroImages.idle;
     if (this.state === 'walk') return heroImages.walk[this.walkFrame] || heroImages.idle;
     return heroImages.idle;
   }
@@ -17801,7 +17811,8 @@ window.addEventListener('load', () => {
 
   if (typeof Player !== 'undefined') {
     Player.prototype.getHitbox = function () {
-      const key = this.comboStep === 3 ? 'attack3' : this.comboStep === 2 ? 'attack2' : 'attack1';
+      const visualStep = this.visualAttackStep || 1;
+      const key = visualStep === 3 ? 'attack3' : visualStep === 2 ? 'attack2' : 'attack1';
       return worldBox(this.x, this.y, this.facing, heroBox(this.heroKey, key));
     };
 
