@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.168",
+  "buildVersion": "0.4.169",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -374,7 +374,7 @@ const GAME_CONFIG = {
       "damage": 16,
       "appearSoundPath": "assets/enemies/NEgay/appear.mp3?v=negay-appear-2",
       "scale": 0.12,
-      "finalAttackScale": 1.21125,
+      "finalAttackScale": 1,
       "attackDamageSource": "ranged",
       "minDistanceX": 105,
       "preferredDistanceX": 175,
@@ -1439,7 +1439,7 @@ window.Assets = {
   negay:{
     idle:'assets/enemies/NEgay/idle.png?v=negay-refresh-2',
     walk:['assets/enemies/NEgay/walk01.png?v=negay-refresh-2','assets/enemies/NEgay/walk02.png?v=negay-refresh-2','assets/enemies/NEgay/walk03.png?v=negay-refresh-2'],
-    attack:['assets/enemies/NEgay/Whiplash.png?v=negay-refresh-2','assets/enemies/NEgay/WhiplashFinal.png?v=negay-refresh-2'],
+    attack:['assets/enemies/NEgay/Whiplash.png?v=negay-refresh-2','assets/enemies/NEgay/WhiplashFinal.png?v=negay-final-1'],
     dead:'assets/enemies/NEgay/knockdown.png?v=negay-refresh-2'
   },
   pickups:{

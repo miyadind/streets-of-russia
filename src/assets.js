@@ -94,7 +94,7 @@ window.Assets = {
   negay:{
     idle:'assets/enemies/NEgay/idle.png?v=negay-refresh-2',
     walk:['assets/enemies/NEgay/walk01.png?v=negay-refresh-2','assets/enemies/NEgay/walk02.png?v=negay-refresh-2','assets/enemies/NEgay/walk03.png?v=negay-refresh-2'],
-    attack:['assets/enemies/NEgay/Whiplash.png?v=negay-refresh-2','assets/enemies/NEgay/WhiplashFinal.png?v=negay-refresh-2'],
+    attack:['assets/enemies/NEgay/Whiplash.png?v=negay-refresh-2','assets/enemies/NEgay/WhiplashFinal.png?v=negay-final-1'],
     dead:'assets/enemies/NEgay/knockdown.png?v=negay-refresh-2'
   },
   pickups:{
