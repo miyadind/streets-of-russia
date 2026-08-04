@@ -137,7 +137,10 @@ class Player {
 
     const source = options.source || 'melee';
     let damageAmount = Math.max(0, amount || 0);
-    if (options.bossAttack && Number.isFinite(this.abilities.bossProjectileDamageMultiplier)) {
+    const bossMatchup = this.getBossMatchup(options.bossId);
+    if (bossMatchup) {
+      damageAmount *= bossMatchup.incomingDamageMultiplier;
+    } else if (options.bossAttack && Number.isFinite(this.abilities.bossProjectileDamageMultiplier)) {
       damageAmount *= Math.max(0, this.abilities.bossProjectileDamageMultiplier);
     } else if (source === 'ranged' && Number.isFinite(this.abilities.rangedDamageMultiplier)) {
       damageAmount *= Math.max(0, this.abilities.rangedDamageMultiplier);
@@ -184,6 +187,19 @@ class Player {
     }
 
     return true;
+  }
+
+  getBossMatchup(boss) {
+    const bossId = typeof boss === 'string'
+      ? boss
+      : boss && ((GAME_CONFIG.enemies[boss.enemyType] || {}).bossId || boss.bossId);
+    const matchup = bossId && GAME_CONFIG.bossMatchups && GAME_CONFIG.bossMatchups[bossId];
+    return matchup && matchup.heroKey === this.heroKey ? matchup : null;
+  }
+
+  getBossDamageMultiplier(boss) {
+    const matchup = this.getBossMatchup(boss);
+    return matchup ? matchup.outgoingDamageMultiplier : 1;
   }
 
   startHitStun(durationMs, invulnerableMs) {
@@ -344,10 +360,11 @@ class Player {
           this.attackHasHit = true;
           this.playComboHitSound();
           const wasAlive = enemy.alive;
-          enemy.takeHit(data.damage, this.facing, data.knockback);
+          const damage = data.damage * this.getBossDamageMultiplier(enemy);
+          enemy.takeHit(damage, this.facing, data.knockback);
           this.registerComboHit();
           if (enemy.enemyType !== 'bastard' && scene.addDamageText) {
-            scene.addDamageText(data.damage, enemy);
+            scene.addDamageText(damage, enemy);
           }
           if (wasAlive && !enemy.alive && scene.maybeDropPickup) scene.maybeDropPickup(enemy, { source: 'player' });
           if (enemy.enemyType === 'bastard') {

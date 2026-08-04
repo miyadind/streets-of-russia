@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.187",
+  "buildVersion": "0.4.188",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -106,7 +106,6 @@ const GAME_CONFIG = {
       "color": "#c163ff",
       "abilities": {
         "noKnockdown": true,
-        "bossProjectileDamageMultiplier": 0.5,
         "combo3Damage": 45
       },
       "tagline": "Быстрая, резкая, опасная на дистанции",
@@ -167,6 +166,23 @@ const GAME_CONFIG = {
   "regionMusic": {
     "far-east": "farEastTheme",
     "siberia": "siberiaTheme"
+  },
+  "bossMatchups": {
+    "farEastRoc": {
+      "heroKey": "boris",
+      "incomingDamageMultiplier": 0.5,
+      "outgoingDamageMultiplier": 1.3
+    },
+    "kadyrov": {
+      "heroKey": "anna",
+      "incomingDamageMultiplier": 0.5,
+      "outgoingDamageMultiplier": 1.3
+    },
+    "siberiaBoss": {
+      "heroKey": "alexey",
+      "incomingDamageMultiplier": 0.5,
+      "outgoingDamageMultiplier": 1.3
+    }
   },
   "enemies": {
     "dogRegime": {
@@ -398,6 +414,7 @@ const GAME_CONFIG = {
     },
     "gundos": {
       "name": "gundos",
+      "bossId": "farEastRoc",
       "hp": 6,
       "speed": 1.875,
       "scale": 0.266,
@@ -2762,7 +2779,10 @@ class Player {
 
     const source = options.source || 'melee';
     let damageAmount = Math.max(0, amount || 0);
-    if (options.bossAttack && Number.isFinite(this.abilities.bossProjectileDamageMultiplier)) {
+    const bossMatchup = this.getBossMatchup(options.bossId);
+    if (bossMatchup) {
+      damageAmount *= bossMatchup.incomingDamageMultiplier;
+    } else if (options.bossAttack && Number.isFinite(this.abilities.bossProjectileDamageMultiplier)) {
       damageAmount *= Math.max(0, this.abilities.bossProjectileDamageMultiplier);
     } else if (source === 'ranged' && Number.isFinite(this.abilities.rangedDamageMultiplier)) {
       damageAmount *= Math.max(0, this.abilities.rangedDamageMultiplier);
@@ -2809,6 +2829,19 @@ class Player {
     }
 
     return true;
+  }
+
+  getBossMatchup(boss) {
+    const bossId = typeof boss === 'string'
+      ? boss
+      : boss && ((GAME_CONFIG.enemies[boss.enemyType] || {}).bossId || boss.bossId);
+    const matchup = bossId && GAME_CONFIG.bossMatchups && GAME_CONFIG.bossMatchups[bossId];
+    return matchup && matchup.heroKey === this.heroKey ? matchup : null;
+  }
+
+  getBossDamageMultiplier(boss) {
+    const matchup = this.getBossMatchup(boss);
+    return matchup ? matchup.outgoingDamageMultiplier : 1;
   }
 
   startHitStun(durationMs, invulnerableMs) {
@@ -2969,10 +3002,11 @@ class Player {
           this.attackHasHit = true;
           this.playComboHitSound();
           const wasAlive = enemy.alive;
-          enemy.takeHit(data.damage, this.facing, data.knockback);
+          const damage = data.damage * this.getBossDamageMultiplier(enemy);
+          enemy.takeHit(damage, this.facing, data.knockback);
           this.registerComboHit();
           if (enemy.enemyType !== 'bastard' && scene.addDamageText) {
-            scene.addDamageText(data.damage, enemy);
+            scene.addDamageText(damage, enemy);
           }
           if (wasAlive && !enemy.alive && scene.maybeDropPickup) scene.maybeDropPickup(enemy, { source: 'player' });
           if (enemy.enemyType === 'bastard') {
@@ -3358,6 +3392,7 @@ class DogRegimeEnemy {
     this.speed = config.speed;
     this.damage = config.damage;
     this.attackDamageSource = config.attackDamageSource || 'melee';
+    this.bossId = config.bossId || null;
     this.maxHp = config.hp;
     this.scale = config.scale || GAME_CONFIG.enemyScale;
     this.attackScale = config.attackScale || 1;
@@ -3772,6 +3807,7 @@ class DogRegimeEnemy {
       if (this.canClubReachPlayer(player, false)) {
         const hit = player.receiveDamage(this.damage, {
           source: this.attackDamageSource,
+          bossId: this.bossId,
           knockbackX: this.facing * 18
         });
         if (hit) scene.hitStop = 42;
@@ -4350,6 +4386,9 @@ class ZetnikEnemy extends DogRegimeEnemy {
 
   redirectToGundos(player) {
     const boss = this.gundosBoss;
+    this.gundosDamageMultiplier = player && player.getBossDamageMultiplier
+      ? player.getBossDamageMultiplier(boss)
+      : 1;
     this.redirectedToBoss = true;
     this.gundosGuarding = false;
     this.gundosDirection = boss && boss.x < this.x ? -1 : 1;
@@ -8078,6 +8117,10 @@ const DevPanel = {
     for (const path of Object.keys(defaults)) {
       const value = defaults[path];
       if (value !== undefined) this.setValue(path, value);
+    }
+
+    if (GAME_CONFIG.heroes && GAME_CONFIG.heroes.anna && GAME_CONFIG.heroes.anna.abilities) {
+      delete GAME_CONFIG.heroes.anna.abilities.bossProjectileDamageMultiplier;
     }
   },
 
@@ -16950,6 +16993,7 @@ window.addEventListener('load', () => {
         const hit = player.receiveDamage(fireballDamage, {
           source: 'ranged',
           bossAttack: true,
+          bossId: 'farEastRoc',
           knockbackX: -46,
           hitStunMs: 160,
           invulnerableMs: 260
@@ -17302,7 +17346,7 @@ window.addEventListener('load', () => {
     receiveZetnikHit(zetnik, scene) {
       if (!this.alive) return;
       const config = this.getConfig();
-      const damage = config.zetnikHitDamage || 1;
+      const damage = (config.zetnikHitDamage || 1) * ((zetnik && zetnik.gundosDamageMultiplier) || 1);
       this.hp = Math.max(0, this.hp - damage);
       if (scene && scene.addDamageText) scene.addDamageText(damage, this);
       this.flash = 220;

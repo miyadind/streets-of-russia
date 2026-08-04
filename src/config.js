@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  "buildVersion": "0.4.187",
+  "buildVersion": "0.4.188",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -99,7 +99,6 @@ const GAME_CONFIG = {
       "color": "#c163ff",
       "abilities": {
         "noKnockdown": true,
-        "bossProjectileDamageMultiplier": 0.5,
         "combo3Damage": 45
       },
       "tagline": "Быстрая, резкая, опасная на дистанции",
@@ -160,6 +159,23 @@ const GAME_CONFIG = {
   "regionMusic": {
     "far-east": "farEastTheme",
     "siberia": "siberiaTheme"
+  },
+  "bossMatchups": {
+    "farEastRoc": {
+      "heroKey": "boris",
+      "incomingDamageMultiplier": 0.5,
+      "outgoingDamageMultiplier": 1.3
+    },
+    "kadyrov": {
+      "heroKey": "anna",
+      "incomingDamageMultiplier": 0.5,
+      "outgoingDamageMultiplier": 1.3
+    },
+    "siberiaBoss": {
+      "heroKey": "alexey",
+      "incomingDamageMultiplier": 0.5,
+      "outgoingDamageMultiplier": 1.3
+    }
   },
   "enemies": {
     "dogRegime": {
@@ -391,6 +407,7 @@ const GAME_CONFIG = {
     },
     "gundos": {
       "name": "gundos",
+      "bossId": "farEastRoc",
       "hp": 6,
       "speed": 1.875,
       "scale": 0.266,

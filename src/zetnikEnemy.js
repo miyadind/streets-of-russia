@@ -277,6 +277,9 @@ class ZetnikEnemy extends DogRegimeEnemy {
 
   redirectToGundos(player) {
     const boss = this.gundosBoss;
+    this.gundosDamageMultiplier = player && player.getBossDamageMultiplier
+      ? player.getBossDamageMultiplier(boss)
+      : 1;
     this.redirectedToBoss = true;
     this.gundosGuarding = false;
     this.gundosDirection = boss && boss.x < this.x ? -1 : 1;

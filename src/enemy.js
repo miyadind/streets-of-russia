@@ -159,6 +159,7 @@ class DogRegimeEnemy {
     this.speed = config.speed;
     this.damage = config.damage;
     this.attackDamageSource = config.attackDamageSource || 'melee';
+    this.bossId = config.bossId || null;
     this.maxHp = config.hp;
     this.scale = config.scale || GAME_CONFIG.enemyScale;
     this.attackScale = config.attackScale || 1;
@@ -573,6 +574,7 @@ class DogRegimeEnemy {
       if (this.canClubReachPlayer(player, false)) {
         const hit = player.receiveDamage(this.damage, {
           source: this.attackDamageSource,
+          bossId: this.bossId,
           knockbackX: this.facing * 18
         });
         if (hit) scene.hitStop = 42;

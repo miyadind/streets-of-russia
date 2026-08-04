@@ -183,6 +183,7 @@
         const hit = player.receiveDamage(fireballDamage, {
           source: 'ranged',
           bossAttack: true,
+          bossId: 'farEastRoc',
           knockbackX: -46,
           hitStunMs: 160,
           invulnerableMs: 260
@@ -535,7 +536,7 @@
     receiveZetnikHit(zetnik, scene) {
       if (!this.alive) return;
       const config = this.getConfig();
-      const damage = config.zetnikHitDamage || 1;
+      const damage = (config.zetnikHitDamage || 1) * ((zetnik && zetnik.gundosDamageMultiplier) || 1);
       this.hp = Math.max(0, this.hp - damage);
       if (scene && scene.addDamageText) scene.addDamageText(damage, this);
       this.flash = 220;

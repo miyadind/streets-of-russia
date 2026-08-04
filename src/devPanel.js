@@ -711,6 +711,10 @@ const DevPanel = {
       const value = defaults[path];
       if (value !== undefined) this.setValue(path, value);
     }
+
+    if (GAME_CONFIG.heroes && GAME_CONFIG.heroes.anna && GAME_CONFIG.heroes.anna.abilities) {
+      delete GAME_CONFIG.heroes.anna.abilities.bossProjectileDamageMultiplier;
+    }
   },
 
   migrateConfig() {
