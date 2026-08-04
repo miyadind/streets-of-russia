@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.158",
+  "buildVersion": "0.4.159",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -7075,6 +7075,8 @@ class LevelScene {
 
         for (let j = i + 1; j < active.length; j++) {
           const b = active[j];
+          // Zetniks are charging hazards: only the player can stop them.
+          if (a.enemyType === 'zetnik' || b.enemyType === 'zetnik') continue;
           const brx = b.bodyRadiusX || GAME_CONFIG.enemyBodyRadiusX || 42;
           const bry = b.bodyRadiusY || GAME_CONFIG.enemyBodyRadiusY || 20;
           const minX = arx + brx;
