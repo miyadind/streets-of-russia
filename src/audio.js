@@ -50,8 +50,8 @@ const AudioManager = {
 
   createAudio(src, loop, options = {}) {
     const audio = new Audio();
+    audio.preload = 'none';
     audio.src = src;
-    audio.preload = 'auto';
     audio.loop = loop;
     audio.dataset.failed = 'false';
     audio.addEventListener('error', () => {
@@ -65,10 +65,6 @@ const AudioManager = {
     if (this.unlocked) return;
     this.unlocked = true;
     this.ensureAudioContext();
-
-    for (const audio of [...Object.values(this.sfx), ...Object.values(this.music), ...Object.values(this.optionalSfx)]) {
-      audio.load();
-    }
 
     if (this.currentMusicKey) this.playMusic(this.currentMusicKey, false, true);
   },

@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.177",
+  "buildVersion": "0.4.178",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -1970,8 +1970,8 @@ const AudioManager = {
 
   createAudio(src, loop, options = {}) {
     const audio = new Audio();
+    audio.preload = 'none';
     audio.src = src;
-    audio.preload = 'auto';
     audio.loop = loop;
     audio.dataset.failed = 'false';
     audio.addEventListener('error', () => {
@@ -1985,10 +1985,6 @@ const AudioManager = {
     if (this.unlocked) return;
     this.unlocked = true;
     this.ensureAudioContext();
-
-    for (const audio of [...Object.values(this.sfx), ...Object.values(this.music), ...Object.values(this.optionalSfx)]) {
-      audio.load();
-    }
 
     if (this.currentMusicKey) this.playMusic(this.currentMusicKey, false, true);
   },
@@ -10621,6 +10617,9 @@ class GameApp {
     this.suckerPinHintShown = false;
     this.campaignMapEntryId = 0;
     this.campaignMapMusicEntryId = -1;
+    this.deferredAssetsReady = false;
+    this.deferredImagesPromise = null;
+    this.startingLevel = false;
   }
 
   async init() {
@@ -10631,8 +10630,48 @@ class GameApp {
 
     requestAnimationFrame((time) => this.loop(time));
 
-    this.images = await this.loadImages();
+    this.images = await this.loadInitialImages();
     this.setState('splash');
+    this.deferredImagesPromise = new Promise((resolve) => {
+      // Let the first splash frame paint before background loading starts.
+      setTimeout(() => {
+        this.loadImages().then((images) => {
+          this.images = images;
+          this.deferredAssetsReady = true;
+          resolve(images);
+        }).catch((error) => {
+          console.error('Deferred asset loading failed:', error);
+          this.deferredAssetsReady = true;
+          resolve(this.images);
+        });
+      }, 0);
+    });
+  }
+
+  loadSingleImage(src, label = src) {
+    return new Promise((resolve) => {
+      if (!src) {
+        resolve(null);
+        return;
+      }
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = () => {
+        console.warn('Missing image:', label);
+        resolve(null);
+      };
+      image.src = src;
+    });
+  }
+
+  async loadInitialImages() {
+    return {
+      main: await this.loadSingleImage(Assets.backgrounds.main, Assets.backgrounds.main),
+      streets: [],
+      heroes: {},
+      enemies: {},
+      pickups: {}
+    };
   }
 
   async loadImages() {
@@ -10725,12 +10764,9 @@ class GameApp {
 
     const loaded = {};
     const entries = Object.entries(paths);
-    await Promise.all(entries.map(([key, src]) => new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => { loaded[key] = img; resolve(); };
-      img.onerror = () => { console.warn('Missing image:', src); loaded[key] = null; resolve(); };
-      img.src = src;
-    })));
+    for (const [key, src] of entries) {
+      loaded[key] = await this.loadSingleImage(src, src);
+    }
 
     loaded.streets = [loaded.street0, loaded.street1, loaded.street2];
     if (GAME_CONFIG.levelOrder && GAME_CONFIG.levels) {
@@ -10861,23 +10897,16 @@ class GameApp {
       img.src = src;
     });
 
-    const requests = [];
     for (const level of Object.values(GAME_CONFIG.levels || {})) {
       for (const item of level.interactives || []) {
         if (item.altBackground && !loaded.levelInteractiveBackgrounds[item.altBackground]) {
-          requests.push(loadImage(item.altBackground, item.altBackground).then((image) => {
-            loaded.levelInteractiveBackgrounds[item.altBackground] = image;
-          }));
+          loaded.levelInteractiveBackgrounds[item.altBackground] = await loadImage(item.altBackground, item.altBackground);
         }
         if (item.image && !loaded.levelInteractiveImages[item.image]) {
-          requests.push(loadImage(item.image, item.image).then((image) => {
-            loaded.levelInteractiveImages[item.image] = image;
-          }));
+          loaded.levelInteractiveImages[item.image] = await loadImage(item.image, item.image);
         }
       }
     }
-
-    await Promise.all(requests);
   }
 
   async loadLevelBackgrounds(fallbackStreets = []) {
@@ -11085,17 +11114,28 @@ class GameApp {
     }
   }
 
-  startLevel() {
-    this.scene = new LevelScene(this, this.images);
-    if (window.CampaignRuntime) window.CampaignRuntime.startActiveRegionScene(this);
-    else if (this.scene.spawnInitialWave) this.scene.spawnInitialWave();
-    this.setState('level');
-    const levelKey = this.scene && this.scene.getLevelKey ? this.scene.getLevelKey() : null;
-    const level = levelKey && GAME_CONFIG.levels ? GAME_CONFIG.levels[levelKey] : null;
-    const musicKey = window.CampaignRuntime && window.CampaignRuntime.getLevelMusicKey
-      ? window.CampaignRuntime.getLevelMusicKey(level)
-      : (level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme';
-    AudioManager.playMusic(musicKey, true);
+  async startLevel() {
+    if (this.startingLevel || this.state === 'level') return;
+    this.startingLevel = true;
+    try {
+      if (this.deferredImagesPromise && !this.deferredAssetsReady) {
+        this.setState('levelLoading');
+        await this.deferredImagesPromise;
+      }
+
+      this.scene = new LevelScene(this, this.images);
+      if (window.CampaignRuntime) window.CampaignRuntime.startActiveRegionScene(this);
+      else if (this.scene.spawnInitialWave) this.scene.spawnInitialWave();
+      this.setState('level');
+      const levelKey = this.scene && this.scene.getLevelKey ? this.scene.getLevelKey() : null;
+      const level = levelKey && GAME_CONFIG.levels ? GAME_CONFIG.levels[levelKey] : null;
+      const musicKey = window.CampaignRuntime && window.CampaignRuntime.getLevelMusicKey
+        ? window.CampaignRuntime.getLevelMusicKey(level)
+        : (level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme';
+      AudioManager.playMusic(musicKey, true);
+    } finally {
+      this.startingLevel = false;
+    }
   }
 
   update(dt) {
@@ -11198,6 +11238,8 @@ class GameApp {
 
     if (this.state === 'loading') {
       this.drawLoading(ctx);
+    } else if (this.state === 'levelLoading') {
+      this.drawLoading(ctx, 'ПОДГОТОВКА УРОВНЯ...');
     } else if (this.state === 'splash') {
       Menu.drawSplash(ctx, this.images);
     } else if (this.state === 'mainMenu') {
@@ -11240,13 +11282,13 @@ class GameApp {
     ctx.restore();
   }
 
-  drawLoading(ctx) {
+  drawLoading(ctx, message = 'ЗАГРУЗКА...') {
     ctx.fillStyle = '#050505';
     ctx.fillRect(0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 34px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('ЗАГРУЗКА...', GAME_CONFIG.width / 2, GAME_CONFIG.height / 2);
+    ctx.fillText(message, GAME_CONFIG.width / 2, GAME_CONFIG.height / 2);
     ctx.textAlign = 'left';
   }
 
@@ -15719,12 +15761,12 @@ window.addEventListener('load', () => {
   };
 
   const previousStartLevel = GameApp.prototype.startLevel;
-  GameApp.prototype.startLevel = function () {
+  GameApp.prototype.startLevel = async function () {
     // A region transition creates a new scene, but it is still the same run.
     // Keep the active hero's current HP before the old scene is replaced.
     this.ensureTeamHpState();
     this.saveCurrentHeroHp();
-    previousStartLevel.call(this);
+    await previousStartLevel.call(this);
     if (this.scene && this.campaignMap && Number.isFinite(this.campaignMap.activeIndex)) {
       const targetIndex = window.CampaignRuntime
         ? window.CampaignRuntime.getActiveRegionStartIndex(this)
@@ -19262,8 +19304,8 @@ window.addEventListener('load', () => {
   };
 
   const previousStartLevel = GameApp.prototype.startLevel;
-  GameApp.prototype.startLevel = function () {
-    previousStartLevel.call(this);
+  GameApp.prototype.startLevel = async function () {
+    await previousStartLevel.call(this);
     restartSceneAtActiveRegion(this);
   };
 

@@ -454,8 +454,8 @@
   };
 
   const previousStartLevel = GameApp.prototype.startLevel;
-  GameApp.prototype.startLevel = function () {
-    previousStartLevel.call(this);
+  GameApp.prototype.startLevel = async function () {
+    await previousStartLevel.call(this);
     restartSceneAtActiveRegion(this);
   };
 
