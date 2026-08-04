@@ -971,14 +971,7 @@
       }
 
       if (this.bossVictoryReady) {
-        ctx.save();
-        ctx.font = 'bold 42px Arial';
-        ctx.fillStyle = 'lime';
-        ctx.strokeStyle = '#000';
-        ctx.lineWidth = 5;
-        ctx.strokeText('\u2192', GAME_CONFIG.width - 90, 380);
-        ctx.fillText('\u2192', GAME_CONFIG.width - 90, 380);
-        ctx.restore();
+        if (this.drawExitArrow) this.drawExitArrow(ctx);
       }
 
       HUD.draw(ctx, this);

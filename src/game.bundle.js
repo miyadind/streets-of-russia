@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.190",
+  "buildVersion": "0.4.191",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -15326,6 +15326,10 @@ window.addEventListener('load', () => {
     ctx.restore();
   }
 
+  LevelScene.prototype.drawExitArrow = function (ctx) {
+    drawExitLedArrow(ctx, GAME_CONFIG.width - 128, 388, performance.now() / 260);
+  };
+
   function clampValue(value, min, max) {
     return Math.max(min, Math.min(max, value));
   }
@@ -15385,8 +15389,7 @@ window.addEventListener('load', () => {
     if (this.drawDamageTexts) this.drawDamageTexts(ctx);
 
     if (this.encounterCleared) {
-      const phase = performance.now() / 260;
-      drawExitLedArrow(ctx, GAME_CONFIG.width - 128, 388, phase);
+      this.drawExitArrow(ctx);
     }
 
     HUD.draw(ctx, this);
@@ -17837,14 +17840,7 @@ window.addEventListener('load', () => {
       }
 
       if (this.bossVictoryReady) {
-        ctx.save();
-        ctx.font = 'bold 42px Arial';
-        ctx.fillStyle = 'lime';
-        ctx.strokeStyle = '#000';
-        ctx.lineWidth = 5;
-        ctx.strokeText('\u2192', GAME_CONFIG.width - 90, 380);
-        ctx.fillText('\u2192', GAME_CONFIG.width - 90, 380);
-        ctx.restore();
+        if (this.drawExitArrow) this.drawExitArrow(ctx);
       }
 
       HUD.draw(ctx, this);
