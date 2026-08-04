@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.183",
+  "buildVersion": "0.4.184",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -7951,13 +7951,41 @@ const DevPanel = {
       const data = JSON.parse(saved);
       this.deepMerge(GAME_CONFIG, data);
       this.migrateBuildDefaults(data);
+      const restoredFarEast = this.restoreStaleFarEastWaves(data);
       this.migrateConfig();
       this.ensureLevels();
-      this.setStatus('Loaded saved tuning');
+      if (restoredFarEast) {
+        localStorage.setItem('streetsOfRussia.tuning', JSON.stringify(GAME_CONFIG));
+        this.setStatus('Restored Far East release waves');
+      } else {
+        this.setStatus('Loaded saved tuning');
+      }
     } catch (error) {
       console.warn('Failed to load tuning', error);
       this.setStatus('Failed to load saved tuning');
     }
+  },
+
+  restoreStaleFarEastWaves(savedConfig) {
+    const levels = savedConfig && savedConfig.levels;
+    const farEastKeys = ['street01', 'street02', 'street03'];
+    if (!levels || !farEastKeys.some((key) => this.hasExperimentalFarEastEnemy(levels[key]))) return false;
+
+    // Saved dev exports used an unfinished Far East roster. Keep all other local tuning,
+    // but make the released Far East follow the version shipped with the game.
+    for (const key of farEastKeys) {
+      if (DEFAULT_GAME_CONFIG.levels && DEFAULT_GAME_CONFIG.levels[key]) {
+        GAME_CONFIG.levels[key] = JSON.parse(JSON.stringify(DEFAULT_GAME_CONFIG.levels[key]));
+      }
+    }
+    return true;
+  },
+
+  hasExperimentalFarEastEnemy(level) {
+    if (!level || !Array.isArray(level.waves)) return false;
+    return level.waves.some((wave) => Array.isArray(wave.enemies) && wave.enemies.some((group) => (
+      group && (group.type === 'goydenish' || group.type === 'negay')
+    )));
   },
 
   migrateBuildDefaults(savedConfig) {
