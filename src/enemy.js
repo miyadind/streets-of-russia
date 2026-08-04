@@ -701,6 +701,30 @@ class DogRegimeEnemy {
     const screenMarginX = config.screenMarginX || 70;
     const atScreenEdge = this.x <= screenMarginX + 12 || this.x >= GAME_CONFIG.width - screenMarginX - 12;
 
+    if (!this.fleeTargetSide && distanceX <= (config.fleeDistanceX || 270) && atScreenEdge) {
+      // When cornered, route around the player rather than freezing at the edge.
+      this.fleeTargetSide = this.x <= screenMarginX + 12 ? 1 : -1;
+      this.fleeRouteY = this.id % 2
+        ? GAME_CONFIG.laneTop + 28
+        : GAME_CONFIG.laneBottom - 28;
+    }
+
+    if (this.fleeTargetSide) {
+      this.intent = 'flee';
+      const targetX = this.fleeTargetSide > 0
+        ? GAME_CONFIG.width - screenMarginX
+        : screenMarginX;
+      const movingPastPlayer = this.fleeTargetSide > 0 ? this.x < player.x : this.x > player.x;
+      const moveX = Math.abs(targetX - this.x) > 12 ? Math.sign(targetX - this.x) : 0;
+      const moveY = movingPastPlayer || Math.abs(this.fleeRouteY - this.y) > 18
+        ? Math.sign(this.fleeRouteY - this.y)
+        : 0;
+      this.applyMovement(moveX, moveY, dt, config.fleeSpeedMultiplier || 2);
+      if (moveX === 0 && moveY === 0) this.fleeTargetSide = 0;
+      this.clampToScreen();
+      return;
+    }
+
     if (distanceX <= (config.fleeDistanceX || 270) && !atScreenEdge) {
       this.intent = 'flee';
       this.applyMovement(fleeDirection, 0, dt, config.fleeSpeedMultiplier || 2);
