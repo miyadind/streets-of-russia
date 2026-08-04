@@ -716,9 +716,10 @@ class DogRegimeEnemy {
     if (!this.fleeTargetSide && distanceX <= (config.fleeDistanceX || 270) && atScreenEdge) {
       // When cornered, route around the player rather than freezing at the edge.
       this.fleeTargetSide = this.x <= screenMarginX + 12 ? 1 : -1;
-      this.fleeRouteY = this.id % 2
-        ? GAME_CONFIG.laneTop + 28
-        : GAME_CONFIG.laneBottom - 28;
+      const laneMidY = (GAME_CONFIG.laneTop + GAME_CONFIG.laneBottom) / 2;
+      this.fleeRouteY = player.y <= laneMidY
+        ? GAME_CONFIG.laneBottom - 28
+        : GAME_CONFIG.laneTop + 28;
     }
 
     if (this.fleeTargetSide) {

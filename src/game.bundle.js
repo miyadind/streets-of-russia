@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.186",
+  "buildVersion": "0.4.187",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -343,9 +343,9 @@ const GAME_CONFIG = {
       "projectileHitboxSize": 64,
       "aimTrackSpeed": 7.5,
       "keepOnScreen": true,
-      "screenMarginX": 70,
-      "fleeDistanceX": 340,
-      "fleeSpeedMultiplier": 4.5,
+      "screenMarginX": 122,
+      "fleeDistanceX": 380,
+      "fleeSpeedMultiplier": 7,
       "attackDamageSource": "ranged",
       "minDistanceX": 150,
       "preferredDistanceX": 235,
@@ -3915,9 +3915,10 @@ class DogRegimeEnemy {
     if (!this.fleeTargetSide && distanceX <= (config.fleeDistanceX || 270) && atScreenEdge) {
       // When cornered, route around the player rather than freezing at the edge.
       this.fleeTargetSide = this.x <= screenMarginX + 12 ? 1 : -1;
-      this.fleeRouteY = this.id % 2
-        ? GAME_CONFIG.laneTop + 28
-        : GAME_CONFIG.laneBottom - 28;
+      const laneMidY = (GAME_CONFIG.laneTop + GAME_CONFIG.laneBottom) / 2;
+      this.fleeRouteY = player.y <= laneMidY
+        ? GAME_CONFIG.laneBottom - 28
+        : GAME_CONFIG.laneTop + 28;
     }
 
     if (this.fleeTargetSide) {
@@ -8060,6 +8061,9 @@ const DevPanel = {
       'enemies.horse.clubReachForward': 310,
       'enemies.negay.scale': DEFAULT_GAME_CONFIG.enemies.negay.scale,
       'enemies.negay.finalAttackScale': DEFAULT_GAME_CONFIG.enemies.negay.finalAttackScale,
+      'enemies.goydenish.screenMarginX': DEFAULT_GAME_CONFIG.enemies.goydenish.screenMarginX,
+      'enemies.goydenish.fleeDistanceX': DEFAULT_GAME_CONFIG.enemies.goydenish.fleeDistanceX,
+      'enemies.goydenish.fleeSpeedMultiplier': DEFAULT_GAME_CONFIG.enemies.goydenish.fleeSpeedMultiplier,
       'enemies.gundos.speed': 1.875,
       'enemies.gundos.entranceY': 720,
       'enemies.gundos.arenaBottom': 720,
