@@ -14,7 +14,10 @@ class HealthPickup {
   }
 
   getConfig() {
-    return (GAME_CONFIG.pickups && GAME_CONFIG.pickups[this.type]) || {};
+    const pickups = GAME_CONFIG.pickups || {};
+    const config = pickups[this.type] || {};
+    if (!this.type.startsWith('support')) return config;
+    return { ...(pickups.supportFigure || {}), ...config, image: this.type };
   }
 
   getImage() {
@@ -51,6 +54,15 @@ class HealthPickup {
   collect(player) {
     if (!this.canCollect(player)) return false;
     const cfg = this.getConfig();
+    if (cfg.support) {
+      if (player.scene && player.scene.addSupportFigure) player.scene.addSupportFigure(this.type);
+      this.floatText = cfg.label || 'ПОДДЕРЖКА ПОЛУЧЕНА';
+      this.floatTextX = player.x;
+      this.floatTextY = player.y - 136;
+      this.floatTimer = 900;
+      AudioManager.playSfx('waveClear', 0.5, { playbackRate: 1.48 });
+      return true;
+    }
     const before = player.hp;
     const heal = this.getHealAmount(player);
     player.hp = Math.min(player.maxHp, player.hp + heal);
@@ -139,6 +151,7 @@ class LevelScene {
     this.pickups = [];
     this.damageTexts = [];
     this.pendingPickupDrops = [];
+    this.supportFigures = [];
     this.hitStop = 0;
     this.encounterActive = false;
     this.encounterCleared = false;
@@ -753,12 +766,22 @@ class LevelScene {
 
   dropPickup(type, x, y) {
     if (!type) return;
+    if (type === 'supportFigure') {
+      const index = 1 + Math.floor(Math.random() * 19);
+      type = 'support' + String(index).padStart(2, '0');
+    }
     const rawX = Number.isFinite(x) ? x : GAME_CONFIG.width / 2;
     const rawY = Number.isFinite(y) ? y : GAME_CONFIG.laneBottom;
     const safeX = Math.max(70, Math.min(GAME_CONFIG.width - 70, rawX));
     const safeY = Math.max(GAME_CONFIG.laneTop + 35, Math.min(GAME_CONFIG.laneBottom, rawY));
     if (!this.pendingPickupDrops) this.pendingPickupDrops = [];
     this.pendingPickupDrops.push({ type, x: safeX, y: safeY });
+  }
+
+  addSupportFigure(type) {
+    if (!type || !type.startsWith('support')) return;
+    this.supportFigures.push(type);
+    if (this.game) this.game.supportFigures = this.supportFigures.slice();
   }
 
   maybeDropPickup(enemy, options = {}) {

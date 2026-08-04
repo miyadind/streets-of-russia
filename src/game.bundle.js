@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.185",
+  "buildVersion": "0.4.186",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -451,6 +451,11 @@ const GAME_CONFIG = {
       "dropChance": 1,
       "scale": 0.075,
       "label": "+50% ЗДОРОВЬЯ"
+    },
+    "supportFigure": {
+      "support": true,
+      "scale": 0.34,
+      "label": "ПОДДЕРЖКА ПОЛУЧЕНА"
     }
   },
   "levelOrder": [
@@ -566,7 +571,7 @@ const GAME_CONFIG = {
             "w": 72,
             "h": 150
           },
-          "dropPickup": "medkit",
+          "dropPickup": "supportFigure",
           "dropX": 406,
           "dropY": 620
         }
@@ -1453,6 +1458,11 @@ window.Assets = {
     tea:'assets/pickups/tea.png?v=pickup-rebuilt-2'
   }
 };
+
+for (let i = 1; i <= 19; i++) {
+  const id = 'support' + String(i).padStart(2, '0');
+  Assets.pickups[id] = 'assets/support/support-' + String(i).padStart(2, '0') + '.webp';
+}
 
 
 
@@ -6543,7 +6553,10 @@ class HealthPickup {
   }
 
   getConfig() {
-    return (GAME_CONFIG.pickups && GAME_CONFIG.pickups[this.type]) || {};
+    const pickups = GAME_CONFIG.pickups || {};
+    const config = pickups[this.type] || {};
+    if (!this.type.startsWith('support')) return config;
+    return { ...(pickups.supportFigure || {}), ...config, image: this.type };
   }
 
   getImage() {
@@ -6580,6 +6593,15 @@ class HealthPickup {
   collect(player) {
     if (!this.canCollect(player)) return false;
     const cfg = this.getConfig();
+    if (cfg.support) {
+      if (player.scene && player.scene.addSupportFigure) player.scene.addSupportFigure(this.type);
+      this.floatText = cfg.label || 'ПОДДЕРЖКА ПОЛУЧЕНА';
+      this.floatTextX = player.x;
+      this.floatTextY = player.y - 136;
+      this.floatTimer = 900;
+      AudioManager.playSfx('waveClear', 0.5, { playbackRate: 1.48 });
+      return true;
+    }
     const before = player.hp;
     const heal = this.getHealAmount(player);
     player.hp = Math.min(player.maxHp, player.hp + heal);
@@ -6668,6 +6690,7 @@ class LevelScene {
     this.pickups = [];
     this.damageTexts = [];
     this.pendingPickupDrops = [];
+    this.supportFigures = [];
     this.hitStop = 0;
     this.encounterActive = false;
     this.encounterCleared = false;
@@ -7282,12 +7305,22 @@ class LevelScene {
 
   dropPickup(type, x, y) {
     if (!type) return;
+    if (type === 'supportFigure') {
+      const index = 1 + Math.floor(Math.random() * 19);
+      type = 'support' + String(index).padStart(2, '0');
+    }
     const rawX = Number.isFinite(x) ? x : GAME_CONFIG.width / 2;
     const rawY = Number.isFinite(y) ? y : GAME_CONFIG.laneBottom;
     const safeX = Math.max(70, Math.min(GAME_CONFIG.width - 70, rawX));
     const safeY = Math.max(GAME_CONFIG.laneTop + 35, Math.min(GAME_CONFIG.laneBottom, rawY));
     if (!this.pendingPickupDrops) this.pendingPickupDrops = [];
     this.pendingPickupDrops.push({ type, x: safeX, y: safeY });
+  }
+
+  addSupportFigure(type) {
+    if (!type || !type.startsWith('support')) return;
+    this.supportFigures.push(type);
+    if (this.game) this.game.supportFigures = this.supportFigures.slice();
   }
 
   maybeDropPickup(enemy, options = {}) {
@@ -7970,7 +8003,7 @@ const DevPanel = {
     const levels = savedConfig && savedConfig.levels;
     const farEastKeys = ['street01', 'street02', 'street03'];
     const hasExperimentalWaves = levels && farEastKeys.some((key) => this.hasExperimentalFarEastEnemy(levels[key]));
-    const hasPosterRegression = savedConfig && savedConfig.buildVersion === '0.4.184';
+    const hasPosterRegression = savedConfig && ['0.4.184', '0.4.185'].includes(savedConfig.buildVersion);
     if (!hasExperimentalWaves && !hasPosterRegression) return false;
 
     // Keep positional tuning intact. Only the unfinished roster is replaced.

@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  "buildVersion": "0.4.185",
+  "buildVersion": "0.4.186",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -444,6 +444,11 @@ const GAME_CONFIG = {
       "dropChance": 1,
       "scale": 0.075,
       "label": "+50% ЗДОРОВЬЯ"
+    },
+    "supportFigure": {
+      "support": true,
+      "scale": 0.34,
+      "label": "ПОДДЕРЖКА ПОЛУЧЕНА"
     }
   },
   "levelOrder": [
@@ -559,7 +564,7 @@ const GAME_CONFIG = {
             "w": 72,
             "h": 150
           },
-          "dropPickup": "medkit",
+          "dropPickup": "supportFigure",
           "dropX": 406,
           "dropY": 620
         }

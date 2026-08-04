@@ -636,7 +636,7 @@ const DevPanel = {
     const levels = savedConfig && savedConfig.levels;
     const farEastKeys = ['street01', 'street02', 'street03'];
     const hasExperimentalWaves = levels && farEastKeys.some((key) => this.hasExperimentalFarEastEnemy(levels[key]));
-    const hasPosterRegression = savedConfig && savedConfig.buildVersion === '0.4.184';
+    const hasPosterRegression = savedConfig && ['0.4.184', '0.4.185'].includes(savedConfig.buildVersion);
     if (!hasExperimentalWaves && !hasPosterRegression) return false;
 
     // Keep positional tuning intact. Only the unfinished roster is replaced.

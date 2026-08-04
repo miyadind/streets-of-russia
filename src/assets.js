@@ -103,3 +103,8 @@ window.Assets = {
     tea:'assets/pickups/tea.png?v=pickup-rebuilt-2'
   }
 };
+
+for (let i = 1; i <= 19; i++) {
+  const id = 'support' + String(i).padStart(2, '0');
+  Assets.pickups[id] = 'assets/support/support-' + String(i).padStart(2, '0') + '.webp';
+}
