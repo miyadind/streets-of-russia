@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.160",
+  "buildVersion": "0.4.161",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -344,7 +344,7 @@ const GAME_CONFIG = {
       "aimTrackSpeed": 7.5,
       "keepOnScreen": true,
       "screenMarginX": 70,
-      "fleeDistanceX": 270,
+      "fleeDistanceX": 340,
       "fleeSpeedMultiplier": 4.5,
       "attackDamageSource": "ranged",
       "minDistanceX": 150,
@@ -1427,7 +1427,7 @@ window.Assets = {
     idle:'assets/enemies/goydenish/Idle.png?v=goydenish-rebuilt-2',
     walkLeft:'assets/enemies/goydenish/walk_L.png?v=goydenish-rebuilt-2',
     walkRight:'assets/enemies/goydenish/walk_R.png?v=goydenish-rebuilt-2',
-    swingLeft:'assets/enemies/goydenish/swing_L.png?v=goydenish-rebuilt-2',
+    swingLeft:'assets/enemies/goydenish/swing_L.png?v=goydenish-rebuilt-3',
     swingRight:'assets/enemies/goydenish/swing_R.png?v=goydenish-rebuilt-2',
     throwLeft:'assets/enemies/goydenish/throw_L.png?v=goydenish-rebuilt-2',
     throwRight:'assets/enemies/goydenish/throw_R.png?v=goydenish-rebuilt-2',
@@ -1435,10 +1435,10 @@ window.Assets = {
     dead:'assets/enemies/goydenish/Idle.png?v=goydenish-rebuilt-2'
   },
   negay:{
-    idle:'assets/enemies/NEgay/idle.png',
-    walk:['assets/enemies/NEgay/walk01.png','assets/enemies/NEgay/walk02.png','assets/enemies/NEgay/walk03.png'],
-    attack:['assets/enemies/NEgay/Whiplash.png','assets/enemies/NEgay/WhiplashFinal.png'],
-    dead:'assets/enemies/NEgay/knockdown.png'
+    idle:'assets/enemies/NEgay/idle.png?v=negay-refresh-2',
+    walk:['assets/enemies/NEgay/walk01.png?v=negay-refresh-2','assets/enemies/NEgay/walk02.png?v=negay-refresh-2','assets/enemies/NEgay/walk03.png?v=negay-refresh-2'],
+    attack:['assets/enemies/NEgay/Whiplash.png?v=negay-refresh-2','assets/enemies/NEgay/WhiplashFinal.png?v=negay-refresh-2'],
+    dead:'assets/enemies/NEgay/knockdown.png?v=negay-refresh-2'
   },
   pickups:{
     medkit:'assets/pickups/medkit.png?v=pickup-rebuilt-2',
@@ -3367,7 +3367,9 @@ class DogRegimeEnemy {
     const margin = tuning.keepOnScreen
       ? Math.max(0, Number(tuning.screenMarginX) || 0)
       : (this.alive ? (GAME_CONFIG.enemyOffscreenMargin || 180) : 45);
-    this.x = Math.max(-margin, Math.min(GAME_CONFIG.width + margin, this.x));
+    const minX = tuning.keepOnScreen ? margin : -margin;
+    const maxX = tuning.keepOnScreen ? GAME_CONFIG.width - margin : GAME_CONFIG.width + margin;
+    this.x = Math.max(minX, Math.min(maxX, this.x));
     this.y = Math.max(GAME_CONFIG.laneTop, Math.min(GAME_CONFIG.laneBottom, this.y));
   }
 

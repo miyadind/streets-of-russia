@@ -82,7 +82,7 @@ window.Assets = {
     idle:'assets/enemies/goydenish/Idle.png?v=goydenish-rebuilt-2',
     walkLeft:'assets/enemies/goydenish/walk_L.png?v=goydenish-rebuilt-2',
     walkRight:'assets/enemies/goydenish/walk_R.png?v=goydenish-rebuilt-2',
-    swingLeft:'assets/enemies/goydenish/swing_L.png?v=goydenish-rebuilt-2',
+    swingLeft:'assets/enemies/goydenish/swing_L.png?v=goydenish-rebuilt-3',
     swingRight:'assets/enemies/goydenish/swing_R.png?v=goydenish-rebuilt-2',
     throwLeft:'assets/enemies/goydenish/throw_L.png?v=goydenish-rebuilt-2',
     throwRight:'assets/enemies/goydenish/throw_R.png?v=goydenish-rebuilt-2',
@@ -90,10 +90,10 @@ window.Assets = {
     dead:'assets/enemies/goydenish/Idle.png?v=goydenish-rebuilt-2'
   },
   negay:{
-    idle:'assets/enemies/NEgay/idle.png',
-    walk:['assets/enemies/NEgay/walk01.png','assets/enemies/NEgay/walk02.png','assets/enemies/NEgay/walk03.png'],
-    attack:['assets/enemies/NEgay/Whiplash.png','assets/enemies/NEgay/WhiplashFinal.png'],
-    dead:'assets/enemies/NEgay/knockdown.png'
+    idle:'assets/enemies/NEgay/idle.png?v=negay-refresh-2',
+    walk:['assets/enemies/NEgay/walk01.png?v=negay-refresh-2','assets/enemies/NEgay/walk02.png?v=negay-refresh-2','assets/enemies/NEgay/walk03.png?v=negay-refresh-2'],
+    attack:['assets/enemies/NEgay/Whiplash.png?v=negay-refresh-2','assets/enemies/NEgay/WhiplashFinal.png?v=negay-refresh-2'],
+    dead:'assets/enemies/NEgay/knockdown.png?v=negay-refresh-2'
   },
   pickups:{
     medkit:'assets/pickups/medkit.png?v=pickup-rebuilt-2',

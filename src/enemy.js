@@ -191,7 +191,9 @@ class DogRegimeEnemy {
     const margin = tuning.keepOnScreen
       ? Math.max(0, Number(tuning.screenMarginX) || 0)
       : (this.alive ? (GAME_CONFIG.enemyOffscreenMargin || 180) : 45);
-    this.x = Math.max(-margin, Math.min(GAME_CONFIG.width + margin, this.x));
+    const minX = tuning.keepOnScreen ? margin : -margin;
+    const maxX = tuning.keepOnScreen ? GAME_CONFIG.width - margin : GAME_CONFIG.width + margin;
+    this.x = Math.max(minX, Math.min(maxX, this.x));
     this.y = Math.max(GAME_CONFIG.laneTop, Math.min(GAME_CONFIG.laneBottom, this.y));
   }
 
