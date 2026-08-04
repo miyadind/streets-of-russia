@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  "buildVersion": "0.4.173",
+  "buildVersion": "0.4.174",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -367,7 +367,7 @@ const GAME_CONFIG = {
       "damage": 16,
       "appearSoundPath": "assets/enemies/NEgay/appear.mp3?v=negay-appear-2",
       "scale": 0.12,
-      "finalAttackScale": 0.9,
+      "finalAttackScale": 1,
       "attackDamageSource": "ranged",
       "minDistanceX": 105,
       "preferredDistanceX": 175,
