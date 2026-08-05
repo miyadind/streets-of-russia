@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.191",
+  "buildVersion": "0.4.192",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -2009,6 +2009,7 @@ const AudioManager = {
     this.voiceDuckSources = new Set();
     this.voiceDuckSequence = 0;
     this.enemyAppearType = null;
+    this.combatSfxPrimed = false;
 
     for (const [key, src] of Object.entries((Assets.audio && Assets.audio.sfx) || {})) {
       if (!src) continue;
@@ -2038,11 +2039,25 @@ const AudioManager = {
   },
 
   unlock() {
-    if (this.unlocked) return;
-    this.unlocked = true;
-    this.ensureAudioContext();
+    if (!this.unlocked) {
+      this.unlocked = true;
+      this.ensureAudioContext();
+    }
+    this.primeCombatSfx();
 
     if (this.currentMusicKey) this.playMusic(this.currentMusicKey, false, true);
+  },
+
+  primeCombatSfx() {
+    if (this.combatSfxPrimed) return;
+    this.combatSfxPrimed = true;
+    const keys = ['punch', 'punch1', 'punch2', 'punch3', 'hit', 'enemyDown', 'playerDown'];
+    for (const key of keys) {
+      const audio = this.sfx && this.sfx[key];
+      if (!audio) continue;
+      audio.preload = 'auto';
+      try { audio.load(); } catch (error) {}
+    }
   },
 
   ensureAudioContext() {
@@ -2225,6 +2240,14 @@ const AudioManager = {
     return audio;
   },
 
+  untrackSfx(audio) {
+    this.activeSfx = (this.activeSfx || []).filter(item => item !== audio);
+  },
+
+  isCombatSfx(key) {
+    return ['punch', 'punch1', 'punch2', 'punch3', 'hit', 'enemyDown', 'playerDown'].includes(key);
+  },
+
   stopActiveSfx() {
     for (const audio of this.activeSfx || []) {
       if (audio.__voiceDuckSource) this.setVoiceDucking(false, audio.__voiceDuckSource);
@@ -2299,6 +2322,7 @@ const AudioManager = {
 
     try {
       const audio = src.cloneNode(true);
+      const requestedAt = performance.now();
       const playbackRate = options.playbackRate || options.rate || 1;
       const startAt = options.startAt || 0;
       const duckSource = options.duckMusic
@@ -2313,6 +2337,7 @@ const AudioManager = {
 
       audio.volume = this.getSfxVolume(volume);
       audio.__sfxVolumeMultiplier = volume;
+      audio.preload = 'auto';
       audio.playbackRate = Math.max(0.5, Math.min(2, playbackRate));
       if (startAt > 0) audio.currentTime = startAt;
       if (duckSource) {
@@ -2322,7 +2347,17 @@ const AudioManager = {
         audio.addEventListener('error', releaseDuck, { once: true });
       }
       this.trackSfx(audio);
-      audio.play().catch(() => {
+      audio.play().then(() => {
+        // Never let an unloaded punch play long after the animation that caused it.
+        if (this.isCombatSfx(key) && performance.now() - requestedAt > 260) {
+          try {
+            audio.pause();
+            audio.currentTime = 0;
+          } catch (error) {}
+          this.untrackSfx(audio);
+          releaseDuck();
+        }
+      }).catch(() => {
         releaseDuck();
         this.playSyntheticSfx(key, volume, options);
       });
