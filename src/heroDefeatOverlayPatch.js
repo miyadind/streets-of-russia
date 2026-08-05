@@ -8,6 +8,7 @@
   const previousCharacterUpdate = CharacterSelect.update;
   const previousCharacterDraw = CharacterSelect.draw;
   const previousDrawCard = CharacterSelect.drawCard;
+  const RECOVERY_DURATION_MS = 45000;
 
   function isCasualtyOverlay(game) {
     return !!(game && game.state === 'characterSelect' && game.characterSelectMode === 'casualty' && game.scene);
@@ -28,6 +29,48 @@
   function getOverlayConfirmBox() {
     return { x: GAME_CONFIG.width / 2 - 130, y: 628, w: 260, h: 46 };
   }
+
+  GameApp.prototype.ensureHeroRecoveryState = function () {
+    if (!this.heroRecovery || typeof this.heroRecovery !== 'object') this.heroRecovery = {};
+    if (this.ensureTeamHpState) this.ensureTeamHpState();
+  };
+
+  GameApp.prototype.startHeroRecovery = function (heroKey) {
+    if (!heroKey || !GAME_CONFIG.heroes || !GAME_CONFIG.heroes[heroKey]) return;
+    this.ensureHeroRecoveryState();
+    const maxHp = Number(GAME_CONFIG.heroes[heroKey].hp) || 100;
+    const target = Math.ceil(maxHp * 0.5);
+    this.heroRecovery[heroKey] = { target, elapsedMs: 0, durationMs: RECOVERY_DURATION_MS };
+    if (this.heroHp) this.heroHp[heroKey] = 0;
+  };
+
+  GameApp.prototype.getHeroRecoveryStatus = function (heroKey) {
+    const recovery = this.heroRecovery && this.heroRecovery[heroKey];
+    if (!recovery) return null;
+    const hp = Math.max(0, Math.round((this.heroHp && this.heroHp[heroKey]) || 0));
+    return {
+      hp,
+      target: recovery.target,
+      progress: Math.max(0, Math.min(1, hp / Math.max(1, recovery.target)))
+    };
+  };
+
+  GameApp.prototype.updateHeroRecovery = function (dt) {
+    if (!this.heroRecovery || !this.heroHp || !this.defeatedHeroes) return;
+    for (const [heroKey, recovery] of Object.entries(this.heroRecovery)) {
+      if (!recovery || !this.defeatedHeroes[heroKey]) continue;
+      const target = Math.max(1, Number(recovery.target) || 1);
+      recovery.elapsedMs = Math.min(recovery.durationMs || RECOVERY_DURATION_MS, (recovery.elapsedMs || 0) + Math.max(0, dt || 0));
+      const progress = recovery.elapsedMs / Math.max(1, recovery.durationMs || RECOVERY_DURATION_MS);
+      this.heroHp[heroKey] = Math.min(target, Math.floor(target * progress));
+      if (this.heroHp[heroKey] >= target) {
+        this.heroHp[heroKey] = target;
+        this.defeatedHeroes[heroKey] = false;
+        delete this.heroRecovery[heroKey];
+        AudioManager.playSfx('waveClear', 0.65);
+      }
+    }
+  };
 
   GameApp.prototype.handleHeroDefeat = function (scene) {
     if (this.__forceHeroDefeatNow || !scene || !scene.player) {
@@ -67,6 +110,7 @@
       return;
     }
     originalGameUpdate.call(this, dt);
+    this.updateHeroRecovery(dt);
   };
 
   GameApp.prototype.draw = function () {

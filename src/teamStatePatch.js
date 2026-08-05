@@ -137,8 +137,9 @@
         const x = 122 + i * 205;
         const active = scene.player.heroKey === key;
         const defeated = !!(game && game.defeatedHeroes && game.defeatedHeroes[key]);
+        const recovering = !!(game && game.getHeroRecoveryStatus && game.getHeroRecoveryStatus(key));
         const savedHp = game && game.heroHp ? game.heroHp[key] : getHeroMaxHp(key);
-        const hp = defeated ? 0 : (active ? scene.player.hp : savedHp);
+        const hp = recovering ? savedHp : (defeated ? 0 : (active ? scene.player.hp : savedHp));
         const pct = Math.max(0, Math.min(1, hp / getHeroMaxHp(key)));
 
         ctx.fillStyle = active ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.04)';
@@ -163,7 +164,11 @@
         ctx.strokeStyle = defeated ? '#555' : '#777';
         ctx.strokeRect(x + 58, 38, 108, 12);
 
-        if (defeated) {
+        if (recovering) {
+          ctx.font = 'bold 11px Arial';
+          ctx.fillStyle = 'rgba(255,255,255,0.55)';
+          ctx.fillText('\u0412\u041e\u0421\u0421\u0422\u0410\u041d\u041e\u0412\u041b\u0415\u041d\u0418\u0415', x + 58, 64);
+        } else if (defeated) {
           ctx.font = 'bold 11px Arial';
           ctx.fillStyle = 'rgba(255,255,255,0.55)';
           ctx.fillText('ВЫБЫЛ', x + 58, 64);

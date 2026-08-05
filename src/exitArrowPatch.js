@@ -398,6 +398,38 @@
       ctx.restore();
     };
 
+    const drawDisabledHeroCard = CharacterSelect.drawCard;
+    CharacterSelect.drawCard = function (ctx, images, heroKey, index, selected) {
+      drawDisabledHeroCard.call(this, ctx, images, heroKey, index, selected);
+      if (!this.isHeroDisabled(this.gameRef, heroKey)) return;
+
+      const recovery = this.gameRef && this.gameRef.getHeroRecoveryStatus
+        ? this.gameRef.getHeroRecoveryStatus(heroKey)
+        : null;
+      const box = this.getCardBox(index);
+      const progress = recovery ? recovery.progress : 0;
+      ctx.save();
+      ctx.fillStyle = 'rgba(0,0,0,0.86)';
+      ctx.fillRect(box.x + 32, box.y + box.h / 2 - 48, box.w - 64, 116);
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = 'rgba(220,220,220,0.92)';
+      ctx.font = 'bold 25px Arial';
+      ctx.fillText('\u0412\u041e\u0421\u0421\u0422\u0410\u041d\u041e\u0412\u041b\u0415\u041d\u0418\u0415', box.x + box.w / 2, box.y + box.h / 2 - 22);
+      const bar = { x: box.x + 52, y: box.y + box.h / 2 + 8, w: box.w - 104, h: 14 };
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(bar.x, bar.y, bar.w, bar.h);
+      ctx.fillStyle = '#8b8b8b';
+      ctx.fillRect(bar.x, bar.y, bar.w * progress, bar.h);
+      ctx.strokeStyle = 'rgba(245,245,245,0.72)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(bar.x, bar.y, bar.w, bar.h);
+      ctx.font = 'bold 16px Arial';
+      ctx.fillStyle = 'rgba(255,255,255,0.82)';
+      ctx.fillText(`${recovery ? recovery.hp : 0} / ${recovery ? recovery.target : 0} HP`, box.x + box.w / 2, bar.y + 39);
+      ctx.restore();
+    };
+
     CharacterSelect.drawInfoIcon = function (ctx, index, selected, color) {
       originalDrawInfoIcon.call(this, ctx, index, selected, color);
     };
@@ -490,6 +522,7 @@
 
     GameApp.prototype.resetTeamRun = function () {
       this.defeatedHeroes = { alexey: false, anna: false, boris: false };
+      this.heroRecovery = {};
       this.peopleSupport = 25;
       this.supportFigures = [];
       this.supportFigureDrops = [];
@@ -535,6 +568,7 @@
     GameApp.prototype.sendHeroToTeamSelect = function (scene, fallenHero) {
       this.ensureRunState();
       this.defeatedHeroes[fallenHero] = true;
+      if (this.startHeroRecovery) this.startHeroRecovery(fallenHero);
       this.addPeopleSupport(-10);
       this.gameOverRegionStartIndex = this.getCurrentRegionStartIndex(scene);
       this.casualtyRespawn = {
