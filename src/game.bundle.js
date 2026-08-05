@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.216",
+  "buildVersion": "0.4.217",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -8228,6 +8228,9 @@ const DevPanel = {
     try {
       const data = JSON.parse(saved);
       this.deepMerge(GAME_CONFIG, data);
+      // Development controls are part of the current game workflow. Old local
+      // exports must not silently hide the panel after they are loaded.
+      GAME_CONFIG.adminTuningEnabled = true;
       this.migrateBuildDefaults(data);
       const restoredFarEast = this.restoreStaleFarEastWaves(data);
       const repairedPosterDrop = this.repairReleasedPosterDrop();
@@ -15113,9 +15116,6 @@ window.addEventListener('load', () => {
 
 /* ===== src/desktopUXPatch.js ===== */
 (function () {
-  if (typeof GAME_CONFIG !== 'undefined') {
-    GAME_CONFIG.adminTuningEnabled = /devpanel=1/.test(window.location.search);
-  }
 
   function inRect(point, rect) {
     return point && point.x >= rect.x && point.x <= rect.x + rect.w && point.y >= rect.y && point.y <= rect.y + rect.h;

@@ -1,7 +1,4 @@
 (function () {
-  if (typeof GAME_CONFIG !== 'undefined') {
-    GAME_CONFIG.adminTuningEnabled = /devpanel=1/.test(window.location.search);
-  }
 
   function inRect(point, rect) {
     return point && point.x >= rect.x && point.x <= rect.x + rect.w && point.y >= rect.y && point.y <= rect.y + rect.h;

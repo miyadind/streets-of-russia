@@ -620,6 +620,9 @@ const DevPanel = {
     try {
       const data = JSON.parse(saved);
       this.deepMerge(GAME_CONFIG, data);
+      // Development controls are part of the current game workflow. Old local
+      // exports must not silently hide the panel after they are loaded.
+      GAME_CONFIG.adminTuningEnabled = true;
       this.migrateBuildDefaults(data);
       const restoredFarEast = this.restoreStaleFarEastWaves(data);
       const repairedPosterDrop = this.repairReleasedPosterDrop();
