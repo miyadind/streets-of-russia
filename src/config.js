@@ -814,22 +814,19 @@ const GAME_CONFIG = {
           "type": "breakableObject",
           "hitsToReplace": 3,
           "altBackground": "assets/backgrounds/2/street02_1.png",
+          "strictHitbox": true,
+          "showDamageEffect": false,
+          "silentImpact": true,
           "dropPickup": "supportFigure",
           "dropX": 255,
           "dropY": 640,
           "laneY": 620,
           "laneTolerance": 65,
           "hitbox": {
-            "x": 34,
-            "y": 398,
-            "w": 470,
-            "h": 230
-          },
-          "effectRect": {
-            "x": 34,
-            "y": 398,
-            "w": 470,
-            "h": 230
+            "x": 0,
+            "y": 405,
+            "w": 515,
+            "h": 222
           }
         }
       ],

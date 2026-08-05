@@ -821,22 +821,19 @@ const GAME_CONFIG = {
           "type": "breakableObject",
           "hitsToReplace": 3,
           "altBackground": "assets/backgrounds/2/street02_1.png",
+          "strictHitbox": true,
+          "showDamageEffect": false,
+          "silentImpact": true,
           "dropPickup": "supportFigure",
           "dropX": 255,
           "dropY": 640,
           "laneY": 620,
           "laneTolerance": 65,
           "hitbox": {
-            "x": 34,
-            "y": 398,
-            "w": 470,
-            "h": 230
-          },
-          "effectRect": {
-            "x": 34,
-            "y": 398,
-            "w": 470,
-            "h": 230
+            "x": 0,
+            "y": 405,
+            "w": 515,
+            "h": 222
           }
         }
       ],
@@ -11928,6 +11925,14 @@ window.addEventListener('load', () => {
     const posterBox = item.effectRect || item.hitbox;
     if (!attackBox || !posterBox) return false;
 
+    if (item.strictHitbox && typeof Combat !== 'undefined' && Combat.canInteractHit) {
+      return Combat.canInteractHit(player, {
+        hitbox: item.hitbox || posterBox,
+        laneY: item.laneY,
+        laneTolerance: item.laneTolerance
+      }, { attackBox });
+    }
+
     // Background objects are reached from their foot line, not by overlapping
     // the artwork high above the pavement.
     const reachesPoster = attackBox.x < posterBox.x + posterBox.w &&
@@ -11946,14 +11951,25 @@ window.addEventListener('load', () => {
       state.flashMs = 0;
       if (hasFruitBurst(item)) spawnFruitBurst(state, item, 3);
       dropInteractiveReward(scene, item, state);
-      AudioManager.playSfx('enemyDown', 0.82, { playbackRate: 0.92, startAt: 0.02 });
+      playInteractiveImpact(item, state, true);
       return;
     }
 
     if (hasFruitBurst(item)) spawnFruitBurst(state, item);
 
-    AudioManager.playSfx('hit', 0.76, {
-      playbackRate: 0.82 + state.hits * 0.08,
+    playInteractiveImpact(item, state, false);
+  }
+
+  function playInteractiveImpact(item, state, completed) {
+    const key = item && item.impactSfx;
+    if (key && AudioManager.playOptionalSfx && AudioManager.playOptionalSfx(key, 0.76, {
+      playbackRate: completed ? 0.92 : 0.82 + state.hits * 0.08,
+      startAt: 0.015
+    })) return;
+    if (item && item.silentImpact) return;
+
+    AudioManager.playSfx(completed ? 'enemyDown' : 'hit', completed ? 0.82 : 0.76, {
+      playbackRate: completed ? 0.92 : 0.82 + state.hits * 0.08,
       startAt: 0.015
     });
   }
@@ -12237,7 +12253,7 @@ window.addEventListener('load', () => {
 
       if (!isBreakableSupportObject(item)) continue;
       const state = getPosterState(this, item);
-      if (!state.replaced && !hasFruitBurst(item)) drawPosterDamage(ctx, item, state);
+      if (!state.replaced && !hasFruitBurst(item) && item.showDamageEffect !== false) drawPosterDamage(ctx, item, state);
       if (hasFruitBurst(item)) drawFruitBurst(ctx, state);
 
       if (this.debug || showObjectEditor) {

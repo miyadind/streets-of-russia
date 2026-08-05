@@ -58,6 +58,14 @@
     const posterBox = item.effectRect || item.hitbox;
     if (!attackBox || !posterBox) return false;
 
+    if (item.strictHitbox && typeof Combat !== 'undefined' && Combat.canInteractHit) {
+      return Combat.canInteractHit(player, {
+        hitbox: item.hitbox || posterBox,
+        laneY: item.laneY,
+        laneTolerance: item.laneTolerance
+      }, { attackBox });
+    }
+
     // Background objects are reached from their foot line, not by overlapping
     // the artwork high above the pavement.
     const reachesPoster = attackBox.x < posterBox.x + posterBox.w &&
@@ -76,14 +84,25 @@
       state.flashMs = 0;
       if (hasFruitBurst(item)) spawnFruitBurst(state, item, 3);
       dropInteractiveReward(scene, item, state);
-      AudioManager.playSfx('enemyDown', 0.82, { playbackRate: 0.92, startAt: 0.02 });
+      playInteractiveImpact(item, state, true);
       return;
     }
 
     if (hasFruitBurst(item)) spawnFruitBurst(state, item);
 
-    AudioManager.playSfx('hit', 0.76, {
-      playbackRate: 0.82 + state.hits * 0.08,
+    playInteractiveImpact(item, state, false);
+  }
+
+  function playInteractiveImpact(item, state, completed) {
+    const key = item && item.impactSfx;
+    if (key && AudioManager.playOptionalSfx && AudioManager.playOptionalSfx(key, 0.76, {
+      playbackRate: completed ? 0.92 : 0.82 + state.hits * 0.08,
+      startAt: 0.015
+    })) return;
+    if (item && item.silentImpact) return;
+
+    AudioManager.playSfx(completed ? 'enemyDown' : 'hit', completed ? 0.82 : 0.76, {
+      playbackRate: completed ? 0.92 : 0.82 + state.hits * 0.08,
       startAt: 0.015
     });
   }
@@ -367,7 +386,7 @@
 
       if (!isBreakableSupportObject(item)) continue;
       const state = getPosterState(this, item);
-      if (!state.replaced && !hasFruitBurst(item)) drawPosterDamage(ctx, item, state);
+      if (!state.replaced && !hasFruitBurst(item) && item.showDamageEffect !== false) drawPosterDamage(ctx, item, state);
       if (hasFruitBurst(item)) drawFruitBurst(ctx, state);
 
       if (this.debug || showObjectEditor) {
