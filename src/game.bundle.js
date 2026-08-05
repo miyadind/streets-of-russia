@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.209",
+  "buildVersion": "0.4.210",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -4240,6 +4240,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
     this.chargeLaneY = this.pickChargeLane(y);
     this.y = this.chargeLaneY;
     this.chargeDirection = x < GAME_CONFIG.width / 2 ? 1 : -1;
+    this.fallFacing = this.chargeDirection;
     this.hasEnteredPlayfield = this.isInsidePlayfield();
   }
 
@@ -4530,6 +4531,8 @@ class ZetnikEnemy extends DogRegimeEnemy {
   }
 
   finishGundosCrash(scene) {
+    this.fallFacing = Math.sign(this.gundosDirection) || this.facing || 1;
+    this.facing = this.fallFacing;
     this.alive = false;
     this.state = 'crash';
     this.crashTimer = 0;
@@ -4620,6 +4623,8 @@ class ZetnikEnemy extends DogRegimeEnemy {
   }
 
   finishCrash(scene) {
+    this.fallFacing = Math.sign(this.chargeDirection) || this.facing || 1;
+    this.facing = this.fallFacing;
     this.y = this.jumpTargetY;
     this.laneY = this.y;
     this.state = 'crash';
@@ -4664,6 +4669,13 @@ class ZetnikEnemy extends DogRegimeEnemy {
     if (this.deadTimer > this.selfRemoveDelayMs) this.remove = true;
   }
 
+  startKnockdown(direction, knockback) {
+    const fallDirection = Math.sign(direction) || this.facing || 1;
+    super.startKnockdown(fallDirection, knockback);
+    this.fallFacing = fallDirection;
+    this.facing = fallDirection;
+  }
+
   takeHit(damage, direction, knockback) {
     if (this.gundosMinion) {
       if (this.gundosGuarding && !this.redirectedToBoss && this.alive) {
@@ -4674,6 +4686,10 @@ class ZetnikEnemy extends DogRegimeEnemy {
       return;
     }
     super.takeHit(damage, direction, knockback);
+    if (this.state === 'knockdown' || !this.alive) {
+      this.fallFacing = Math.sign(direction) || this.facing || 1;
+      this.facing = this.fallFacing;
+    }
   }
 
   getHurtbox() {
@@ -4716,7 +4732,9 @@ class ZetnikEnemy extends DogRegimeEnemy {
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.translate(this.x, this.y);
-    if (this.facing === -1) ctx.scale(-1, 1);
+    const isFallen = !this.alive || this.state === 'knockdown' || this.state === 'crash';
+    const drawFacing = isFallen ? (this.fallFacing || this.facing) : this.facing;
+    if (drawFacing === -1) ctx.scale(-1, 1);
     ctx.drawImage(img, -w / 2, -h, w, h);
     ctx.restore();
     ctx.globalAlpha = 1;
