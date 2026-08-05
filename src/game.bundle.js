@@ -82,9 +82,9 @@ const GAME_CONFIG = {
       "abilities": {
         "reviveOnce": true
       },
-      "tagline": "Сбалансированный герой сопротивления",
-      "bio": "Политик, расследователь и символ упрямого гражданского сопротивления. В игре Алексей держит середину: он не самый сильный и не самый быстрый, зато стабилен почти в любой драке.",
-      "ability": "Второе дыхание: один раз за прохождение, когда здоровье падает до нуля, Алексей возвращается в бой с половиной здоровья."
+      "tagline": "Смелость. Ум. Стойкость.",
+      "bio": "",
+      "ability": "Второе дыхание: один раз после поражения возвращается в бой с половиной здоровья."
     },
     "anna": {
       "name": "Анна",
@@ -111,9 +111,9 @@ const GAME_CONFIG = {
         "noKnockdown": true,
         "combo3Damage": 45
       },
-      "tagline": "Быстрая, резкая, опасная на дистанции",
-      "bio": "Журналистка, которая идёт туда, куда другие боятся смотреть. В игре Анна выигрывает не грубой силой, а скоростью, манёвром и точными ударами.",
-      "ability": "Несгибаемость: Анна получает урон, но её нельзя сбить с ног или прижать к земле. Она остаётся на ногах даже после тяжёлых атак."
+      "tagline": "Честь. Смелость. Правда.",
+      "bio": "",
+      "ability": "Несгибаемость: её нельзя сбить с ног. Третий успешный удар комбо наносит мощный урон."
     },
     "boris": {
       "name": "Борис",
@@ -139,9 +139,9 @@ const GAME_CONFIG = {
       "abilities": {
         "rangedDamageMultiplier": 0.5
       },
-      "tagline": "Тяжёлый боец с большим запасом здоровья",
-      "bio": "Политик старой школы, который не отступает, когда улица становится опасной. В игре Борис медленнее остальных, но зато выдерживает больше ударов и бьёт тяжелее.",
-      "ability": "Стальная выдержка: Борис получает только половину урона от дальних атак. Прыжковые и разгонные атаки врагов по нему проходят слабее."
+      "tagline": "Воля. Честь. Прямота.",
+      "bio": "",
+      "ability": "Стальная выдержка: дальние атаки наносят на 50% меньше урона."
     }
   },
   "audio": {
@@ -3195,7 +3195,7 @@ class Player {
   }
 
   knockDown(durationMs = 900, options = {}) {
-    if (!options.force && !this.canBeKnockedDown()) return false;
+    if (!this.canBeKnockedDown()) return false;
     if (this.state === 'pinned') return false;
     AudioManager.playSfx('playerDown', 0.85);
     this.state = 'knockdown';
@@ -3215,7 +3215,7 @@ class Player {
   }
 
   pinBy(enemy, durationMs, options = {}) {
-    if (!options.force && !this.canBeKnockedDown()) return false;
+    if (!this.canBeKnockedDown()) return false;
     AudioManager.playSfx('playerDown', 0.85);
     this.state = 'pinned';
     if (options.standUpFacing) this.standUpFacing = Math.sign(options.standUpFacing) || this.facing || 1;
@@ -6663,16 +6663,12 @@ const CharacterSelect = {
     ctx.fillStyle = '#fff';
     ctx.fillText(hero.tagline || '', modal.x + 300, modal.y + 124);
 
-    ctx.font = '21px Arial';
-    ctx.fillStyle = 'rgba(255,255,255,0.88)';
-    this.drawWrappedText(ctx, hero.bio || '', modal.x + 300, modal.y + 168, 505, 30);
-
     ctx.font = 'bold 22px Arial';
     ctx.fillStyle = hero.color;
-    ctx.fillText('ОСОБЕННОСТЬ', modal.x + 300, modal.y + 345);
+    ctx.fillText('СУПЕРСПОСОБНОСТЬ', modal.x + 300, modal.y + 196);
     ctx.font = '20px Arial';
     ctx.fillStyle = 'rgba(255,255,255,0.9)';
-    this.drawWrappedText(ctx, hero.ability || '', modal.x + 300, modal.y + 378, 505, 28);
+    this.drawWrappedText(ctx, hero.ability || '', modal.x + 300, modal.y + 229, 505, 28);
 
     ctx.font = '18px Arial';
     ctx.textAlign = 'center';

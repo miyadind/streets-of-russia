@@ -308,16 +308,12 @@ const CharacterSelect = {
     ctx.fillStyle = '#fff';
     ctx.fillText(hero.tagline || '', modal.x + 300, modal.y + 124);
 
-    ctx.font = '21px Arial';
-    ctx.fillStyle = 'rgba(255,255,255,0.88)';
-    this.drawWrappedText(ctx, hero.bio || '', modal.x + 300, modal.y + 168, 505, 30);
-
     ctx.font = 'bold 22px Arial';
     ctx.fillStyle = hero.color;
-    ctx.fillText('ОСОБЕННОСТЬ', modal.x + 300, modal.y + 345);
+    ctx.fillText('СУПЕРСПОСОБНОСТЬ', modal.x + 300, modal.y + 196);
     ctx.font = '20px Arial';
     ctx.fillStyle = 'rgba(255,255,255,0.9)';
-    this.drawWrappedText(ctx, hero.ability || '', modal.x + 300, modal.y + 378, 505, 28);
+    this.drawWrappedText(ctx, hero.ability || '', modal.x + 300, modal.y + 229, 505, 28);
 
     ctx.font = '18px Arial';
     ctx.textAlign = 'center';

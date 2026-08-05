@@ -486,7 +486,7 @@ class Player {
   }
 
   knockDown(durationMs = 900, options = {}) {
-    if (!options.force && !this.canBeKnockedDown()) return false;
+    if (!this.canBeKnockedDown()) return false;
     if (this.state === 'pinned') return false;
     AudioManager.playSfx('playerDown', 0.85);
     this.state = 'knockdown';
@@ -506,7 +506,7 @@ class Player {
   }
 
   pinBy(enemy, durationMs, options = {}) {
-    if (!options.force && !this.canBeKnockedDown()) return false;
+    if (!this.canBeKnockedDown()) return false;
     AudioManager.playSfx('playerDown', 0.85);
     this.state = 'pinned';
     if (options.standUpFacing) this.standUpFacing = Math.sign(options.standUpFacing) || this.facing || 1;
