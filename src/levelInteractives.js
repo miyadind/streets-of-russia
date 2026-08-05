@@ -507,6 +507,14 @@
       this.selectedObjectBoxKey = keys[((index + delta) % keys.length + keys.length) % keys.length];
     };
 
+    DevPanel.objectPropertyBounds = function (prop) {
+      const min = prop === 'w' || prop === 'h' ? 4 : 0;
+      const max = prop === 'x' || prop === 'w'
+        ? GAME_CONFIG.width
+        : GAME_CONFIG.height;
+      return { min, max };
+    };
+
     const originalHandleClick = DevPanel.objectOriginalHandleClick || DevPanel.handleClick;
     DevPanel.objectOriginalHandleClick = originalHandleClick;
     DevPanel.handleClick = function (point, game) {
@@ -540,8 +548,7 @@
         const plus = { x: r.box.x + 452, y: y - 22, w: 34, h: 28 };
         const bar = { x: r.box.x + 166, y: y - 13, w: 270, h: 12 };
         const prop = props[i];
-        const min = prop === 'w' || prop === 'h' ? 4 : 0;
-        const max = prop === 'w' ? GAME_CONFIG.width : prop === 'h' ? GAME_CONFIG.height : GAME_CONFIG.height;
+        const { min, max } = this.objectPropertyBounds(prop);
         const step = prop === 'laneTolerance' ? 2 : 4;
         if (this.inRect(point, minus)) { box[prop] = Math.max(min, Math.round((Number(box[prop]) || 0) - step)); this.applyToCurrentScene(game); this.setStatus(prop + ': ' + box[prop]); return true; }
         if (this.inRect(point, plus)) { box[prop] = Math.min(max, Math.round((Number(box[prop]) || 0) + step)); this.applyToCurrentScene(game); this.setStatus(prop + ': ' + box[prop]); return true; }
@@ -622,8 +629,7 @@
       for (let i = 0; i < props.length; i++) {
         const prop = props[i];
         const value = Number(box[prop]) || 0;
-        const min = prop === 'w' || prop === 'h' ? 4 : 0;
-        const max = prop === 'w' ? GAME_CONFIG.width : prop === 'h' ? GAME_CONFIG.height : GAME_CONFIG.height;
+        const { min, max } = this.objectPropertyBounds(prop);
         const ratio = (value - min) / Math.max(1, max - min);
         const y = r.box.y + 178 + i * 46;
         ctx.fillStyle = '#fff';
