@@ -130,12 +130,17 @@
       : Number.isFinite(item.dropY) ? item.dropY : (item.laneY || GAME_CONFIG.laneBottom);
 
     // The fruit kiosk reward must never wait for the generic enemy-drop queue.
-    // It is created on the third strike while the player is still looking at it.
-    if (isFruitKiosk(item) && item.dropPickup === 'supportFigure' && typeof HealthPickup !== 'undefined' && scene.reserveSupportFigure) {
-      const type = scene.reserveSupportFigure();
-      if (!type) return false;
+    // It appears fully formed on the third strike and remains until collected.
+    if (isFruitKiosk(item) && item.dropPickup === 'supportFigure') {
+      const fallback = 'support01';
+      const type = typeof scene.reserveSupportFigure === 'function'
+        ? scene.reserveSupportFigure() || fallback
+        : fallback;
+      if (typeof HealthPickup === 'undefined') return false;
       if (!Array.isArray(scene.pickups)) scene.pickups = [];
-      scene.pickups.push(new HealthPickup(type, x, y, scene.images));
+      const pickup = new HealthPickup(type, x, y, scene.images);
+      pickup.age = pickup.popDuration;
+      scene.pickups.push(pickup);
       state.pickupDropped = true;
       return true;
     }

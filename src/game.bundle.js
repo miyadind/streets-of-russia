@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.219",
+  "buildVersion": "0.4.220",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -7556,7 +7556,7 @@ class LevelScene {
     const unavailable = new Set([...reserved, ...collected]);
     const available = allFigures.filter(type => !unavailable.has(type));
     // A broken or long-running dev session must never make a completed object
-    // silently lose its reward. Duplicates are allowed only after all 19 are used.
+    // silently lose its reward. Duplicates are allowed only after all figures are used.
     const pool = available.length ? available : allFigures;
     const type = pool[Math.floor(Math.random() * pool.length)];
     if (!Array.isArray(game.supportFigureDrops)) game.supportFigureDrops = [];
@@ -12048,12 +12048,17 @@ window.addEventListener('load', () => {
       : Number.isFinite(item.dropY) ? item.dropY : (item.laneY || GAME_CONFIG.laneBottom);
 
     // The fruit kiosk reward must never wait for the generic enemy-drop queue.
-    // It is created on the third strike while the player is still looking at it.
-    if (isFruitKiosk(item) && item.dropPickup === 'supportFigure' && typeof HealthPickup !== 'undefined' && scene.reserveSupportFigure) {
-      const type = scene.reserveSupportFigure();
-      if (!type) return false;
+    // It appears fully formed on the third strike and remains until collected.
+    if (isFruitKiosk(item) && item.dropPickup === 'supportFigure') {
+      const fallback = 'support01';
+      const type = typeof scene.reserveSupportFigure === 'function'
+        ? scene.reserveSupportFigure() || fallback
+        : fallback;
+      if (typeof HealthPickup === 'undefined') return false;
       if (!Array.isArray(scene.pickups)) scene.pickups = [];
-      scene.pickups.push(new HealthPickup(type, x, y, scene.images));
+      const pickup = new HealthPickup(type, x, y, scene.images);
+      pickup.age = pickup.popDuration;
+      scene.pickups.push(pickup);
       state.pickupDropped = true;
       return true;
     }

@@ -803,7 +803,7 @@ class LevelScene {
     const unavailable = new Set([...reserved, ...collected]);
     const available = allFigures.filter(type => !unavailable.has(type));
     // A broken or long-running dev session must never make a completed object
-    // silently lose its reward. Duplicates are allowed only after all 19 are used.
+    // silently lose its reward. Duplicates are allowed only after all figures are used.
     const pool = available.length ? available : allFigures;
     const type = pool[Math.floor(Math.random() * pool.length)];
     if (!Array.isArray(game.supportFigureDrops)) game.supportFigureDrops = [];
