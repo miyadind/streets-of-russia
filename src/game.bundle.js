@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.217",
+  "buildVersion": "0.4.218",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -830,10 +830,10 @@ const GAME_CONFIG = {
           "laneY": 620,
           "laneTolerance": 65,
           "hitbox": {
-            "x": 1138,
-            "y": 405,
-            "w": 328,
-            "h": 230
+            "x": 966,
+            "y": 390,
+            "w": 47,
+            "h": 52
           }
         }
       ],
@@ -908,8 +908,8 @@ const GAME_CONFIG = {
       "walkZone": {
         "left": 0,
         "right": 1280,
-        "top": 550,
-        "bottom": 710
+        "top": 575,
+        "bottom": 730
       },
       "playerStart": {
         "x": 195,
@@ -8387,11 +8387,7 @@ const DevPanel = {
       'levels.street01.interactives.0.hitbox.x': 342,
       'levels.street01.interactives.0.hitbox.y': 272,
       'levels.street01.interactives.0.hitbox.w': 128,
-      'levels.street01.interactives.0.hitbox.h': 146,
-      'levels.siberia02.interactives.0.hitbox.x': DEFAULT_GAME_CONFIG.levels.siberia02.interactives[0].hitbox.x,
-      'levels.siberia02.interactives.0.hitbox.y': DEFAULT_GAME_CONFIG.levels.siberia02.interactives[0].hitbox.y,
-      'levels.siberia02.interactives.0.hitbox.w': DEFAULT_GAME_CONFIG.levels.siberia02.interactives[0].hitbox.w,
-      'levels.siberia02.interactives.0.hitbox.h': DEFAULT_GAME_CONFIG.levels.siberia02.interactives[0].hitbox.h
+      'levels.street01.interactives.0.hitbox.h': 146
     };
 
     for (const path of Object.keys(defaults)) {
