@@ -193,6 +193,7 @@
     ensureIntroMusic(this);
     installIntroVoiceEndHold(this);
     AudioManager.stopMusic();
+    if (this.beginDeferredAssetLoad) this.beginDeferredAssetLoad();
 
     this.intro.time = 0;
     this.intro.skipUnlockAt = Number.POSITIVE_INFINITY;

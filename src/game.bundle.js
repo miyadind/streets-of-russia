@@ -11041,8 +11041,16 @@ class GameApp {
       return this.images;
     }));
 
-    this.deferredImagesPromise = this.startupAssetsPromise.then(() => new Promise((resolve) => {
+  }
+
+  beginDeferredAssetLoad() {
+    if (this.deferredImagesPromise) return this.deferredImagesPromise;
+
+    const startup = this.startupAssetsPromise || Promise.resolve(this.images);
+    this.deferredImagesPromise = startup.then(() => new Promise((resolve) => {
+      // Let the intro paint and start its narration before the heavy queue begins.
       setTimeout(() => {
+        this.preloadDeferredAudio();
         this.loadImages().then((images) => {
           // Scenes keep a reference to this object, so merge instead of replacing it.
           Object.assign(this.images, images);
@@ -11055,6 +11063,18 @@ class GameApp {
         });
       }, 0);
     }));
+    return this.deferredImagesPromise;
+  }
+
+  preloadDeferredAudio() {
+    const channels = [AudioManager.music, AudioManager.sfx];
+    for (const channel of channels) {
+      for (const audio of Object.values(channel || {})) {
+        if (!audio) continue;
+        audio.preload = 'auto';
+        try { audio.load(); } catch (error) {}
+      }
+    }
   }
 
   loadSingleImage(src, label = src) {
@@ -11209,7 +11229,7 @@ class GameApp {
   }
 
   preloadStartupMusic() {
-    const keys = ['menuTheme', 'menuThemeAlt', 'mapTheme', 'farEastTheme', 'bossTheme'];
+    const keys = ['menuTheme', 'menuThemeAlt', 'mapTheme', 'farEastTheme', 'siberiaTheme', 'bossTheme'];
     for (const key of keys) {
       const audio = AudioManager.music && AudioManager.music[key];
       if (!audio) continue;
@@ -14258,6 +14278,7 @@ window.addEventListener('load', () => {
     ensureIntroMusic(this);
     installIntroVoiceEndHold(this);
     AudioManager.stopMusic();
+    if (this.beginDeferredAssetLoad) this.beginDeferredAssetLoad();
 
     this.intro.time = 0;
     this.intro.skipUnlockAt = Number.POSITIVE_INFINITY;
