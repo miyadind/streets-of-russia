@@ -11920,12 +11920,7 @@ window.addEventListener('load', () => {
       state.replaced = true;
       state.flashMs = 0;
       if (hasFruitBurst(item)) spawnFruitBurst(state, item, 3);
-      if (!state.pickupDropped && item.dropPickup && scene.dropPickup) {
-        const rect = item.hitbox || item.effectRect || {};
-        const x = Number.isFinite(item.dropX) ? item.dropX : (rect.x || 0) + (rect.w || 0) / 2;
-        const y = Number.isFinite(item.dropY) ? item.dropY : (item.laneY || GAME_CONFIG.laneBottom);
-        state.pickupDropped = !!scene.dropPickup(item.dropPickup, x, y, { immediate: item.dropPickup === 'supportFigure' });
-      }
+      dropInteractiveReward(scene, item, state);
       AudioManager.playSfx('enemyDown', 0.82, { playbackRate: 0.92, startAt: 0.02 });
       return;
     }
@@ -11936,6 +11931,29 @@ window.addEventListener('load', () => {
       playbackRate: 0.82 + state.hits * 0.08,
       startAt: 0.015
     });
+  }
+
+  function dropInteractiveReward(scene, item, state) {
+    if (state.pickupDropped || !item.dropPickup || !scene) return false;
+
+    const rect = item.hitbox || item.effectRect || {};
+    const x = Number.isFinite(item.dropX) ? item.dropX : (rect.x || 0) + (rect.w || 0) / 2;
+    const y = Number.isFinite(item.dropY) ? item.dropY : (item.laneY || GAME_CONFIG.laneBottom);
+
+    // The fruit kiosk reward must never wait for the generic enemy-drop queue.
+    // It is created on the third strike while the player is still looking at it.
+    if (isFruitKiosk(item) && item.dropPickup === 'supportFigure' && typeof HealthPickup !== 'undefined' && scene.reserveSupportFigure) {
+      const type = scene.reserveSupportFigure();
+      if (!type) return false;
+      if (!Array.isArray(scene.pickups)) scene.pickups = [];
+      scene.pickups.push(new HealthPickup(type, x, y, scene.images));
+      state.pickupDropped = true;
+      return true;
+    }
+
+    if (!scene.dropPickup) return false;
+    state.pickupDropped = !!scene.dropPickup(item.dropPickup, x, y, { immediate: item.dropPickup === 'supportFigure' });
+    return state.pickupDropped;
   }
 
   function spawnFruitBurst(state, item, count = 2) {
