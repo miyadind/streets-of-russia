@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.198",
+  "buildVersion": "0.4.199",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -437,7 +437,7 @@ const GAME_CONFIG = {
       "fireballSpawnMinMs": 1250,
       "fireballSpawnMaxMs": 2350,
       "fireballDamage": 24,
-      "fireWallDamage": 1,
+      "fireWallDamage": 10,
       "fireWallDamageIntervalMs": 360,
       "zetnikHitDamage": 35,
       "arenaMoveSpeed": 0,
@@ -8226,6 +8226,7 @@ const DevPanel = {
       'enemies.gundos.speed': 1.875,
       'enemies.gundos.hp': DEFAULT_GAME_CONFIG.enemies.gundos.hp,
       'enemies.gundos.zetnikHitDamage': DEFAULT_GAME_CONFIG.enemies.gundos.zetnikHitDamage,
+      'enemies.gundos.fireWallDamage': DEFAULT_GAME_CONFIG.enemies.gundos.fireWallDamage,
       'enemies.gundos.entranceY': 720,
       'enemies.gundos.arenaBottom': 720,
       'enemies.gundos.deathHoldMs': 5000,

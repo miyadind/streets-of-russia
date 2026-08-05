@@ -738,6 +738,7 @@ const DevPanel = {
       'enemies.gundos.speed': 1.875,
       'enemies.gundos.hp': DEFAULT_GAME_CONFIG.enemies.gundos.hp,
       'enemies.gundos.zetnikHitDamage': DEFAULT_GAME_CONFIG.enemies.gundos.zetnikHitDamage,
+      'enemies.gundos.fireWallDamage': DEFAULT_GAME_CONFIG.enemies.gundos.fireWallDamage,
       'enemies.gundos.entranceY': 720,
       'enemies.gundos.arenaBottom': 720,
       'enemies.gundos.deathHoldMs': 5000,
