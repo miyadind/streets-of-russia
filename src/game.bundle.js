@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.199",
+  "buildVersion": "0.4.200",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -6652,7 +6652,7 @@ class HealthPickup {
     this.floatTimer = 0;
     this.floatTextX = x;
     this.floatTextY = y - 58;
-    this.popDuration = 420;
+    this.popDuration = this.type.startsWith('support') ? 110 : 420;
   }
 
   getConfig() {
@@ -6724,7 +6724,9 @@ class HealthPickup {
     const pop = Math.min(1, this.age / this.popDuration);
     const bounce = Math.sin(pop * Math.PI);
     const pulse = 1 + Math.sin(this.age / 130) * 0.045;
-    const appearScale = pop < 1 ? (0.35 + 0.65 * pop) : 1;
+    const appearScale = pop < 1
+      ? (this.type.startsWith('support') ? 0.82 + 0.18 * pop : 0.35 + 0.65 * pop)
+      : 1;
     const scale = (cfg.scale || 0.32) * pulse * appearScale;
     const popY = pop < 1 ? -bounce * 42 : 0;
 
@@ -6732,7 +6734,7 @@ class HealthPickup {
     if (this.floatTimer <= 0 && img && img.complete !== false && img.naturalWidth !== 0) {
       const w = img.width * scale;
       const h = img.height * scale;
-      ctx.globalAlpha = Math.min(1, 0.25 + pop * 0.75);
+      ctx.globalAlpha = this.type.startsWith('support') ? Math.min(1, 0.82 + pop * 0.18) : Math.min(1, 0.25 + pop * 0.75);
       ctx.shadowColor = 'rgba(255,255,210,0.7)';
       ctx.shadowBlur = 12;
       try {
@@ -7406,7 +7408,7 @@ class LevelScene {
     }
   }
 
-  dropPickup(type, x, y) {
+  dropPickup(type, x, y, options = {}) {
     if (!type) return;
     if (type === 'supportFigure') {
       type = this.reserveSupportFigure();
@@ -7416,6 +7418,10 @@ class LevelScene {
     const rawY = Number.isFinite(y) ? y : GAME_CONFIG.laneBottom;
     const safeX = Math.max(70, Math.min(GAME_CONFIG.width - 70, rawX));
     const safeY = Math.max(GAME_CONFIG.laneTop + 35, Math.min(GAME_CONFIG.laneBottom, rawY));
+    if (options.immediate) {
+      this.pickups.push(new HealthPickup(type, safeX, safeY, this.images));
+      return;
+    }
     if (!this.pendingPickupDrops) this.pendingPickupDrops = [];
     this.pendingPickupDrops.push({ type, x: safeX, y: safeY });
   }
@@ -11040,6 +11046,10 @@ class GameApp {
       dogDead: Assets.dog.dead,
       pickupMedkit: Assets.pickups && Assets.pickups.medkit
     };
+    for (let i = 1; i <= 19; i++) {
+      const id = 'support' + String(i).padStart(2, '0');
+      paths['pickup' + id] = Assets.pickups && Assets.pickups[id];
+    }
     const loaded = await this.loadImageEntries(Object.entries(paths), 6);
 
     this.images.streets = [loaded.street0];
@@ -11076,6 +11086,10 @@ class GameApp {
       }
     };
     this.images.pickups = { medkit: loaded.pickupMedkit };
+    for (let i = 1; i <= 19; i++) {
+      const id = 'support' + String(i).padStart(2, '0');
+      this.images.pickups[id] = loaded['pickup' + id];
+    }
 
   }
 
@@ -11176,6 +11190,10 @@ class GameApp {
       pickupPirozhok: Assets.pickups && Assets.pickups.pirozhok,
       pickupTea: Assets.pickups && Assets.pickups.tea
     };
+    for (let i = 1; i <= 19; i++) {
+      const id = 'support' + String(i).padStart(2, '0');
+      paths['pickup' + id] = Assets.pickups && Assets.pickups[id];
+    }
 
     const levelBackgroundsPromise = this.loadLevelBackgrounds();
     const loaded = await this.loadImageEntries(Object.entries(paths), 8);
@@ -11277,6 +11295,10 @@ class GameApp {
       pirozhok: loaded.pickupPirozhok,
       tea: loaded.pickupTea
     };
+    for (let i = 1; i <= 19; i++) {
+      const id = 'support' + String(i).padStart(2, '0');
+      loaded.pickups[id] = loaded['pickup' + id];
+    }
 
     await this.loadLevelInteractiveImages(loaded);
 
@@ -11808,7 +11830,7 @@ window.addEventListener('load', () => {
         const rect = item.hitbox || item.effectRect || {};
         const x = Number.isFinite(item.dropX) ? item.dropX : (rect.x || 0) + (rect.w || 0) / 2;
         const y = Number.isFinite(item.dropY) ? item.dropY : (item.laneY || GAME_CONFIG.laneBottom);
-        scene.dropPickup(item.dropPickup, x, y);
+        scene.dropPickup(item.dropPickup, x, y, { immediate: item.dropPickup === 'supportFigure' });
         state.pickupDropped = true;
       }
       AudioManager.playSfx('enemyDown', 0.82, { playbackRate: 0.92, startAt: 0.02 });

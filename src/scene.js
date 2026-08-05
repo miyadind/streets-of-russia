@@ -10,7 +10,7 @@ class HealthPickup {
     this.floatTimer = 0;
     this.floatTextX = x;
     this.floatTextY = y - 58;
-    this.popDuration = 420;
+    this.popDuration = this.type.startsWith('support') ? 110 : 420;
   }
 
   getConfig() {
@@ -82,7 +82,9 @@ class HealthPickup {
     const pop = Math.min(1, this.age / this.popDuration);
     const bounce = Math.sin(pop * Math.PI);
     const pulse = 1 + Math.sin(this.age / 130) * 0.045;
-    const appearScale = pop < 1 ? (0.35 + 0.65 * pop) : 1;
+    const appearScale = pop < 1
+      ? (this.type.startsWith('support') ? 0.82 + 0.18 * pop : 0.35 + 0.65 * pop)
+      : 1;
     const scale = (cfg.scale || 0.32) * pulse * appearScale;
     const popY = pop < 1 ? -bounce * 42 : 0;
 
@@ -90,7 +92,7 @@ class HealthPickup {
     if (this.floatTimer <= 0 && img && img.complete !== false && img.naturalWidth !== 0) {
       const w = img.width * scale;
       const h = img.height * scale;
-      ctx.globalAlpha = Math.min(1, 0.25 + pop * 0.75);
+      ctx.globalAlpha = this.type.startsWith('support') ? Math.min(1, 0.82 + pop * 0.18) : Math.min(1, 0.25 + pop * 0.75);
       ctx.shadowColor = 'rgba(255,255,210,0.7)';
       ctx.shadowBlur = 12;
       try {
@@ -764,7 +766,7 @@ class LevelScene {
     }
   }
 
-  dropPickup(type, x, y) {
+  dropPickup(type, x, y, options = {}) {
     if (!type) return;
     if (type === 'supportFigure') {
       type = this.reserveSupportFigure();
@@ -774,6 +776,10 @@ class LevelScene {
     const rawY = Number.isFinite(y) ? y : GAME_CONFIG.laneBottom;
     const safeX = Math.max(70, Math.min(GAME_CONFIG.width - 70, rawX));
     const safeY = Math.max(GAME_CONFIG.laneTop + 35, Math.min(GAME_CONFIG.laneBottom, rawY));
+    if (options.immediate) {
+      this.pickups.push(new HealthPickup(type, safeX, safeY, this.images));
+      return;
+    }
     if (!this.pendingPickupDrops) this.pendingPickupDrops = [];
     this.pendingPickupDrops.push({ type, x: safeX, y: safeY });
   }

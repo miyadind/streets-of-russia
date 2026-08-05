@@ -175,6 +175,10 @@ class GameApp {
       dogDead: Assets.dog.dead,
       pickupMedkit: Assets.pickups && Assets.pickups.medkit
     };
+    for (let i = 1; i <= 19; i++) {
+      const id = 'support' + String(i).padStart(2, '0');
+      paths['pickup' + id] = Assets.pickups && Assets.pickups[id];
+    }
     const loaded = await this.loadImageEntries(Object.entries(paths), 6);
 
     this.images.streets = [loaded.street0];
@@ -211,6 +215,10 @@ class GameApp {
       }
     };
     this.images.pickups = { medkit: loaded.pickupMedkit };
+    for (let i = 1; i <= 19; i++) {
+      const id = 'support' + String(i).padStart(2, '0');
+      this.images.pickups[id] = loaded['pickup' + id];
+    }
 
   }
 
@@ -311,6 +319,10 @@ class GameApp {
       pickupPirozhok: Assets.pickups && Assets.pickups.pirozhok,
       pickupTea: Assets.pickups && Assets.pickups.tea
     };
+    for (let i = 1; i <= 19; i++) {
+      const id = 'support' + String(i).padStart(2, '0');
+      paths['pickup' + id] = Assets.pickups && Assets.pickups[id];
+    }
 
     const levelBackgroundsPromise = this.loadLevelBackgrounds();
     const loaded = await this.loadImageEntries(Object.entries(paths), 8);
@@ -412,6 +424,10 @@ class GameApp {
       pirozhok: loaded.pickupPirozhok,
       tea: loaded.pickupTea
     };
+    for (let i = 1; i <= 19; i++) {
+      const id = 'support' + String(i).padStart(2, '0');
+      loaded.pickups[id] = loaded['pickup' + id];
+    }
 
     await this.loadLevelInteractiveImages(loaded);
 
