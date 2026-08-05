@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  "buildVersion": "0.4.215",
+  "buildVersion": "0.4.216",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -819,8 +819,7 @@ const GAME_CONFIG = {
           "silentImpact": true,
           "impactSfx": "garageGateMetal",
           "dropPickup": "supportFigure",
-          "dropX": 255,
-          "dropY": 640,
+          "dropAtHitbox": true,
           "laneY": 620,
           "laneTolerance": 65,
           "hitbox": {

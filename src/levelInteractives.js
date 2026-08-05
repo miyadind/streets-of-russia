@@ -121,8 +121,13 @@
     if (state.pickupDropped || !item.dropPickup || !scene) return false;
 
     const rect = item.hitbox || item.effectRect || {};
-    const x = Number.isFinite(item.dropX) ? item.dropX : (rect.x || 0) + (rect.w || 0) / 2;
-    const y = Number.isFinite(item.dropY) ? item.dropY : (item.laneY || GAME_CONFIG.laneBottom);
+    const useHitboxDrop = item.dropAtHitbox === true;
+    const x = useHitboxDrop
+      ? (rect.x || 0) + (rect.w || 0) / 2
+      : Number.isFinite(item.dropX) ? item.dropX : (rect.x || 0) + (rect.w || 0) / 2;
+    const y = useHitboxDrop
+      ? (rect.y || 0) + (rect.h || 0)
+      : Number.isFinite(item.dropY) ? item.dropY : (item.laneY || GAME_CONFIG.laneBottom);
 
     // The fruit kiosk reward must never wait for the generic enemy-drop queue.
     // It is created on the third strike while the player is still looking at it.

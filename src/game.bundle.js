@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.215",
+  "buildVersion": "0.4.216",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -826,8 +826,7 @@ const GAME_CONFIG = {
           "silentImpact": true,
           "impactSfx": "garageGateMetal",
           "dropPickup": "supportFigure",
-          "dropX": 255,
-          "dropY": 640,
+          "dropAtHitbox": true,
           "laneY": 620,
           "laneTolerance": 65,
           "hitbox": {
@@ -12045,8 +12044,13 @@ window.addEventListener('load', () => {
     if (state.pickupDropped || !item.dropPickup || !scene) return false;
 
     const rect = item.hitbox || item.effectRect || {};
-    const x = Number.isFinite(item.dropX) ? item.dropX : (rect.x || 0) + (rect.w || 0) / 2;
-    const y = Number.isFinite(item.dropY) ? item.dropY : (item.laneY || GAME_CONFIG.laneBottom);
+    const useHitboxDrop = item.dropAtHitbox === true;
+    const x = useHitboxDrop
+      ? (rect.x || 0) + (rect.w || 0) / 2
+      : Number.isFinite(item.dropX) ? item.dropX : (rect.x || 0) + (rect.w || 0) / 2;
+    const y = useHitboxDrop
+      ? (rect.y || 0) + (rect.h || 0)
+      : Number.isFinite(item.dropY) ? item.dropY : (item.laneY || GAME_CONFIG.laneBottom);
 
     // The fruit kiosk reward must never wait for the generic enemy-drop queue.
     // It is created on the third strike while the player is still looking at it.
