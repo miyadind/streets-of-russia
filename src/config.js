@@ -808,6 +808,28 @@ const GAME_CONFIG = {
       "region": "siberia",
       "background": "assets/backgrounds/2/street02.png",
       "music": "siberiaTheme",
+      "interactives": [
+        {
+          "id": "siberiaGarageGate",
+          "type": "breakableObject",
+          "hitsToReplace": 3,
+          "altBackground": "assets/backgrounds/2/street02_1.png",
+          "laneY": 620,
+          "laneTolerance": 65,
+          "hitbox": {
+            "x": 34,
+            "y": 398,
+            "w": 470,
+            "h": 230
+          },
+          "effectRect": {
+            "x": 34,
+            "y": 398,
+            "w": 470,
+            "h": 230
+          }
+        }
+      ],
       "waves": [
         {
           "trigger": "onEnter",
