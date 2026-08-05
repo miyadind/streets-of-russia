@@ -71,8 +71,10 @@ const MobileApp = {
     if (game.state === 'intro') {
       if (click) {
         if (this.inRect(click, this.skipIntroBox())) {
-          if (game.finishIntro) game.finishIntro();
-          return true;
+          if (game.isIntroSkipUnlocked && game.isIntroSkipUnlocked() && game.requestIntroSkip) {
+            game.requestIntroSkip();
+            return true;
+          }
         }
         Input.restorePointer(click);
       }

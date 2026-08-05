@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.205",
+  "buildVersion": "0.4.206",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -10329,8 +10329,10 @@ const MobileApp = {
     if (game.state === 'intro') {
       if (click) {
         if (this.inRect(click, this.skipIntroBox())) {
-          if (game.finishIntro) game.finishIntro();
-          return true;
+          if (game.isIntroSkipUnlocked && game.isIntroSkipUnlocked() && game.requestIntroSkip) {
+            game.requestIntroSkip();
+            return true;
+          }
         }
         Input.restorePointer(click);
       }
@@ -10611,6 +10613,7 @@ const MobileApp = {
     ctx.restore();
   }
 };
+
 
 
 /* ===== src/mobileSafeUxPatch.js ===== */
@@ -13230,6 +13233,7 @@ window.addEventListener('load', () => {
       readerScroll: 0,
       layoutLines: [],
       totalTimelineDuration: 0,
+      skipUnlockAt: Number.POSITIVE_INFINITY,
       lastTypedCursor: 0,
       lastTypeSoundAt: 0,
       audioContext: null,
@@ -13579,6 +13583,11 @@ window.addEventListener('load', () => {
     const lines = wrapText(ctx, this.intro.text, maxWidth);
     this.intro.layoutLines = lines;
     this.intro.totalTimelineDuration = getTimelineDuration(lines);
+    const skipUnlockLine = 'Сумасшедший тиран держит страну в страхе.';
+    const skipLineIndex = lines.findIndex((line) => line.trim() === skipUnlockLine);
+    this.intro.skipUnlockAt = skipLineIndex < 0
+      ? Number.POSITIVE_INFINITY
+      : lines.slice(0, skipLineIndex + 1).reduce((total, line) => total + lineDuration(line), 0);
 
     const state = getTimelineState(lines, this.intro.time);
     if (state.complete) {
@@ -13649,16 +13658,11 @@ window.addEventListener('load', () => {
     ctx.textAlign = 'right';
     ctx.fillStyle = 'rgba(255,255,255,0.70)';
 
-    let hint = '';
-    if (this.intro.firstRun) {
-      hint = state.phase === 'ending' ? 'Интро завершается...' : 'Первый запуск: интро нужно досмотреть до конца';
-    } else if (this.intro.fastForward) {
-      hint = state.phase === 'ending' ? 'Интро завершается...' : 'Ускоренная перемотка интро...';
-    } else {
-      hint = 'Нажмите любую кнопку, чтобы ускорить интро';
-    }
+    const hint = this.isIntroSkipUnlocked && this.isIntroSkipUnlocked()
+      ? 'ENTER / SPACE / КЛИК - ПРОПУСТИТЬ ЗАСТАВКУ'
+      : '';
 
-    ctx.fillText(hint, GAME_CONFIG.width - 34, GAME_CONFIG.height - 30);
+    if (hint) ctx.fillText(hint, GAME_CONFIG.width - 34, GAME_CONFIG.height - 30);
     ctx.textAlign = 'left';
   };
 
@@ -13988,7 +13992,6 @@ window.addEventListener('load', () => {
   const INTRO_MUSIC_VOLUME = 0.42;
   const INTRO_VOICE_VOLUME = 0.72;
   const INTRO_SKIP_REVEAL_SECONDS = 0.9;
-  const INTRO_SKIP_LOCK_SECONDS = 5;
   const INTRO_VOICE_TEXT_SCALE = 0.90;
   const INTRO_FINAL_PAUSE_TRIM_SECONDS = 0.5;
   const INTRO_FINAL_PAUSE_TRIM_START_PROGRESS = 0.88;
@@ -14176,6 +14179,7 @@ window.addEventListener('load', () => {
     AudioManager.stopMusic();
 
     this.intro.time = 0;
+    this.intro.skipUnlockAt = Number.POSITIVE_INFINITY;
     this.intro.firstRun = !this.hasSeenIntro || !this.hasSeenIntro();
     this.intro.fastForward = false;
     this.intro.skipRequested = false;
@@ -14220,8 +14224,14 @@ window.addEventListener('load', () => {
     return Math.max(0, Math.min(1, voice.currentTime / duration));
   };
 
+  GameApp.prototype.isIntroSkipUnlocked = function () {
+    if (!this.intro) return false;
+    const unlockAt = this.intro.skipUnlockAt;
+    return Number.isFinite(unlockAt) && (this.intro.time || 0) >= unlockAt;
+  };
+
   GameApp.prototype.requestIntroSkip = function () {
-    if (!this.intro || this.intro.readyToContinue) return;
+    if (!this.intro || this.intro.readyToContinue || !this.isIntroSkipUnlocked()) return;
     this.stopIntroVoiceOnly();
     this.intro.voiceSkipped = true;
     this.intro.fastForward = true;
@@ -14370,11 +14380,7 @@ window.addEventListener('load', () => {
       return;
     }
 
-    const voiceElapsed = this.intro.voice && Number.isFinite(this.intro.voice.currentTime)
-      ? this.intro.voice.currentTime
-      : 0;
-    const skipUnlocked = Math.max(this.intro.time || 0, voiceElapsed) >= INTRO_SKIP_LOCK_SECONDS;
-    if (requestedAction && skipUnlocked) this.requestIntroSkip();
+    if (requestedAction && this.isIntroSkipUnlocked()) this.requestIntroSkip();
 
     const voiceProgress = this.getIntroVoiceProgress();
     if (voiceProgress != null && this.intro.totalTimelineDuration > 0) {

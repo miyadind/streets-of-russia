@@ -5,7 +5,6 @@
   const INTRO_MUSIC_VOLUME = 0.42;
   const INTRO_VOICE_VOLUME = 0.72;
   const INTRO_SKIP_REVEAL_SECONDS = 0.9;
-  const INTRO_SKIP_LOCK_SECONDS = 5;
   const INTRO_VOICE_TEXT_SCALE = 0.90;
   const INTRO_FINAL_PAUSE_TRIM_SECONDS = 0.5;
   const INTRO_FINAL_PAUSE_TRIM_START_PROGRESS = 0.88;
@@ -193,6 +192,7 @@
     AudioManager.stopMusic();
 
     this.intro.time = 0;
+    this.intro.skipUnlockAt = Number.POSITIVE_INFINITY;
     this.intro.firstRun = !this.hasSeenIntro || !this.hasSeenIntro();
     this.intro.fastForward = false;
     this.intro.skipRequested = false;
@@ -237,8 +237,14 @@
     return Math.max(0, Math.min(1, voice.currentTime / duration));
   };
 
+  GameApp.prototype.isIntroSkipUnlocked = function () {
+    if (!this.intro) return false;
+    const unlockAt = this.intro.skipUnlockAt;
+    return Number.isFinite(unlockAt) && (this.intro.time || 0) >= unlockAt;
+  };
+
   GameApp.prototype.requestIntroSkip = function () {
-    if (!this.intro || this.intro.readyToContinue) return;
+    if (!this.intro || this.intro.readyToContinue || !this.isIntroSkipUnlocked()) return;
     this.stopIntroVoiceOnly();
     this.intro.voiceSkipped = true;
     this.intro.fastForward = true;
@@ -387,11 +393,7 @@
       return;
     }
 
-    const voiceElapsed = this.intro.voice && Number.isFinite(this.intro.voice.currentTime)
-      ? this.intro.voice.currentTime
-      : 0;
-    const skipUnlocked = Math.max(this.intro.time || 0, voiceElapsed) >= INTRO_SKIP_LOCK_SECONDS;
-    if (requestedAction && skipUnlocked) this.requestIntroSkip();
+    if (requestedAction && this.isIntroSkipUnlocked()) this.requestIntroSkip();
 
     const voiceProgress = this.getIntroVoiceProgress();
     if (voiceProgress != null && this.intro.totalTimelineDuration > 0) {

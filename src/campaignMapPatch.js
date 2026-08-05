@@ -206,6 +206,7 @@
       readerScroll: 0,
       layoutLines: [],
       totalTimelineDuration: 0,
+      skipUnlockAt: Number.POSITIVE_INFINITY,
       lastTypedCursor: 0,
       lastTypeSoundAt: 0,
       audioContext: null,
@@ -555,6 +556,11 @@
     const lines = wrapText(ctx, this.intro.text, maxWidth);
     this.intro.layoutLines = lines;
     this.intro.totalTimelineDuration = getTimelineDuration(lines);
+    const skipUnlockLine = 'Сумасшедший тиран держит страну в страхе.';
+    const skipLineIndex = lines.findIndex((line) => line.trim() === skipUnlockLine);
+    this.intro.skipUnlockAt = skipLineIndex < 0
+      ? Number.POSITIVE_INFINITY
+      : lines.slice(0, skipLineIndex + 1).reduce((total, line) => total + lineDuration(line), 0);
 
     const state = getTimelineState(lines, this.intro.time);
     if (state.complete) {
@@ -625,16 +631,11 @@
     ctx.textAlign = 'right';
     ctx.fillStyle = 'rgba(255,255,255,0.70)';
 
-    let hint = '';
-    if (this.intro.firstRun) {
-      hint = state.phase === 'ending' ? 'Интро завершается...' : 'Первый запуск: интро нужно досмотреть до конца';
-    } else if (this.intro.fastForward) {
-      hint = state.phase === 'ending' ? 'Интро завершается...' : 'Ускоренная перемотка интро...';
-    } else {
-      hint = 'Нажмите любую кнопку, чтобы ускорить интро';
-    }
+    const hint = this.isIntroSkipUnlocked && this.isIntroSkipUnlocked()
+      ? 'ENTER / SPACE / КЛИК - ПРОПУСТИТЬ ЗАСТАВКУ'
+      : '';
 
-    ctx.fillText(hint, GAME_CONFIG.width - 34, GAME_CONFIG.height - 30);
+    if (hint) ctx.fillText(hint, GAME_CONFIG.width - 34, GAME_CONFIG.height - 30);
     ctx.textAlign = 'left';
   };
 
