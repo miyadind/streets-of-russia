@@ -8230,11 +8230,12 @@ const DevPanel = {
       const restoredFarEast = this.restoreStaleFarEastWaves(data);
       const repairedPosterDrop = this.repairReleasedPosterDrop();
       const repairedFruitKiosk = this.repairFruitKiosk();
+      const repairedHeroInfo = this.repairHeroInfo();
       this.migrateConfig();
       this.ensureLevels();
-      if (restoredFarEast || repairedPosterDrop || repairedFruitKiosk) {
+      if (restoredFarEast || repairedPosterDrop || repairedFruitKiosk || repairedHeroInfo) {
         localStorage.setItem('streetsOfRussia.tuning', JSON.stringify(GAME_CONFIG));
-        this.setStatus('Applied released Far East settings');
+        this.setStatus('Applied released configuration updates');
       } else {
         this.setStatus('Loaded saved tuning');
       }
@@ -8272,6 +8273,22 @@ const DevPanel = {
       if (kiosk[key] === defaultKiosk[key]) continue;
       kiosk[key] = JSON.parse(JSON.stringify(defaultKiosk[key]));
       repaired = true;
+    }
+    return repaired;
+  },
+
+  repairHeroInfo() {
+    const defaults = DEFAULT_GAME_CONFIG.heroes || {};
+    let repaired = false;
+    for (const heroKey of ['alexey', 'anna', 'boris']) {
+      const hero = GAME_CONFIG.heroes && GAME_CONFIG.heroes[heroKey];
+      const defaultHero = defaults[heroKey];
+      if (!hero || !defaultHero) continue;
+      for (const key of ['tagline', 'bio', 'ability']) {
+        if (hero[key] === defaultHero[key]) continue;
+        hero[key] = defaultHero[key];
+        repaired = true;
+      }
     }
     return repaired;
   },
