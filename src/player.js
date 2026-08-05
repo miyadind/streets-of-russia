@@ -559,7 +559,9 @@ class Player {
     const isKnockdown = this.state === 'knockdown' || this.state === 'pinned';
     const knockdownDraw = isKnockdown ? hero.knockdownDraw : null;
     const drawFacing = knockdownDraw && knockdownDraw.facingMultiplier ? this.facing * knockdownDraw.facingMultiplier : this.facing;
-    const drawX = knockdownDraw ? -(knockdownDraw.alphaCenterX || img.width / 2) * scale : -w / 2;
+    const alphaCenterX = knockdownDraw ? (knockdownDraw.alphaCenterX || img.width / 2) : img.width / 2;
+    const mirroredCenterX = drawFacing === -1 ? img.width - alphaCenterX : alphaCenterX;
+    const drawX = knockdownDraw ? -mirroredCenterX * scale : -w / 2;
     const drawY = knockdownDraw ? -(knockdownDraw.alphaBottomY || img.height) * scale : -h;
 
     if (this.reviveBurstTimer > 0) {

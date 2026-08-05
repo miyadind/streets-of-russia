@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.210",
+  "buildVersion": "0.4.211",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -3268,7 +3268,9 @@ class Player {
     const isKnockdown = this.state === 'knockdown' || this.state === 'pinned';
     const knockdownDraw = isKnockdown ? hero.knockdownDraw : null;
     const drawFacing = knockdownDraw && knockdownDraw.facingMultiplier ? this.facing * knockdownDraw.facingMultiplier : this.facing;
-    const drawX = knockdownDraw ? -(knockdownDraw.alphaCenterX || img.width / 2) * scale : -w / 2;
+    const alphaCenterX = knockdownDraw ? (knockdownDraw.alphaCenterX || img.width / 2) : img.width / 2;
+    const mirroredCenterX = drawFacing === -1 ? img.width - alphaCenterX : alphaCenterX;
+    const drawX = knockdownDraw ? -mirroredCenterX * scale : -w / 2;
     const drawY = knockdownDraw ? -(knockdownDraw.alphaBottomY || img.height) * scale : -h;
 
     if (this.reviveBurstTimer > 0) {
