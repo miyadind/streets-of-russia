@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  "buildVersion": "0.4.193",
+  "buildVersion": "0.4.194",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -430,6 +430,8 @@ const GAME_CONFIG = {
       "fireballSpawnMinMs": 1250,
       "fireballSpawnMaxMs": 2350,
       "fireballDamage": 24,
+      "fireWallDamage": 1,
+      "fireWallDamageIntervalMs": 360,
       "zetnikHitDamage": 35,
       "arenaMoveSpeed": 0,
       "arenaTop": 540,
@@ -710,6 +712,8 @@ const GAME_CONFIG = {
           "id": "fruitKiosk",
           "type": "breakableObject",
           "hitsToReplace": 3,
+          "requiresBossDefeat": true,
+          "damageEffect": "fruitBurst",
           "laneY": 625,
           "laneTolerance": 60,
           "hitbox": {

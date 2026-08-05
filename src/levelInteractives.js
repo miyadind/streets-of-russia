@@ -13,6 +13,10 @@
     return item && (item.type === 'breakablePoster' || item.type === 'breakableObject');
   }
 
+  function isInteractiveUnlocked(scene, item) {
+    return !item || !item.requiresBossDefeat || !!(scene && (scene.gundosBossDefeated || scene.bossVictoryReady));
+  }
+
   function getVehicleObstacles(level) {
     return getInteractivesForLevel(level).filter(isVehicleObstacle);
   }
@@ -24,7 +28,8 @@
       scene.levelInteractiveState[key] = {
         hits: 0,
         replaced: false,
-        flashMs: 0
+        flashMs: 0,
+        fruitBits: []
       };
     }
     return scene.levelInteractiveState[key];
@@ -38,7 +43,7 @@
 
   function canHitPoster(scene, item, state) {
     const player = scene && scene.player;
-    if (!player || state.replaced || player.attackHasHit || !isAttackActive(player)) return false;
+    if (!player || !isInteractiveUnlocked(scene, item) || state.replaced || player.attackHasHit || !isAttackActive(player)) return false;
     const attackBox = player.getHitbox && player.getHitbox();
     const posterBox = item.effectRect || item.hitbox;
     if (!attackBox || !posterBox) return false;
@@ -70,10 +75,58 @@
       return;
     }
 
+    if (item.damageEffect === 'fruitBurst') spawnFruitBurst(state, item);
+
     AudioManager.playSfx('hit', 0.76, {
       playbackRate: 0.82 + state.hits * 0.08,
       startAt: 0.015
     });
+  }
+
+  function spawnFruitBurst(state, item) {
+    const rect = item.effectRect || item.hitbox || { x: 0, y: 0, w: 0, h: 0 };
+    for (let index = 0; index < 2; index++) {
+      state.fruitBits.push({
+        x: rect.x + rect.w * (0.35 + Math.random() * 0.3),
+        y: rect.y + rect.h * (0.52 + Math.random() * 0.18),
+        vx: (Math.random() < 0.5 ? -1 : 1) * (1.4 + Math.random() * 1.8),
+        vy: -3.5 - Math.random() * 2.2,
+        age: 0,
+        rotation: Math.random() * Math.PI * 2
+      });
+    }
+  }
+
+  function updateFruitBurst(state, dt) {
+    const frame = Math.max(0.5, Math.min(2.2, dt / 16.67));
+    for (const fruit of state.fruitBits || []) {
+      fruit.age += dt;
+      fruit.x += fruit.vx * frame;
+      fruit.y += fruit.vy * frame;
+      fruit.vy += 0.22 * frame;
+      fruit.rotation += fruit.vx * 0.08 * frame;
+    }
+    state.fruitBits = (state.fruitBits || []).filter(fruit => fruit.age < 850);
+  }
+
+  function drawFruitBurst(ctx, state) {
+    for (const fruit of state.fruitBits || []) {
+      const alpha = Math.max(0, 1 - fruit.age / 850);
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.translate(fruit.x, fruit.y);
+      ctx.rotate(fruit.rotation);
+      ctx.fillStyle = '#ff8b16';
+      ctx.strokeStyle = '#ffd95a';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, 9, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#6caf37';
+      ctx.fillRect(-1, -12, 3, 5);
+      ctx.restore();
+    }
   }
 
   function drawCrackLine(ctx, rect, points, alpha, width) {
@@ -244,6 +297,7 @@
       if (!isBreakableSupportObject(item)) continue;
       const state = getPosterState(this, item);
       if (state.flashMs > 0) state.flashMs = Math.max(0, state.flashMs - dt);
+      updateFruitBurst(state, dt);
       if (canHitPoster(this, item, state)) hitPoster(this, item, state);
     }
   };
@@ -285,7 +339,8 @@
 
       if (!isBreakableSupportObject(item)) continue;
       const state = getPosterState(this, item);
-      if (!state.replaced) drawPosterDamage(ctx, item, state);
+      if (!state.replaced && item.damageEffect !== 'fruitBurst') drawPosterDamage(ctx, item, state);
+      if (item.damageEffect === 'fruitBurst') drawFruitBurst(ctx, state);
 
       if (this.debug || showObjectEditor) {
         ctx.save();

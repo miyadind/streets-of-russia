@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.193",
+  "buildVersion": "0.4.194",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -437,6 +437,8 @@ const GAME_CONFIG = {
       "fireballSpawnMinMs": 1250,
       "fireballSpawnMaxMs": 2350,
       "fireballDamage": 24,
+      "fireWallDamage": 1,
+      "fireWallDamageIntervalMs": 360,
       "zetnikHitDamage": 35,
       "arenaMoveSpeed": 0,
       "arenaTop": 540,
@@ -717,6 +719,8 @@ const GAME_CONFIG = {
           "id": "fruitKiosk",
           "type": "breakableObject",
           "hitsToReplace": 3,
+          "requiresBossDefeat": true,
+          "damageEffect": "fruitBurst",
           "laneY": 625,
           "laneTolerance": 60,
           "hitbox": {
@@ -11711,6 +11715,10 @@ window.addEventListener('load', () => {
     return item && (item.type === 'breakablePoster' || item.type === 'breakableObject');
   }
 
+  function isInteractiveUnlocked(scene, item) {
+    return !item || !item.requiresBossDefeat || !!(scene && (scene.gundosBossDefeated || scene.bossVictoryReady));
+  }
+
   function getVehicleObstacles(level) {
     return getInteractivesForLevel(level).filter(isVehicleObstacle);
   }
@@ -11722,7 +11730,8 @@ window.addEventListener('load', () => {
       scene.levelInteractiveState[key] = {
         hits: 0,
         replaced: false,
-        flashMs: 0
+        flashMs: 0,
+        fruitBits: []
       };
     }
     return scene.levelInteractiveState[key];
@@ -11736,7 +11745,7 @@ window.addEventListener('load', () => {
 
   function canHitPoster(scene, item, state) {
     const player = scene && scene.player;
-    if (!player || state.replaced || player.attackHasHit || !isAttackActive(player)) return false;
+    if (!player || !isInteractiveUnlocked(scene, item) || state.replaced || player.attackHasHit || !isAttackActive(player)) return false;
     const attackBox = player.getHitbox && player.getHitbox();
     const posterBox = item.effectRect || item.hitbox;
     if (!attackBox || !posterBox) return false;
@@ -11768,10 +11777,58 @@ window.addEventListener('load', () => {
       return;
     }
 
+    if (item.damageEffect === 'fruitBurst') spawnFruitBurst(state, item);
+
     AudioManager.playSfx('hit', 0.76, {
       playbackRate: 0.82 + state.hits * 0.08,
       startAt: 0.015
     });
+  }
+
+  function spawnFruitBurst(state, item) {
+    const rect = item.effectRect || item.hitbox || { x: 0, y: 0, w: 0, h: 0 };
+    for (let index = 0; index < 2; index++) {
+      state.fruitBits.push({
+        x: rect.x + rect.w * (0.35 + Math.random() * 0.3),
+        y: rect.y + rect.h * (0.52 + Math.random() * 0.18),
+        vx: (Math.random() < 0.5 ? -1 : 1) * (1.4 + Math.random() * 1.8),
+        vy: -3.5 - Math.random() * 2.2,
+        age: 0,
+        rotation: Math.random() * Math.PI * 2
+      });
+    }
+  }
+
+  function updateFruitBurst(state, dt) {
+    const frame = Math.max(0.5, Math.min(2.2, dt / 16.67));
+    for (const fruit of state.fruitBits || []) {
+      fruit.age += dt;
+      fruit.x += fruit.vx * frame;
+      fruit.y += fruit.vy * frame;
+      fruit.vy += 0.22 * frame;
+      fruit.rotation += fruit.vx * 0.08 * frame;
+    }
+    state.fruitBits = (state.fruitBits || []).filter(fruit => fruit.age < 850);
+  }
+
+  function drawFruitBurst(ctx, state) {
+    for (const fruit of state.fruitBits || []) {
+      const alpha = Math.max(0, 1 - fruit.age / 850);
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.translate(fruit.x, fruit.y);
+      ctx.rotate(fruit.rotation);
+      ctx.fillStyle = '#ff8b16';
+      ctx.strokeStyle = '#ffd95a';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, 9, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#6caf37';
+      ctx.fillRect(-1, -12, 3, 5);
+      ctx.restore();
+    }
   }
 
   function drawCrackLine(ctx, rect, points, alpha, width) {
@@ -11942,6 +11999,7 @@ window.addEventListener('load', () => {
       if (!isBreakableSupportObject(item)) continue;
       const state = getPosterState(this, item);
       if (state.flashMs > 0) state.flashMs = Math.max(0, state.flashMs - dt);
+      updateFruitBurst(state, dt);
       if (canHitPoster(this, item, state)) hitPoster(this, item, state);
     }
   };
@@ -11983,7 +12041,8 @@ window.addEventListener('load', () => {
 
       if (!isBreakableSupportObject(item)) continue;
       const state = getPosterState(this, item);
-      if (!state.replaced) drawPosterDamage(ctx, item, state);
+      if (!state.replaced && item.damageEffect !== 'fruitBurst') drawPosterDamage(ctx, item, state);
+      if (item.damageEffect === 'fruitBurst') drawFruitBurst(ctx, state);
 
       if (this.debug || showObjectEditor) {
         ctx.save();
@@ -17194,6 +17253,7 @@ window.addEventListener('load', () => {
       this.medicSpawnedOnce = false;
       this.medicSpawnTimer = this.getConfig().medicSpawnMs || 1200;
       this.fireballTimer = 1600;
+      this.fireWallDamageTimer = 0;
     }
 
     getConfig() {
@@ -17350,7 +17410,7 @@ window.addEventListener('load', () => {
         this.ensureGuardWall(scene);
         this.updateIntroMedic(dt, scene);
       } else {
-        this.enforceFireRing(scene);
+        this.enforceFireRing(scene, dt);
         this.updateZetnikPressure(dt, scene);
         this.updateFireballs(dt, scene);
       }
@@ -17398,7 +17458,7 @@ window.addEventListener('load', () => {
       }
     }
 
-    enforceFireRing(scene) {
+    enforceFireRing(scene, dt) {
       if (!this.transformed || !scene || !scene.player) return;
       const player = scene.player;
       const wall = this.getFireWallRect(scene);
@@ -17406,6 +17466,19 @@ window.addEventListener('load', () => {
       const crossesWall = player.x > wall.x - 38 && player.x < wall.x + wall.w + 38;
       if (!inWallLane || !crossesWall) return;
       player.x = wall.x - 38;
+      this.fireWallDamageTimer = Math.max(0, (this.fireWallDamageTimer || 0) - Math.max(0, dt || 0));
+      if (this.fireWallDamageTimer <= 0 && player.hp > 0) {
+        const config = this.getConfig();
+        player.receiveDamage(config.fireWallDamage || 1, {
+          source: 'fire',
+          ignoreInvulnerability: true,
+          hitStunMs: 0,
+          invulnerableMs: 120,
+          hurtFreezeMs: 0
+        });
+        player.flash = Math.max(player.flash || 0, 180);
+        this.fireWallDamageTimer = config.fireWallDamageIntervalMs || 360;
+      }
       if (player.state !== 'knockdown' && player.state !== 'pinned') {
         player.startHitStun(90, 180);
         player.flash = Math.max(player.flash || 0, 180);
@@ -17464,6 +17537,7 @@ window.addEventListener('load', () => {
         scene.gundosIntroLocked = false;
         scene.gundosArenaActive = false;
         scene.activeGundos = null;
+        scene.gundosBossDefeated = true;
         if (scene.startGundosVictoryDelay) scene.startGundosVictoryDelay();
       }
       AudioManager.playSfx('enemyDown', 1, { playbackRate: 0.82, startAt: 0.01 });
@@ -17628,6 +17702,7 @@ window.addEventListener('load', () => {
       this.gundosVictoryDelayMs = 0;
       this.gundosVictoryPending = false;
       this.bossVictoryReady = false;
+      this.gundosBossDefeated = false;
       previousSpawnInitialWave.call(this);
     };
 

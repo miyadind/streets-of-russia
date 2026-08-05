@@ -287,6 +287,7 @@
       this.medicSpawnedOnce = false;
       this.medicSpawnTimer = this.getConfig().medicSpawnMs || 1200;
       this.fireballTimer = 1600;
+      this.fireWallDamageTimer = 0;
     }
 
     getConfig() {
@@ -443,7 +444,7 @@
         this.ensureGuardWall(scene);
         this.updateIntroMedic(dt, scene);
       } else {
-        this.enforceFireRing(scene);
+        this.enforceFireRing(scene, dt);
         this.updateZetnikPressure(dt, scene);
         this.updateFireballs(dt, scene);
       }
@@ -491,7 +492,7 @@
       }
     }
 
-    enforceFireRing(scene) {
+    enforceFireRing(scene, dt) {
       if (!this.transformed || !scene || !scene.player) return;
       const player = scene.player;
       const wall = this.getFireWallRect(scene);
@@ -499,6 +500,19 @@
       const crossesWall = player.x > wall.x - 38 && player.x < wall.x + wall.w + 38;
       if (!inWallLane || !crossesWall) return;
       player.x = wall.x - 38;
+      this.fireWallDamageTimer = Math.max(0, (this.fireWallDamageTimer || 0) - Math.max(0, dt || 0));
+      if (this.fireWallDamageTimer <= 0 && player.hp > 0) {
+        const config = this.getConfig();
+        player.receiveDamage(config.fireWallDamage || 1, {
+          source: 'fire',
+          ignoreInvulnerability: true,
+          hitStunMs: 0,
+          invulnerableMs: 120,
+          hurtFreezeMs: 0
+        });
+        player.flash = Math.max(player.flash || 0, 180);
+        this.fireWallDamageTimer = config.fireWallDamageIntervalMs || 360;
+      }
       if (player.state !== 'knockdown' && player.state !== 'pinned') {
         player.startHitStun(90, 180);
         player.flash = Math.max(player.flash || 0, 180);
@@ -557,6 +571,7 @@
         scene.gundosIntroLocked = false;
         scene.gundosArenaActive = false;
         scene.activeGundos = null;
+        scene.gundosBossDefeated = true;
         if (scene.startGundosVictoryDelay) scene.startGundosVictoryDelay();
       }
       AudioManager.playSfx('enemyDown', 1, { playbackRate: 0.82, startAt: 0.01 });
@@ -721,6 +736,7 @@
       this.gundosVictoryDelayMs = 0;
       this.gundosVictoryPending = false;
       this.bossVictoryReady = false;
+      this.gundosBossDefeated = false;
       previousSpawnInitialWave.call(this);
     };
 
