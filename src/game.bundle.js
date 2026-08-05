@@ -821,6 +821,9 @@ const GAME_CONFIG = {
           "type": "breakableObject",
           "hitsToReplace": 3,
           "altBackground": "assets/backgrounds/2/street02_1.png",
+          "dropPickup": "supportFigure",
+          "dropX": 255,
+          "dropY": 640,
           "laneY": 620,
           "laneTolerance": 65,
           "hitbox": {
