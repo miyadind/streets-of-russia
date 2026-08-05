@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.207",
+  "buildVersion": "0.4.208",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -3949,7 +3949,8 @@ class DogRegimeEnemy {
     this.attackPositionLocked = false;
     this.attackLockX = null;
     this.attackLockY = null;
-    this.facing = -direction;
+    // Horse's knockdown art faces toward the knockback, unlike the shared enemy fall pose.
+    this.facing = this.enemyType === 'horse' ? direction : -direction;
   }
 
   takeHit(damage, direction, knockback) {
@@ -3974,6 +3975,7 @@ class DogRegimeEnemy {
       this.alive = false;
       this.state = 'dead';
       this.deadTimer = 0;
+      if (this.enemyType === 'horse') this.facing = Math.sign(direction) || this.facing || 1;
       if (this.enemyType === 'negay') AudioManager.playSfx('negayDeath', 0.95, { startAt: 0.01 });
       this.clampToScreen();
       return;

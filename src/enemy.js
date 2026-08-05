@@ -612,7 +612,8 @@ class DogRegimeEnemy {
     this.attackPositionLocked = false;
     this.attackLockX = null;
     this.attackLockY = null;
-    this.facing = -direction;
+    // Horse's knockdown art faces toward the knockback, unlike the shared enemy fall pose.
+    this.facing = this.enemyType === 'horse' ? direction : -direction;
   }
 
   takeHit(damage, direction, knockback) {
@@ -637,6 +638,7 @@ class DogRegimeEnemy {
       this.alive = false;
       this.state = 'dead';
       this.deadTimer = 0;
+      if (this.enemyType === 'horse') this.facing = Math.sign(direction) || this.facing || 1;
       if (this.enemyType === 'negay') AudioManager.playSfx('negayDeath', 0.95, { startAt: 0.01 });
       this.clampToScreen();
       return;
