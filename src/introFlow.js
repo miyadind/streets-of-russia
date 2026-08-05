@@ -11,9 +11,9 @@
   const INTRO_END_TEXT_HOLD_SECONDS = 3.0;
   const INTRO_TEXT_FADE_SECONDS = 1.45;
   const INTRO_BUTTON_FADE_SECONDS = 0.85;
-  // The opening line ends at 4.25s in intro-voice.mp3. Keep skipping locked
-  // until the spoken phrase, not merely its typewriter text, has finished.
-  const INTRO_SKIP_UNLOCK_VOICE_SECONDS = 4.3;
+  // Keep skipping locked until the opening voice has had time to finish its
+  // first thought, not merely until the typewriter text has appeared.
+  const INTRO_SKIP_UNLOCK_VOICE_SECONDS = 10;
   const TYPE_CLICK_MIN_INTERVAL_MS = 165;
   const TYPE_CLICK_EVERY_CHARS = 5;
 
