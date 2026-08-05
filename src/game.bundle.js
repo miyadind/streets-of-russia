@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.208",
+  "buildVersion": "0.4.209",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -3949,8 +3949,7 @@ class DogRegimeEnemy {
     this.attackPositionLocked = false;
     this.attackLockX = null;
     this.attackLockY = null;
-    // Horse's knockdown art faces toward the knockback, unlike the shared enemy fall pose.
-    this.facing = this.enemyType === 'horse' ? direction : -direction;
+    this.facing = Math.sign(direction) || this.facing || 1;
   }
 
   takeHit(damage, direction, knockback) {
@@ -3975,7 +3974,7 @@ class DogRegimeEnemy {
       this.alive = false;
       this.state = 'dead';
       this.deadTimer = 0;
-      if (this.enemyType === 'horse') this.facing = Math.sign(direction) || this.facing || 1;
+      this.facing = Math.sign(direction) || this.facing || 1;
       if (this.enemyType === 'negay') AudioManager.playSfx('negayDeath', 0.95, { startAt: 0.01 });
       this.clampToScreen();
       return;
@@ -4174,7 +4173,8 @@ class DogRegimeEnemy {
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.translate(this.x, this.y);
-    if (this.facing === -1 && this.mirrorSprite !== false) ctx.scale(-1, 1);
+    const isFallen = this.state === 'knockdown' || !this.alive;
+    if (this.facing === -1 && (this.mirrorSprite !== false || isFallen)) ctx.scale(-1, 1);
     ctx.drawImage(img, -w / 2 + drawOffsetX, -h + drawOffsetY, w, h);
     ctx.restore();
     ctx.globalAlpha = 1;
@@ -4948,6 +4948,7 @@ class SuckerEnemy extends DogRegimeEnemy {
     this.attackTimer = 0;
     this.attackHasHit = false;
     this.x += player.facing * 90;
+    this.facing = player.facing || this.facing || 1;
     if (this.hp <= 0) {
       this.alive = false;
       this.state = 'dead';
@@ -5466,7 +5467,7 @@ class BastardEnemy {
   }
 
   getDrawFacing() {
-    if (this.state === 'fallen') return -(this.fallFacing || this.facing || 1);
+    if (this.state === 'fallen') return this.fallFacing || this.facing || 1;
     return this.facing || 1;
   }
 

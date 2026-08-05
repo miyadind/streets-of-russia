@@ -290,7 +290,7 @@ class BastardEnemy {
   }
 
   getDrawFacing() {
-    if (this.state === 'fallen') return -(this.fallFacing || this.facing || 1);
+    if (this.state === 'fallen') return this.fallFacing || this.facing || 1;
     return this.facing || 1;
   }
 

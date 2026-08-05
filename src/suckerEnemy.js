@@ -213,6 +213,7 @@ class SuckerEnemy extends DogRegimeEnemy {
     this.attackTimer = 0;
     this.attackHasHit = false;
     this.x += player.facing * 90;
+    this.facing = player.facing || this.facing || 1;
     if (this.hp <= 0) {
       this.alive = false;
       this.state = 'dead';
