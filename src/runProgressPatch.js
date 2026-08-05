@@ -194,6 +194,7 @@
   };
 
   Menu.draw = function (ctx, images) {
+    ctx.save();
     ctx.drawImage(images.main, 0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
     ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
     ctx.fillRect(0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
@@ -212,13 +213,14 @@
       ctx.strokeRect(box.x, box.y, box.w, box.h);
       ctx.font = 'bold 28px Arial';
       ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
       ctx.fillStyle = '#ffffff';
       ctx.strokeStyle = '#000000';
       ctx.lineWidth = 4;
-      ctx.strokeText(items[i].label, box.x + box.w / 2, box.y + 36);
-      ctx.fillText(items[i].label, box.x + box.w / 2, box.y + 36);
+      ctx.strokeText(items[i].label, box.x + box.w / 2, box.y + box.h / 2 + 1);
+      ctx.fillText(items[i].label, box.x + box.w / 2, box.y + box.h / 2 + 1);
     }
-    ctx.textAlign = 'left';
+    ctx.restore();
   };
 
   if (typeof CharacterSelect !== 'undefined') {
