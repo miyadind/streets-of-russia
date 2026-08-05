@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.202",
+  "buildVersion": "0.4.203",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -7454,10 +7454,10 @@ class LevelScene {
   }
 
   dropPickup(type, x, y, options = {}) {
-    if (!type) return;
+    if (!type) return null;
     if (type === 'supportFigure') {
       type = this.reserveSupportFigure();
-      if (!type) return;
+      if (!type) return null;
     }
     const rawX = Number.isFinite(x) ? x : GAME_CONFIG.width / 2;
     const rawY = Number.isFinite(y) ? y : GAME_CONFIG.laneBottom;
@@ -7465,10 +7465,11 @@ class LevelScene {
     const safeY = Math.max(GAME_CONFIG.laneTop + 35, Math.min(GAME_CONFIG.laneBottom, rawY));
     if (options.immediate) {
       this.pickups.push(new HealthPickup(type, safeX, safeY, this.images));
-      return;
+      return type;
     }
     if (!this.pendingPickupDrops) this.pendingPickupDrops = [];
     this.pendingPickupDrops.push({ type, x: safeX, y: safeY });
+    return type;
   }
 
   addSupportFigure(type) {
@@ -7488,8 +7489,10 @@ class LevelScene {
     const collected = Array.isArray(game.supportFigures) ? game.supportFigures : [];
     const unavailable = new Set([...reserved, ...collected]);
     const available = allFigures.filter(type => !unavailable.has(type));
-    if (!available.length) return null;
-    const type = available[Math.floor(Math.random() * available.length)];
+    // A broken or long-running dev session must never make a completed object
+    // silently lose its reward. Duplicates are allowed only after all 19 are used.
+    const pool = available.length ? available : allFigures;
+    const type = pool[Math.floor(Math.random() * pool.length)];
     if (!Array.isArray(game.supportFigureDrops)) game.supportFigureDrops = [];
     game.supportFigureDrops.push(type);
     return type;
@@ -11871,12 +11874,12 @@ window.addEventListener('load', () => {
     if (state.hits >= (item.hitsToReplace || 3)) {
       state.replaced = true;
       state.flashMs = 0;
+      if (hasFruitBurst(item)) spawnFruitBurst(state, item, 3);
       if (!state.pickupDropped && item.dropPickup && scene.dropPickup) {
         const rect = item.hitbox || item.effectRect || {};
         const x = Number.isFinite(item.dropX) ? item.dropX : (rect.x || 0) + (rect.w || 0) / 2;
         const y = Number.isFinite(item.dropY) ? item.dropY : (item.laneY || GAME_CONFIG.laneBottom);
-        scene.dropPickup(item.dropPickup, x, y, { immediate: item.dropPickup === 'supportFigure' });
-        state.pickupDropped = true;
+        state.pickupDropped = !!scene.dropPickup(item.dropPickup, x, y, { immediate: item.dropPickup === 'supportFigure' });
       }
       AudioManager.playSfx('enemyDown', 0.82, { playbackRate: 0.92, startAt: 0.02 });
       return;
@@ -11890,9 +11893,9 @@ window.addEventListener('load', () => {
     });
   }
 
-  function spawnFruitBurst(state, item) {
+  function spawnFruitBurst(state, item, count = 2) {
     const rect = item.effectRect || item.hitbox || { x: 0, y: 0, w: 0, h: 0 };
-    for (let index = 0; index < 2; index++) {
+    for (let index = 0; index < count; index++) {
       state.fruitBits.push({
         x: rect.x + rect.w * (0.35 + Math.random() * 0.3),
         y: rect.y + rect.h * (0.52 + Math.random() * 0.18),

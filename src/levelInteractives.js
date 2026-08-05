@@ -74,12 +74,12 @@
     if (state.hits >= (item.hitsToReplace || 3)) {
       state.replaced = true;
       state.flashMs = 0;
+      if (hasFruitBurst(item)) spawnFruitBurst(state, item, 3);
       if (!state.pickupDropped && item.dropPickup && scene.dropPickup) {
         const rect = item.hitbox || item.effectRect || {};
         const x = Number.isFinite(item.dropX) ? item.dropX : (rect.x || 0) + (rect.w || 0) / 2;
         const y = Number.isFinite(item.dropY) ? item.dropY : (item.laneY || GAME_CONFIG.laneBottom);
-        scene.dropPickup(item.dropPickup, x, y, { immediate: item.dropPickup === 'supportFigure' });
-        state.pickupDropped = true;
+        state.pickupDropped = !!scene.dropPickup(item.dropPickup, x, y, { immediate: item.dropPickup === 'supportFigure' });
       }
       AudioManager.playSfx('enemyDown', 0.82, { playbackRate: 0.92, startAt: 0.02 });
       return;
@@ -93,9 +93,9 @@
     });
   }
 
-  function spawnFruitBurst(state, item) {
+  function spawnFruitBurst(state, item, count = 2) {
     const rect = item.effectRect || item.hitbox || { x: 0, y: 0, w: 0, h: 0 };
-    for (let index = 0; index < 2; index++) {
+    for (let index = 0; index < count; index++) {
       state.fruitBits.push({
         x: rect.x + rect.w * (0.35 + Math.random() * 0.3),
         y: rect.y + rect.h * (0.52 + Math.random() * 0.18),
