@@ -619,9 +619,10 @@ const DevPanel = {
       this.migrateBuildDefaults(data);
       const restoredFarEast = this.restoreStaleFarEastWaves(data);
       const repairedPosterDrop = this.repairReleasedPosterDrop();
+      const repairedFruitKiosk = this.repairFruitKiosk();
       this.migrateConfig();
       this.ensureLevels();
-      if (restoredFarEast || repairedPosterDrop) {
+      if (restoredFarEast || repairedPosterDrop || repairedFruitKiosk) {
         localStorage.setItem('streetsOfRussia.tuning', JSON.stringify(GAME_CONFIG));
         this.setStatus('Applied released Far East settings');
       } else {
@@ -641,6 +642,28 @@ const DevPanel = {
     if (!poster || !defaultPoster || poster.dropPickup === defaultPoster.dropPickup) return false;
     poster.dropPickup = defaultPoster.dropPickup;
     return true;
+  },
+
+  repairFruitKiosk() {
+    const level = GAME_CONFIG.levels && GAME_CONFIG.levels.street03;
+    const defaults = DEFAULT_GAME_CONFIG.levels && DEFAULT_GAME_CONFIG.levels.street03;
+    const defaultKiosk = defaults && defaults.interactives && defaults.interactives.find((item) => item.id === 'fruitKiosk');
+    if (!level || !defaultKiosk) return false;
+
+    if (!Array.isArray(level.interactives)) level.interactives = [];
+    let kiosk = level.interactives.find((item) => item.id === 'fruitKiosk');
+    if (!kiosk) {
+      level.interactives.push(JSON.parse(JSON.stringify(defaultKiosk)));
+      return true;
+    }
+
+    let repaired = false;
+    for (const key of ['type', 'hitsToReplace', 'requiresBossDefeat', 'damageEffect', 'dropPickup', 'dropX', 'dropY']) {
+      if (kiosk[key] === defaultKiosk[key]) continue;
+      kiosk[key] = JSON.parse(JSON.stringify(defaultKiosk[key]));
+      repaired = true;
+    }
+    return repaired;
   },
 
   restoreStaleFarEastWaves(savedConfig) {

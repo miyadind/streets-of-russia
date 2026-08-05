@@ -13,8 +13,18 @@
     return item && (item.type === 'breakablePoster' || item.type === 'breakableObject');
   }
 
+  // Older dev exports predate the kiosk-specific fields, so its id remains the stable behavior key.
+  function isFruitKiosk(item) {
+    return !!(item && item.id === 'fruitKiosk');
+  }
+
+  function hasFruitBurst(item) {
+    return isFruitKiosk(item) || !!(item && item.damageEffect === 'fruitBurst');
+  }
+
   function isInteractiveUnlocked(scene, item) {
-    return !item || !item.requiresBossDefeat || !!(scene && (scene.gundosBossDefeated || scene.bossVictoryReady));
+    const requiresBossDefeat = item && (item.requiresBossDefeat || isFruitKiosk(item));
+    return !requiresBossDefeat || !!(scene && (scene.gundosBossDefeated || scene.bossVictoryReady));
   }
 
   function getVehicleObstacles(level) {
@@ -75,7 +85,7 @@
       return;
     }
 
-    if (item.damageEffect === 'fruitBurst') spawnFruitBurst(state, item);
+    if (hasFruitBurst(item)) spawnFruitBurst(state, item);
 
     AudioManager.playSfx('hit', 0.76, {
       playbackRate: 0.82 + state.hits * 0.08,
@@ -339,8 +349,8 @@
 
       if (!isBreakableSupportObject(item)) continue;
       const state = getPosterState(this, item);
-      if (!state.replaced && item.damageEffect !== 'fruitBurst') drawPosterDamage(ctx, item, state);
-      if (item.damageEffect === 'fruitBurst') drawFruitBurst(ctx, state);
+      if (!state.replaced && !hasFruitBurst(item)) drawPosterDamage(ctx, item, state);
+      if (hasFruitBurst(item)) drawFruitBurst(ctx, state);
 
       if (this.debug || showObjectEditor) {
         ctx.save();

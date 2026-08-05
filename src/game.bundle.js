@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.196",
+  "buildVersion": "0.4.197",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -8107,9 +8107,10 @@ const DevPanel = {
       this.migrateBuildDefaults(data);
       const restoredFarEast = this.restoreStaleFarEastWaves(data);
       const repairedPosterDrop = this.repairReleasedPosterDrop();
+      const repairedFruitKiosk = this.repairFruitKiosk();
       this.migrateConfig();
       this.ensureLevels();
-      if (restoredFarEast || repairedPosterDrop) {
+      if (restoredFarEast || repairedPosterDrop || repairedFruitKiosk) {
         localStorage.setItem('streetsOfRussia.tuning', JSON.stringify(GAME_CONFIG));
         this.setStatus('Applied released Far East settings');
       } else {
@@ -8129,6 +8130,28 @@ const DevPanel = {
     if (!poster || !defaultPoster || poster.dropPickup === defaultPoster.dropPickup) return false;
     poster.dropPickup = defaultPoster.dropPickup;
     return true;
+  },
+
+  repairFruitKiosk() {
+    const level = GAME_CONFIG.levels && GAME_CONFIG.levels.street03;
+    const defaults = DEFAULT_GAME_CONFIG.levels && DEFAULT_GAME_CONFIG.levels.street03;
+    const defaultKiosk = defaults && defaults.interactives && defaults.interactives.find((item) => item.id === 'fruitKiosk');
+    if (!level || !defaultKiosk) return false;
+
+    if (!Array.isArray(level.interactives)) level.interactives = [];
+    let kiosk = level.interactives.find((item) => item.id === 'fruitKiosk');
+    if (!kiosk) {
+      level.interactives.push(JSON.parse(JSON.stringify(defaultKiosk)));
+      return true;
+    }
+
+    let repaired = false;
+    for (const key of ['type', 'hitsToReplace', 'requiresBossDefeat', 'damageEffect', 'dropPickup', 'dropX', 'dropY']) {
+      if (kiosk[key] === defaultKiosk[key]) continue;
+      kiosk[key] = JSON.parse(JSON.stringify(defaultKiosk[key]));
+      repaired = true;
+    }
+    return repaired;
   },
 
   restoreStaleFarEastWaves(savedConfig) {
@@ -11715,8 +11738,18 @@ window.addEventListener('load', () => {
     return item && (item.type === 'breakablePoster' || item.type === 'breakableObject');
   }
 
+  // Older dev exports predate the kiosk-specific fields, so its id remains the stable behavior key.
+  function isFruitKiosk(item) {
+    return !!(item && item.id === 'fruitKiosk');
+  }
+
+  function hasFruitBurst(item) {
+    return isFruitKiosk(item) || !!(item && item.damageEffect === 'fruitBurst');
+  }
+
   function isInteractiveUnlocked(scene, item) {
-    return !item || !item.requiresBossDefeat || !!(scene && (scene.gundosBossDefeated || scene.bossVictoryReady));
+    const requiresBossDefeat = item && (item.requiresBossDefeat || isFruitKiosk(item));
+    return !requiresBossDefeat || !!(scene && (scene.gundosBossDefeated || scene.bossVictoryReady));
   }
 
   function getVehicleObstacles(level) {
@@ -11777,7 +11810,7 @@ window.addEventListener('load', () => {
       return;
     }
 
-    if (item.damageEffect === 'fruitBurst') spawnFruitBurst(state, item);
+    if (hasFruitBurst(item)) spawnFruitBurst(state, item);
 
     AudioManager.playSfx('hit', 0.76, {
       playbackRate: 0.82 + state.hits * 0.08,
@@ -12041,8 +12074,8 @@ window.addEventListener('load', () => {
 
       if (!isBreakableSupportObject(item)) continue;
       const state = getPosterState(this, item);
-      if (!state.replaced && item.damageEffect !== 'fruitBurst') drawPosterDamage(ctx, item, state);
-      if (item.damageEffect === 'fruitBurst') drawFruitBurst(ctx, state);
+      if (!state.replaced && !hasFruitBurst(item)) drawPosterDamage(ctx, item, state);
+      if (hasFruitBurst(item)) drawFruitBurst(ctx, state);
 
       if (this.debug || showObjectEditor) {
         ctx.save();
