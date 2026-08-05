@@ -5,6 +5,7 @@
   const INTRO_MUSIC_VOLUME = 0.42;
   const INTRO_VOICE_VOLUME = 0.72;
   const INTRO_SKIP_REVEAL_SECONDS = 0.9;
+  const INTRO_SKIP_LOCK_SECONDS = 5;
   const INTRO_VOICE_TEXT_SCALE = 0.90;
   const INTRO_FINAL_PAUSE_TRIM_SECONDS = 0.5;
   const INTRO_FINAL_PAUSE_TRIM_START_PROGRESS = 0.88;
@@ -151,6 +152,7 @@
       voice.currentTime = 0;
       voice.play().catch((error) => {
         this.intro.voiceStarted = false;
+        this.intro.voiceMissing = true;
         console.warn('[INTRO AUDIO FLOW] Intro voice failed:', error);
       });
     } catch (error) {
@@ -196,6 +198,7 @@
     this.intro.skipRequested = false;
     this.intro.skipElapsed = 0;
     this.intro.voiceSkipped = false;
+    this.intro.voiceMissing = false;
     this.intro.finalNaturalFinishActive = false;
     this.intro.finalHoldActive = false;
     this.intro.finalHoldRemaining = 0;
@@ -384,13 +387,22 @@
       return;
     }
 
-    if (requestedAction) this.requestIntroSkip();
+    const voiceElapsed = this.intro.voice && Number.isFinite(this.intro.voice.currentTime)
+      ? this.intro.voice.currentTime
+      : 0;
+    const skipUnlocked = Math.max(this.intro.time || 0, voiceElapsed) >= INTRO_SKIP_LOCK_SECONDS;
+    if (requestedAction && skipUnlocked) this.requestIntroSkip();
 
     const voiceProgress = this.getIntroVoiceProgress();
     if (voiceProgress != null && this.intro.totalTimelineDuration > 0) {
       this.intro.time = mapVoiceProgressToTextTime(voiceProgress, this.intro.totalTimelineDuration);
       return;
     }
+
+    // Do not advance the fallback text before the voice has either started or
+    // genuinely failed. Otherwise the first line flashes, then jumps backward.
+    const waitingForVoice = this.intro.voice && !this.intro.voiceStarted && !this.intro.voiceMissing && !this.intro.voiceSkipped;
+    if (waitingForVoice) return;
 
     if (this.intro.skipRequested && this.intro.totalTimelineDuration > 0) {
       this.intro.skipElapsed += dt / 1000;
