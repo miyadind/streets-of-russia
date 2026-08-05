@@ -775,11 +775,7 @@ const DevPanel = {
       'enemies.gundos.entranceY': 720,
       'enemies.gundos.arenaBottom': 720,
       'enemies.gundos.deathHoldMs': 5000,
-      'enemies.gundos.victoryDelayMs': 4800,
-      'levels.street01.interactives.0.hitbox.x': 342,
-      'levels.street01.interactives.0.hitbox.y': 272,
-      'levels.street01.interactives.0.hitbox.w': 128,
-      'levels.street01.interactives.0.hitbox.h': 146
+      'enemies.gundos.victoryDelayMs': 4800
     };
 
     for (const path of Object.keys(defaults)) {

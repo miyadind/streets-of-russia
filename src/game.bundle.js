@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.218",
+  "buildVersion": "0.4.219",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -582,10 +582,10 @@ const GAME_CONFIG = {
           "laneY": 533,
           "laneTolerance": 38,
           "hitbox": {
-            "x": 342,
-            "y": 272,
-            "w": 128,
-            "h": 146
+            "x": 362,
+            "y": 320,
+            "w": 68,
+            "h": 150
           },
           "effectRect": {
             "x": 360,
@@ -8383,11 +8383,7 @@ const DevPanel = {
       'enemies.gundos.entranceY': 720,
       'enemies.gundos.arenaBottom': 720,
       'enemies.gundos.deathHoldMs': 5000,
-      'enemies.gundos.victoryDelayMs': 4800,
-      'levels.street01.interactives.0.hitbox.x': 342,
-      'levels.street01.interactives.0.hitbox.y': 272,
-      'levels.street01.interactives.0.hitbox.w': 128,
-      'levels.street01.interactives.0.hitbox.h': 146
+      'enemies.gundos.victoryDelayMs': 4800
     };
 
     for (const path of Object.keys(defaults)) {
