@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  "buildVersion": "0.4.211",
+  "buildVersion": "0.4.212",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -823,10 +823,10 @@ const GAME_CONFIG = {
           "laneY": 620,
           "laneTolerance": 65,
           "hitbox": {
-            "x": 0,
+            "x": 1138,
             "y": 405,
-            "w": 515,
-            "h": 222
+            "w": 328,
+            "h": 230
           }
         }
       ],

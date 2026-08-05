@@ -776,7 +776,11 @@ const DevPanel = {
       'levels.street01.interactives.0.hitbox.x': 342,
       'levels.street01.interactives.0.hitbox.y': 272,
       'levels.street01.interactives.0.hitbox.w': 128,
-      'levels.street01.interactives.0.hitbox.h': 146
+      'levels.street01.interactives.0.hitbox.h': 146,
+      'levels.siberia02.interactives.0.hitbox.x': DEFAULT_GAME_CONFIG.levels.siberia02.interactives[0].hitbox.x,
+      'levels.siberia02.interactives.0.hitbox.y': DEFAULT_GAME_CONFIG.levels.siberia02.interactives[0].hitbox.y,
+      'levels.siberia02.interactives.0.hitbox.w': DEFAULT_GAME_CONFIG.levels.siberia02.interactives[0].hitbox.w,
+      'levels.siberia02.interactives.0.hitbox.h': DEFAULT_GAME_CONFIG.levels.siberia02.interactives[0].hitbox.h
     };
 
     for (const path of Object.keys(defaults)) {

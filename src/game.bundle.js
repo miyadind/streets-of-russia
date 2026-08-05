@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.211",
+  "buildVersion": "0.4.212",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -830,10 +830,10 @@ const GAME_CONFIG = {
           "laneY": 620,
           "laneTolerance": 65,
           "hitbox": {
-            "x": 0,
+            "x": 1138,
             "y": 405,
-            "w": 515,
-            "h": 222
+            "w": 328,
+            "h": 230
           }
         }
       ],
@@ -8382,7 +8382,11 @@ const DevPanel = {
       'levels.street01.interactives.0.hitbox.x': 342,
       'levels.street01.interactives.0.hitbox.y': 272,
       'levels.street01.interactives.0.hitbox.w': 128,
-      'levels.street01.interactives.0.hitbox.h': 146
+      'levels.street01.interactives.0.hitbox.h': 146,
+      'levels.siberia02.interactives.0.hitbox.x': DEFAULT_GAME_CONFIG.levels.siberia02.interactives[0].hitbox.x,
+      'levels.siberia02.interactives.0.hitbox.y': DEFAULT_GAME_CONFIG.levels.siberia02.interactives[0].hitbox.y,
+      'levels.siberia02.interactives.0.hitbox.w': DEFAULT_GAME_CONFIG.levels.siberia02.interactives[0].hitbox.w,
+      'levels.siberia02.interactives.0.hitbox.h': DEFAULT_GAME_CONFIG.levels.siberia02.interactives[0].hitbox.h
     };
 
     for (const path of Object.keys(defaults)) {
