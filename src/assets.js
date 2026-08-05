@@ -31,7 +31,8 @@ window.Assets = {
       zetnikCrash:'assets/enemies/zetnik/crash.mp3?v=zetnik-audio-1',
       goydenishThrow:'assets/enemies/goydenish/Throw.mp3?v=goydenish-throw-1',
       negayWhiplash:'assets/enemies/NEgay/WhiplashFinal.mp3?v=negay-sfx-1',
-      negayDeath:'assets/enemies/NEgay/death.mp3?v=negay-sfx-1'
+      negayDeath:'assets/enemies/NEgay/death.mp3?v=negay-sfx-1',
+      garageGateMetal:'assets/audio/sfx/metal sound.mp3'
     }
   },
   boris:{
