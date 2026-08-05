@@ -255,6 +255,7 @@ class Player {
 
       const direction = Math.sign(enemy.x - this.x) || this.facing || 1;
       if (typeof enemy.startKnockdown === 'function') enemy.startKnockdown(direction, 145);
+      else if (enemy.enemyType === 'bastard' && typeof enemy.takeHit === 'function') enemy.takeHit(0, direction, 145);
       else if (typeof enemy.startHitStun === 'function') enemy.startHitStun(720);
     }
     scene.hitStop = Math.max(scene.hitStop || 0, 70);

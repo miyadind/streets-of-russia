@@ -58,6 +58,16 @@ class ZetnikEnemy extends DogRegimeEnemy {
   update(dt, scene) {
     if (this.remove) return;
 
+    if (this.alive && this.state === 'knockdown') {
+      this.knockdownTimer -= dt;
+      this.clampToScreen();
+      if (this.knockdownTimer <= 0) {
+        this.state = 'charge';
+        this.hitStun = 0;
+      }
+      return;
+    }
+
     if (this.gundosMinion) {
       this.updateGundosMinion(dt, scene);
       return;
@@ -468,6 +478,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
   getImage() {
     const enemyImages = this.getEnemyImages();
     if (!this.alive || this.state === 'crash') return enemyImages.crashed || enemyImages.dead || enemyImages.attack[0] || enemyImages.idle;
+    if (this.state === 'knockdown') return enemyImages.dead || enemyImages.idle;
     if (this.gundosGuarding) return enemyImages.preparing || enemyImages.attack[0] || enemyImages.idle;
     if (this.gundosMinion) return this.redirectedToBoss
       ? (enemyImages.fly || enemyImages.preparing || enemyImages.attack[0] || enemyImages.idle)

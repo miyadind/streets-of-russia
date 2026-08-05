@@ -53,6 +53,16 @@ class SuckerEnemy extends DogRegimeEnemy {
       return;
     }
 
+    if (this.state === 'knockdown') {
+      this.knockdownTimer -= dt;
+      this.clampToScreen();
+      if (this.knockdownTimer <= 0) {
+        this.state = 'reposition';
+        this.hitStun = 0;
+      }
+      return;
+    }
+
     if (this.flash > 0) this.flash -= dt;
 
     if (this.hitStun > 0) {
@@ -398,6 +408,7 @@ class SuckerEnemy extends DogRegimeEnemy {
   getImage() {
     const enemyImages = this.getEnemyImages();
     if (!this.alive) return enemyImages.dead;
+    if (this.state === 'knockdown') return enemyImages.dead || enemyImages.idle;
     if (this.state === 'slide') return enemyImages.slide || enemyImages.attack[0];
     if (this.state === 'pinBite') return enemyImages.bite[this.biteFrame] || enemyImages.attack[0];
     if (this.state === 'windup') return enemyImages.idle;

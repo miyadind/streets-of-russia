@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.204",
+  "buildVersion": "0.4.205",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -2964,6 +2964,7 @@ class Player {
 
       const direction = Math.sign(enemy.x - this.x) || this.facing || 1;
       if (typeof enemy.startKnockdown === 'function') enemy.startKnockdown(direction, 145);
+      else if (enemy.enemyType === 'bastard' && typeof enemy.takeHit === 'function') enemy.takeHit(0, direction, 145);
       else if (typeof enemy.startHitStun === 'function') enemy.startHitStun(720);
     }
     scene.hitStop = Math.max(scene.hitStop || 0, 70);
@@ -4270,6 +4271,16 @@ class ZetnikEnemy extends DogRegimeEnemy {
   update(dt, scene) {
     if (this.remove) return;
 
+    if (this.alive && this.state === 'knockdown') {
+      this.knockdownTimer -= dt;
+      this.clampToScreen();
+      if (this.knockdownTimer <= 0) {
+        this.state = 'charge';
+        this.hitStun = 0;
+      }
+      return;
+    }
+
     if (this.gundosMinion) {
       this.updateGundosMinion(dt, scene);
       return;
@@ -4680,6 +4691,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
   getImage() {
     const enemyImages = this.getEnemyImages();
     if (!this.alive || this.state === 'crash') return enemyImages.crashed || enemyImages.dead || enemyImages.attack[0] || enemyImages.idle;
+    if (this.state === 'knockdown') return enemyImages.dead || enemyImages.idle;
     if (this.gundosGuarding) return enemyImages.preparing || enemyImages.attack[0] || enemyImages.idle;
     if (this.gundosMinion) return this.redirectedToBoss
       ? (enemyImages.fly || enemyImages.preparing || enemyImages.attack[0] || enemyImages.idle)
@@ -4771,6 +4783,16 @@ class SuckerEnemy extends DogRegimeEnemy {
     if (!this.alive) {
       this.deadTimer += dt;
       if (this.deadTimer > GAME_CONFIG.enemyDeathFadeMs) this.remove = true;
+      return;
+    }
+
+    if (this.state === 'knockdown') {
+      this.knockdownTimer -= dt;
+      this.clampToScreen();
+      if (this.knockdownTimer <= 0) {
+        this.state = 'reposition';
+        this.hitStun = 0;
+      }
       return;
     }
 
@@ -5119,6 +5141,7 @@ class SuckerEnemy extends DogRegimeEnemy {
   getImage() {
     const enemyImages = this.getEnemyImages();
     if (!this.alive) return enemyImages.dead;
+    if (this.state === 'knockdown') return enemyImages.dead || enemyImages.idle;
     if (this.state === 'slide') return enemyImages.slide || enemyImages.attack[0];
     if (this.state === 'pinBite') return enemyImages.bite[this.biteFrame] || enemyImages.attack[0];
     if (this.state === 'windup') return enemyImages.idle;
