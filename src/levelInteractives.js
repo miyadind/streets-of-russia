@@ -13,6 +13,12 @@
     return item && (item.type === 'breakablePoster' || item.type === 'breakableObject');
   }
 
+  // Reward objects use their visible hitbox directly. Unlike enemies, they do
+  // not require the player to stand on a particular movement lane.
+  function usesDirectAttackHitbox(item) {
+    return isBreakableSupportObject(item) && !!item.dropPickup;
+  }
+
   // Older dev exports predate the kiosk-specific fields, so its id remains the stable behavior key.
   function isFruitKiosk(item) {
     return !!(item && item.id === 'fruitKiosk');
@@ -56,7 +62,11 @@
     if (!player || !isInteractiveUnlocked(scene, item) || state.replaced || player.attackHasHit || !isAttackActive(player)) return false;
     const attackBox = player.getHitbox && player.getHitbox();
     const posterBox = item.effectRect || item.hitbox;
-    if (!attackBox || !posterBox) return false;
+    if (!attackBox || !posterBox || !item.hitbox) return false;
+
+    if (usesDirectAttackHitbox(item)) {
+      return Combat.overlap(attackBox, item.hitbox);
+    }
 
     if (item.strictHitbox && typeof Combat !== 'undefined' && Combat.canInteractHit) {
       return Combat.canInteractHit(player, {
@@ -398,7 +408,7 @@
           ctx.strokeStyle = 'rgba(80, 190, 255, 0.9)';
           ctx.strokeRect(item.effectRect.x, item.effectRect.y, item.effectRect.w, item.effectRect.h);
         }
-        if (Number.isFinite(item.laneY)) {
+        if (!usesDirectAttackHitbox(item) && Number.isFinite(item.laneY)) {
           ctx.strokeStyle = 'rgba(80,255,120,0.85)';
           ctx.beginPath();
           ctx.moveTo(item.hitbox.x - 24, item.laneY);
@@ -485,7 +495,7 @@
       if (item && item.drawRect) keys.push('drawRect');
       if (item && item.blockBox) keys.push('blockBox');
       if (item && item.effectRect) keys.push('effectRect');
-      if (item && Number.isFinite(item.laneY)) keys.push('lane');
+      if (item && !usesDirectAttackHitbox(item) && Number.isFinite(item.laneY)) keys.push('lane');
       if (!keys.length) keys.push('hitbox');
       return keys;
     };
