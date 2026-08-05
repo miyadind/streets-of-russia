@@ -97,6 +97,7 @@ window.Assets = {
     attack:['assets/enemies/NEgay/Whiplash.png?v=negay-refresh-2','assets/enemies/NEgay/WhiplashFinal.png?v=negay-final-1'],
     dead:'assets/enemies/NEgay/knockdown.png?v=negay-refresh-2'
   },
+  supportFigureCount: 18,
   pickups:{
     medkit:'assets/pickups/medkit.png?v=pickup-rebuilt-2',
     pirozhok:'assets/pickups/pirozhok.png?v=pickup-rebuilt-2',
@@ -104,7 +105,7 @@ window.Assets = {
   }
 };
 
-for (let i = 1; i <= 19; i++) {
+for (let i = 1; i <= Assets.supportFigureCount; i++) {
   const id = 'support' + String(i).padStart(2, '0');
   Assets.pickups[id] = 'assets/support/support-' + String(i).padStart(2, '0') + '.webp';
 }

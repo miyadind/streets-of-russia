@@ -796,7 +796,7 @@ class LevelScene {
   }
 
   reserveSupportFigure() {
-    const allFigures = Array.from({ length: 19 }, (_, index) => 'support' + String(index + 1).padStart(2, '0'));
+    const allFigures = Array.from({ length: Assets.supportFigureCount }, (_, index) => 'support' + String(index + 1).padStart(2, '0'));
     const game = this.game || {};
     const reserved = Array.isArray(game.supportFigureDrops) ? game.supportFigureDrops : [];
     const collected = Array.isArray(game.supportFigures) ? game.supportFigures : [];

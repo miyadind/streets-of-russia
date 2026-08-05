@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.212",
+  "buildVersion": "0.4.213",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -1522,6 +1522,7 @@ window.Assets = {
     attack:['assets/enemies/NEgay/Whiplash.png?v=negay-refresh-2','assets/enemies/NEgay/WhiplashFinal.png?v=negay-final-1'],
     dead:'assets/enemies/NEgay/knockdown.png?v=negay-refresh-2'
   },
+  supportFigureCount: 18,
   pickups:{
     medkit:'assets/pickups/medkit.png?v=pickup-rebuilt-2',
     pirozhok:'assets/pickups/pirozhok.png?v=pickup-rebuilt-2',
@@ -1529,7 +1530,7 @@ window.Assets = {
   }
 };
 
-for (let i = 1; i <= 19; i++) {
+for (let i = 1; i <= Assets.supportFigureCount; i++) {
   const id = 'support' + String(i).padStart(2, '0');
   Assets.pickups[id] = 'assets/support/support-' + String(i).padStart(2, '0') + '.webp';
 }
@@ -7547,7 +7548,7 @@ class LevelScene {
   }
 
   reserveSupportFigure() {
-    const allFigures = Array.from({ length: 19 }, (_, index) => 'support' + String(index + 1).padStart(2, '0'));
+    const allFigures = Array.from({ length: Assets.supportFigureCount }, (_, index) => 'support' + String(index + 1).padStart(2, '0'));
     const game = this.game || {};
     const reserved = Array.isArray(game.supportFigureDrops) ? game.supportFigureDrops : [];
     const collected = Array.isArray(game.supportFigures) ? game.supportFigures : [];
@@ -11215,7 +11216,7 @@ class GameApp {
       dogDead: Assets.dog.dead,
       pickupMedkit: Assets.pickups && Assets.pickups.medkit
     };
-    for (let i = 1; i <= 19; i++) {
+    for (let i = 1; i <= Assets.supportFigureCount; i++) {
       const id = 'support' + String(i).padStart(2, '0');
       paths['pickup' + id] = Assets.pickups && Assets.pickups[id];
     }
@@ -11255,7 +11256,7 @@ class GameApp {
       }
     };
     this.images.pickups = { medkit: loaded.pickupMedkit };
-    for (let i = 1; i <= 19; i++) {
+    for (let i = 1; i <= Assets.supportFigureCount; i++) {
       const id = 'support' + String(i).padStart(2, '0');
       this.images.pickups[id] = loaded['pickup' + id];
     }
@@ -11359,7 +11360,7 @@ class GameApp {
       pickupPirozhok: Assets.pickups && Assets.pickups.pirozhok,
       pickupTea: Assets.pickups && Assets.pickups.tea
     };
-    for (let i = 1; i <= 19; i++) {
+    for (let i = 1; i <= Assets.supportFigureCount; i++) {
       const id = 'support' + String(i).padStart(2, '0');
       paths['pickup' + id] = Assets.pickups && Assets.pickups[id];
     }
@@ -11464,7 +11465,7 @@ class GameApp {
       pirozhok: loaded.pickupPirozhok,
       tea: loaded.pickupTea
     };
-    for (let i = 1; i <= 19; i++) {
+    for (let i = 1; i <= Assets.supportFigureCount; i++) {
       const id = 'support' + String(i).padStart(2, '0');
       loaded.pickups[id] = loaded['pickup' + id];
     }
