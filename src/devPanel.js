@@ -625,9 +625,10 @@ const DevPanel = {
       const repairedPosterDrop = this.repairReleasedPosterDrop();
       const repairedFruitKiosk = this.repairFruitKiosk();
       const repairedHeroInfo = this.repairHeroInfo();
+      const repairedWhipDamage = this.repairWhipDamage();
       this.migrateConfig();
       this.ensureLevels();
-      if (restoredFarEast || repairedPosterDrop || repairedFruitKiosk || repairedHeroInfo) {
+      if (restoredFarEast || repairedPosterDrop || repairedFruitKiosk || repairedHeroInfo || repairedWhipDamage) {
         localStorage.setItem('streetsOfRussia.tuning', JSON.stringify(GAME_CONFIG));
         this.setStatus('Applied released configuration updates');
       } else {
@@ -683,6 +684,18 @@ const DevPanel = {
         hero[key] = defaultHero[key];
         repaired = true;
       }
+    }
+    return repaired;
+  },
+
+  repairWhipDamage() {
+    const enemies = GAME_CONFIG.enemies || {};
+    const defaults = DEFAULT_GAME_CONFIG.enemies || {};
+    let repaired = false;
+    for (const key of ['horse', 'negay']) {
+      if (!enemies[key] || !defaults[key] || enemies[key].damage === defaults[key].damage) continue;
+      enemies[key].damage = defaults[key].damage;
+      repaired = true;
     }
     return repaired;
   },

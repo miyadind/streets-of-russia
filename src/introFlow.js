@@ -183,46 +183,52 @@
   };
 
   GameApp.prototype.startIntro = async function () {
-    if (!this.intro) return;
+    if (!this.intro || this.introStarting || this.state === 'intro') return;
+    this.introStarting = true;
 
-    if (this.storyAssetsPromise && !this.storyAssetsReady) {
-      this.setState('storyLoading');
-      await this.storyAssetsPromise;
+    try {
+
+      if (this.storyAssetsPromise && !this.storyAssetsReady) {
+        this.setState('storyLoading');
+        await this.storyAssetsPromise;
+      }
+
+      ensureIntroMusic(this);
+      installIntroVoiceEndHold(this);
+      AudioManager.stopMusic();
+      if (this.beginDeferredAssetLoad) this.beginDeferredAssetLoad();
+
+      this.intro.time = 0;
+      this.intro.skipUnlockAt = Number.POSITIVE_INFINITY;
+      this.intro.firstRun = !this.hasSeenIntro || !this.hasSeenIntro();
+      this.intro.fastForward = false;
+      this.intro.skipRequested = false;
+      this.intro.skipElapsed = 0;
+      this.intro.voiceSkipped = false;
+      this.intro.voiceMissing = false;
+      this.intro.finalNaturalFinishActive = false;
+      this.intro.finalHoldActive = false;
+      this.intro.finalHoldRemaining = 0;
+      this.intro.finalFadeActive = false;
+      this.intro.finalFadeElapsed = 0;
+      this.intro.readyToContinue = false;
+      this.intro.buttonFadeElapsed = 0;
+      this.intro.readerScroll = 0;
+      this.intro.lastTypedCursor = 0;
+      this.intro.lastTypeSoundAt = 0;
+      this.intro.voiceStarted = false;
+
+      if (this.intro.typewriterSound) this.intro.typewriterSound.load();
+      if (this.intro.voice) this.intro.voice.load();
+      if (this.intro.music) this.intro.music.load();
+      if (this.bindIntroWheel) this.bindIntroWheel();
+
+      this.setState('intro');
+      this.playIntroBackgroundMusic();
+      this.playIntroVoice();
+    } finally {
+      this.introStarting = false;
     }
-
-    ensureIntroMusic(this);
-    installIntroVoiceEndHold(this);
-    AudioManager.stopMusic();
-    if (this.beginDeferredAssetLoad) this.beginDeferredAssetLoad();
-
-    this.intro.time = 0;
-    this.intro.skipUnlockAt = Number.POSITIVE_INFINITY;
-    this.intro.firstRun = !this.hasSeenIntro || !this.hasSeenIntro();
-    this.intro.fastForward = false;
-    this.intro.skipRequested = false;
-    this.intro.skipElapsed = 0;
-    this.intro.voiceSkipped = false;
-    this.intro.voiceMissing = false;
-    this.intro.finalNaturalFinishActive = false;
-    this.intro.finalHoldActive = false;
-    this.intro.finalHoldRemaining = 0;
-    this.intro.finalFadeActive = false;
-    this.intro.finalFadeElapsed = 0;
-    this.intro.readyToContinue = false;
-    this.intro.buttonFadeElapsed = 0;
-    this.intro.readerScroll = 0;
-    this.intro.lastTypedCursor = 0;
-    this.intro.lastTypeSoundAt = 0;
-    this.intro.voiceStarted = false;
-
-    if (this.intro.typewriterSound) this.intro.typewriterSound.load();
-    if (this.intro.voice) this.intro.voice.load();
-    if (this.intro.music) this.intro.music.load();
-    if (this.bindIntroWheel) this.bindIntroWheel();
-
-    this.setState('intro');
-    this.playIntroBackgroundMusic();
-    this.playIntroVoice();
   };
 
   GameApp.prototype.finishIntro = function () {
@@ -405,7 +411,9 @@
 
     const voiceProgress = this.getIntroVoiceProgress();
     if (voiceProgress != null && this.intro.totalTimelineDuration > 0) {
-      this.intro.time = mapVoiceProgressToTextTime(voiceProgress, this.intro.totalTimelineDuration);
+      const voiceTime = mapVoiceProgressToTextTime(voiceProgress, this.intro.totalTimelineDuration);
+      // A late browser audio event must never erase already revealed opening text.
+      this.intro.time = Math.max(this.intro.time || 0, voiceTime);
       return;
     }
 
