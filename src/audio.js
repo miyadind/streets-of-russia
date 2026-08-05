@@ -522,6 +522,7 @@ const AudioManager = {
       menuBack: { start: 430, end: 260, duration: 0.13, gain: 0.18, type: 'triangle' },
       waveStart: { start: 360, end: 720, duration: 0.18, gain: 0.18, type: 'sawtooth' },
       waveClear: { start: 520, end: 980, duration: 0.2, gain: 0.2, type: 'triangle' },
+      revive: { start: 240, end: 1280, duration: 0.48, gain: 0.28, type: 'sine' },
       bossAppear: { start: 120, end: 220, duration: 0.28, gain: 0.22, type: 'sawtooth' }
     };
     const preset = presets[key];

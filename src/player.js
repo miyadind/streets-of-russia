@@ -38,10 +38,12 @@ class Player {
     this.pinnedBy = null;
     this.reviveTextTimer = 0;
     this.reviveText = '';
+    this.reviveBurstTimer = 0;
   }
 
   update(dt, scene) {
     if (this.reviveTextTimer > 0) this.reviveTextTimer = Math.max(0, this.reviveTextTimer - dt);
+    if (this.reviveBurstTimer > 0) this.reviveBurstTimer = Math.max(0, this.reviveBurstTimer - dt);
     if (this.invulnerableTimer > 0) this.invulnerableTimer = Math.max(0, this.invulnerableTimer - dt);
     if (this.flash > 0) this.flash = Math.max(0, this.flash - dt);
 
@@ -234,10 +236,28 @@ class Player {
     this.comboStep = 0;
     this.comboHits = 0;
     this.comboTimer = 0;
-    this.reviveText = '+' + restoredHp + ' HP';
+    this.reviveText = 'ВТОРОЕ ДЫХАНИЕ  +' + restoredHp + ' HP';
     this.reviveTextTimer = GAME_CONFIG.playerReviveTextMs || 1250;
-    AudioManager.playSfx('waveClear', 0.75, { playbackRate: 1.12 });
+    this.reviveBurstTimer = GAME_CONFIG.playerReviveBurstMs || 1000;
+    this.triggerReviveBurst();
+    AudioManager.playSfx('revive', 0.9);
     return true;
+  }
+
+  triggerReviveBurst() {
+    const scene = this.scene;
+    if (!scene || !Array.isArray(scene.enemies)) return;
+    const rangeX = GAME_CONFIG.playerReviveBurstRangeX || 235;
+    const rangeY = GAME_CONFIG.playerReviveBurstRangeY || 96;
+    for (const enemy of scene.enemies) {
+      if (!enemy || !enemy.alive || enemy.remove || enemy.enemyType === 'gundos' || enemy.enemyType === 'gundosFireball') continue;
+      if (Math.abs(enemy.x - this.x) > rangeX || Math.abs(enemy.y - this.y) > rangeY) continue;
+
+      const direction = Math.sign(enemy.x - this.x) || this.facing || 1;
+      if (typeof enemy.startKnockdown === 'function') enemy.startKnockdown(direction, 145);
+      else if (typeof enemy.startHitStun === 'function') enemy.startHitStun(720);
+    }
+    scene.hitStop = Math.max(scene.hitStop || 0, 70);
   }
 
   canBeKnockedDown() {
@@ -540,6 +560,22 @@ class Player {
     const drawFacing = knockdownDraw && knockdownDraw.facingMultiplier ? this.facing * knockdownDraw.facingMultiplier : this.facing;
     const drawX = knockdownDraw ? -(knockdownDraw.alphaCenterX || img.width / 2) * scale : -w / 2;
     const drawY = knockdownDraw ? -(knockdownDraw.alphaBottomY || img.height) * scale : -h;
+
+    if (this.reviveBurstTimer > 0) {
+      const duration = Math.max(1, GAME_CONFIG.playerReviveBurstMs || 1000);
+      const progress = 1 - Math.max(0, Math.min(1, this.reviveBurstTimer / duration));
+      const radius = 38 + progress * 210;
+      ctx.save();
+      ctx.globalAlpha = (1 - progress) * 0.8;
+      ctx.strokeStyle = '#8dffac';
+      ctx.shadowColor = '#41eaff';
+      ctx.shadowBlur = 20;
+      ctx.lineWidth = 8 - progress * 4;
+      ctx.beginPath();
+      ctx.ellipse(this.x, this.y - 12, radius, Math.max(14, radius * 0.24), 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
 
     ctx.save();
     ctx.translate(this.x, this.y);

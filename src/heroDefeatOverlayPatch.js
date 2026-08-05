@@ -8,7 +8,7 @@
   const previousCharacterUpdate = CharacterSelect.update;
   const previousCharacterDraw = CharacterSelect.draw;
   const previousDrawCard = CharacterSelect.drawCard;
-  const RECOVERY_DURATION_MS = 45000;
+  const RECOVERY_DURATION_MS = 90000;
 
   function isCasualtyOverlay(game) {
     return !!(game && game.state === 'characterSelect' && game.characterSelectMode === 'casualty' && game.scene);

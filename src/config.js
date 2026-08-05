@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  "buildVersion": "0.4.201",
+  "buildVersion": "0.4.202",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -25,7 +25,10 @@ const GAME_CONFIG = {
   "playerHurtFreezeMs": 280,
   "playerInvulnerableMs": 520,
   "playerReviveKnockdownMs": 950,
-  "playerReviveTextMs": 1250,
+  "playerReviveTextMs": 1700,
+  "playerReviveBurstMs": 1000,
+  "playerReviveBurstRangeX": 235,
+  "playerReviveBurstRangeY": 96,
   "heroDefeatHoldMs": 1150,
   "enemyBodyRadiusX": 42,
   "enemyBodyRadiusY": 20,
