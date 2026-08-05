@@ -77,6 +77,7 @@
       const selection = getSelectedLevel(map);
       game.devStartLevelKey = selection.key;
       game.devMapStartLevelKey = selection.key;
+      game.devSelectedStartLevelKey = selection.key;
       if (window.CampaignFlow && window.CampaignFlow.openCharacterSelect) {
         window.CampaignFlow.openCharacterSelect(game, 'campaignStart');
       } else {

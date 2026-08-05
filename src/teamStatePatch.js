@@ -102,9 +102,13 @@
     this.saveCurrentHeroHp();
     await previousStartLevel.call(this);
     if (this.scene && this.campaignMap && Number.isFinite(this.campaignMap.activeIndex)) {
-      const targetIndex = window.CampaignRuntime
-        ? window.CampaignRuntime.getActiveRegionStartIndex(this)
-        : Math.max(0, Math.min(this.scene.images.streets.length - 1, this.campaignMap.activeIndex * 3));
+      const order = GAME_CONFIG.levelOrder || [];
+      const requestedIndex = this.devSelectedStartLevelKey ? order.indexOf(this.devSelectedStartLevelKey) : -1;
+      const targetIndex = requestedIndex >= 0
+        ? requestedIndex
+        : (window.CampaignRuntime
+          ? window.CampaignRuntime.getActiveRegionStartIndex(this)
+          : Math.max(0, Math.min(this.scene.images.streets.length - 1, this.campaignMap.activeIndex * 3)));
       if (this.scene.screenIndex !== targetIndex) {
         if (window.CampaignRuntime) window.CampaignRuntime.setSceneScreen(this.scene, targetIndex);
         else {
@@ -112,6 +116,7 @@
           if (this.scene.spawnInitialWave) this.scene.spawnInitialWave();
         }
       }
+      this.devSelectedStartLevelKey = null;
     }
     if (this.scene && this.scene.player) {
       this.applySavedHeroHp(this.scene.player, this.scene.player.heroKey || this.selectedHero);
