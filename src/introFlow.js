@@ -11,6 +11,9 @@
   const INTRO_END_TEXT_HOLD_SECONDS = 3.0;
   const INTRO_TEXT_FADE_SECONDS = 1.45;
   const INTRO_BUTTON_FADE_SECONDS = 0.85;
+  // The opening line ends at 4.25s in intro-voice.mp3. Keep skipping locked
+  // until the spoken phrase, not merely its typewriter text, has finished.
+  const INTRO_SKIP_UNLOCK_VOICE_SECONDS = 4.3;
   const TYPE_CLICK_MIN_INTERVAL_MS = 165;
   const TYPE_CLICK_EVERY_CHARS = 5;
 
@@ -239,6 +242,10 @@
 
   GameApp.prototype.isIntroSkipUnlocked = function () {
     if (!this.intro) return false;
+    const voice = this.intro.voice;
+    if (voice && this.intro.voiceStarted && !this.intro.voiceMissing && !this.intro.voiceSkipped) {
+      return Number.isFinite(voice.currentTime) && voice.currentTime >= INTRO_SKIP_UNLOCK_VOICE_SECONDS;
+    }
     const unlockAt = this.intro.skipUnlockAt;
     return Number.isFinite(unlockAt) && (this.intro.time || 0) >= unlockAt;
   };
