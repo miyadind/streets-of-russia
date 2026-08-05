@@ -109,7 +109,7 @@ const HUD = {
     const now = performance.now();
     const pulse = 0.55 + 0.45 * Math.sin(now / 135);
     const x = GAME_CONFIG.width / 2 - 300;
-    const y = 94;
+    const y = this.getCombatHintY(scene, 94);
     const w = 600;
     const h = 44;
 
@@ -145,7 +145,7 @@ const HUD = {
     const scale = 1 + pulse * 0.045;
     const text = 'НАЖМИ УДАР';
     const x = GAME_CONFIG.width / 2;
-    const y = 152;
+    const y = this.getCombatHintY(scene, 152, 188);
 
     ctx.save();
     ctx.translate(x, y);
@@ -168,6 +168,11 @@ const HUD = {
     ctx.lineWidth = 2;
     ctx.strokeText(text, 0, 0);
     ctx.restore();
+  },
+
+  getCombatHintY(scene, regularY, bossY = 126) {
+    const boss = scene && (scene.activeGundos || (scene.enemies || []).find((enemy) => enemy && enemy.enemyType === 'gundos' && enemy.alive));
+    return boss ? bossY : regularY;
   },
 
   drawEnemyRoster(ctx, scene) {
