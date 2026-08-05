@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.192",
+  "buildVersion": "0.4.193",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -171,7 +171,7 @@ const GAME_CONFIG = {
     "farEastRoc": {
       "heroKey": "boris",
       "incomingDamageMultiplier": 0.5,
-      "outgoingDamageMultiplier": 1.3
+      "outgoingDamageMultiplier": 1.4285714285714286
     },
     "kadyrov": {
       "heroKey": "anna",
@@ -415,7 +415,7 @@ const GAME_CONFIG = {
     "gundos": {
       "name": "gundos",
       "bossId": "farEastRoc",
-      "hp": 6,
+      "hp": 666,
       "speed": 1.875,
       "scale": 0.266,
       "damage": 0,
@@ -437,7 +437,7 @@ const GAME_CONFIG = {
       "fireballSpawnMinMs": 1250,
       "fireballSpawnMaxMs": 2350,
       "fireballDamage": 24,
-      "zetnikHitDamage": 1,
+      "zetnikHitDamage": 35,
       "arenaMoveSpeed": 0,
       "arenaTop": 540,
       "arenaBottom": 720,
@@ -8162,6 +8162,7 @@ const DevPanel = {
       'heroes.anna.speed': DEFAULT_GAME_CONFIG.heroes.anna.speed,
       'heroes.anna.hp': DEFAULT_GAME_CONFIG.heroes.anna.hp,
       'heroes.boris.speed': DEFAULT_GAME_CONFIG.heroes.boris.speed,
+      'bossMatchups.farEastRoc.outgoingDamageMultiplier': DEFAULT_GAME_CONFIG.bossMatchups.farEastRoc.outgoingDamageMultiplier,
       'enemies.dogRegime.speed': DEFAULT_GAME_CONFIG.enemies.dogRegime.speed,
       'enemies.zetnik.speed': DEFAULT_GAME_CONFIG.enemies.zetnik.speed,
       'enemies.sucker.speed': DEFAULT_GAME_CONFIG.enemies.sucker.speed,
@@ -8192,6 +8193,8 @@ const DevPanel = {
       'enemies.goydenish.fleeDistanceX': DEFAULT_GAME_CONFIG.enemies.goydenish.fleeDistanceX,
       'enemies.goydenish.fleeSpeedMultiplier': DEFAULT_GAME_CONFIG.enemies.goydenish.fleeSpeedMultiplier,
       'enemies.gundos.speed': 1.875,
+      'enemies.gundos.hp': DEFAULT_GAME_CONFIG.enemies.gundos.hp,
+      'enemies.gundos.zetnikHitDamage': DEFAULT_GAME_CONFIG.enemies.gundos.zetnikHitDamage,
       'enemies.gundos.entranceY': 720,
       'enemies.gundos.arenaBottom': 720,
       'enemies.gundos.deathHoldMs': 5000,
@@ -17592,7 +17595,7 @@ window.addEventListener('load', () => {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillStyle = '#fff0d0';
-      ctx.fillText('GUNDOS', GAME_CONFIG.width / 2, y + h / 2 + 1);
+      ctx.fillText(`GUNDOS ${Math.ceil(this.hp)} / ${Math.ceil(maxHp)}`, GAME_CONFIG.width / 2, y + h / 2 + 1);
       ctx.restore();
     }
   }

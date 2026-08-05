@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  "buildVersion": "0.4.192",
+  "buildVersion": "0.4.193",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -164,7 +164,7 @@ const GAME_CONFIG = {
     "farEastRoc": {
       "heroKey": "boris",
       "incomingDamageMultiplier": 0.5,
-      "outgoingDamageMultiplier": 1.3
+      "outgoingDamageMultiplier": 1.4285714285714286
     },
     "kadyrov": {
       "heroKey": "anna",
@@ -408,7 +408,7 @@ const GAME_CONFIG = {
     "gundos": {
       "name": "gundos",
       "bossId": "farEastRoc",
-      "hp": 6,
+      "hp": 666,
       "speed": 1.875,
       "scale": 0.266,
       "damage": 0,
@@ -430,7 +430,7 @@ const GAME_CONFIG = {
       "fireballSpawnMinMs": 1250,
       "fireballSpawnMaxMs": 2350,
       "fireballDamage": 24,
-      "zetnikHitDamage": 1,
+      "zetnikHitDamage": 35,
       "arenaMoveSpeed": 0,
       "arenaTop": 540,
       "arenaBottom": 720,

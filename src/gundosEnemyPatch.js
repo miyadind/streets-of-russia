@@ -688,7 +688,7 @@
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillStyle = '#fff0d0';
-      ctx.fillText('GUNDOS', GAME_CONFIG.width / 2, y + h / 2 + 1);
+      ctx.fillText(`GUNDOS ${Math.ceil(this.hp)} / ${Math.ceil(maxHp)}`, GAME_CONFIG.width / 2, y + h / 2 + 1);
       ctx.restore();
     }
   }
