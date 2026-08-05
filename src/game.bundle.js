@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.197",
+  "buildVersion": "0.4.198",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -7551,13 +7551,17 @@ const DevPanel = {
     }
 
     const click = Input.consumePointer();
-    if (click && !this.open && click.x < 78 && click.y < 42) {
-      this.open = true;
-      this.syncSelectedLevelWithScene(game);
+    if (!this.open) {
+      if (click && click.x < 78 && click.y < 42) {
+        this.open = true;
+        this.syncSelectedLevelWithScene(game);
+        return;
+      }
+
+      // The closed dev badge must not swallow normal menu or map clicks.
+      if (click) Input.restorePointer(click);
       return;
     }
-
-    if (!this.open) return;
     if (Input.consume('escape')) {
       this.open = false;
       return;
@@ -20336,6 +20340,13 @@ window.addEventListener('load', () => {
 
   function handleDevInput(map, game) {
     if (!enabled()) return false;
+
+    // The base map starts its default mission on Enter. Consume it here so the
+    // developer selection always launches the exact selected screen instead.
+    if (Input.consume('enter') || Input.consume('space')) {
+      startSelectedRegion(map, game);
+      return true;
+    }
 
     if (Input.consume('[') || Input.consume('arrowleft')) {
       moveRegion(map, -1);

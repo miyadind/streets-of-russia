@@ -104,6 +104,13 @@
   function handleDevInput(map, game) {
     if (!enabled()) return false;
 
+    // The base map starts its default mission on Enter. Consume it here so the
+    // developer selection always launches the exact selected screen instead.
+    if (Input.consume('enter') || Input.consume('space')) {
+      startSelectedRegion(map, game);
+      return true;
+    }
+
     if (Input.consume('[') || Input.consume('arrowleft')) {
       moveRegion(map, -1);
       return true;

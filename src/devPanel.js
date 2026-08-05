@@ -63,13 +63,17 @@ const DevPanel = {
     }
 
     const click = Input.consumePointer();
-    if (click && !this.open && click.x < 78 && click.y < 42) {
-      this.open = true;
-      this.syncSelectedLevelWithScene(game);
+    if (!this.open) {
+      if (click && click.x < 78 && click.y < 42) {
+        this.open = true;
+        this.syncSelectedLevelWithScene(game);
+        return;
+      }
+
+      // The closed dev badge must not swallow normal menu or map clicks.
+      if (click) Input.restorePointer(click);
       return;
     }
-
-    if (!this.open) return;
     if (Input.consume('escape')) {
       this.open = false;
       return;
