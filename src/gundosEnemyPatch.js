@@ -971,6 +971,9 @@
       for (const enemy of this.enemies) entities.push({ type: 'enemy', y: enemy.y, ref: enemy });
       entities.sort((a, b) => a.y - b.y);
       for (const entity of entities) entity.ref.draw(ctx, this.debug);
+      // The boss finale has its own renderer. Keep rewards visible here too,
+      // otherwise kiosk support items exist in the scene but never appear.
+      for (const pickup of this.pickups || []) pickup.draw(ctx);
       if (this.drawDamageTexts) this.drawDamageTexts(ctx);
 
       if (this.gundosVictoryPending) {
