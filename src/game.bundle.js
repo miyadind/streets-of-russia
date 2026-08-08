@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.221",
+  "buildVersion": "0.4.222",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -20053,8 +20053,7 @@ window.addEventListener('load', () => {
         '',
         'Спецслужбы прятали своих тварей в церкви,',
         'учили людей бояться, молчать и подчиняться.',
-        '',
-        'Тварь повержена!', 'Личина сорвана!', 'Путь открыт дальше!'
+        ''
       ],
       hint: 'ENTER / SPACE - НА КАРТУ'
     };
@@ -20098,11 +20097,10 @@ window.addEventListener('load', () => {
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       if (!line) continue;
-      const emph = i >= 5;
-      ctx.font = emph ? 'bold 34px Arial' : 'bold 28px Arial';
-      ctx.fillStyle = emph ? '#ffd447' : 'rgba(255,245,220,0.94)';
+      ctx.font = 'bold 28px Arial';
+      ctx.fillStyle = 'rgba(255,245,220,0.94)';
       ctx.strokeStyle = 'rgba(0,0,0,0.78)';
-      ctx.lineWidth = emph ? 5 : 4;
+      ctx.lineWidth = 4;
       const y = startY + i * 36;
       ctx.strokeText(line, GAME_CONFIG.width / 2, y);
       ctx.fillText(line, GAME_CONFIG.width / 2, y);
