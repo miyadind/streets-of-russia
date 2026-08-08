@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.222",
+  "buildVersion": "0.4.223",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -4428,7 +4428,15 @@ class ZetnikEnemy extends DogRegimeEnemy {
     this.laneY = player.y;
     this.attackTimer = 0;
     this.attackHasHit = false;
-    AudioManager.playSfx('zetnikPreparing', 0.9, { playbackRate: 1, startAt: 0.01 });
+    this.playPreparingVoice(0.9, { playbackRate: 1, startAt: 0.01 });
+  }
+
+  playPreparingVoice(volume, options) {
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    const cooldownMs = 3500;
+    if (now - (ZetnikEnemy.lastPreparingVoiceAt || -Infinity) < cooldownMs) return;
+    ZetnikEnemy.lastPreparingVoiceAt = now;
+    AudioManager.playSfx('zetnikPreparing', volume, options);
   }
 
   setupGundosMinion(boss) {
@@ -4540,7 +4548,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
     this.flash = 260;
     this.state = 'gundosRedirected';
     if (player && player.playComboHitSound) player.playComboHitSound();
-    AudioManager.playSfx('zetnikPreparing', 0.75, { playbackRate: 1.25, startAt: 0.01 });
+    this.playPreparingVoice(0.75, { playbackRate: 1.25, startAt: 0.01 });
   }
 
   holdGundosGuard(player) {
