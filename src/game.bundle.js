@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.236",
+  "buildVersion": "0.4.237",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -435,6 +435,7 @@ const GAME_CONFIG = {
       "fireballSpawnMinMs": 1250,
       "fireballSpawnMaxMs": 2350,
       "fireballDamage": 24,
+      "fireballLaneTolerance": 34,
       "fireWallDamage": 10,
       "fireWallDamageIntervalMs": 360,
       "zetnikHitDamage": 35,
@@ -17613,13 +17614,12 @@ window.addEventListener('load', () => {
       this.x -= this.speed * frameScale;
       this.spin += dt * 0.012;
       const player = scene && scene.player;
-      const playerBody = player && player.getBodyBox ? player.getBodyBox() : null;
-      const hitsAssignedLane = player && Combat.actorOnLane(
-        player,
-        this.laneY,
-        GAME_CONFIG.yHitTolerance
-      );
-      if (player && player.hp > 0 && hitsAssignedLane && Combat.overlap(this.getHurtbox(), playerBody)) {
+      const fireballLaneTolerance = Number(GAME_CONFIG.enemies.gundos.fireballLaneTolerance) || GAME_CONFIG.yHitTolerance;
+      if (player && player.hp > 0 && Combat.canProjectileHit(this, player, {
+        attackBox: this.getHurtbox(),
+        laneY: this.laneY,
+        laneTolerance: fireballLaneTolerance
+      })) {
         const fireballDamage = Number(GAME_CONFIG.enemies.gundos.fireballDamage) || 24;
         const hit = player.receiveDamage(fireballDamage, {
           source: 'ranged',
@@ -17640,6 +17640,10 @@ window.addEventListener('load', () => {
 
     getHurtbox() {
       return { x: this.x - this.radius, y: this.y - this.radius, w: this.radius * 2, h: this.radius * 2 };
+    }
+
+    getRenderDepthY() {
+      return this.laneY;
     }
 
     draw(ctx, debug) {
@@ -18409,7 +18413,10 @@ window.addEventListener('load', () => {
       if (boss && boss.alive && boss.transformed && boss.introFinished && boss.drawFireWall) boss.drawFireWall(ctx, this);
 
       const entities = [{ type: 'player', y: this.player.y, ref: this.player }];
-      for (const enemy of this.enemies) entities.push({ type: 'enemy', y: enemy.y, ref: enemy });
+      for (const enemy of this.enemies) {
+        const renderDepthY = typeof enemy.getRenderDepthY === 'function' ? enemy.getRenderDepthY() : enemy.y;
+        entities.push({ type: 'enemy', y: renderDepthY, ref: enemy });
+      }
       entities.sort((a, b) => a.y - b.y);
       for (const entity of entities) entity.ref.draw(ctx, this.debug);
       // The boss finale has its own renderer. Keep rewards visible here too,

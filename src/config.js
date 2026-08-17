@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  "buildVersion": "0.4.236",
+  "buildVersion": "0.4.237",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -428,6 +428,7 @@ const GAME_CONFIG = {
       "fireballSpawnMinMs": 1250,
       "fireballSpawnMaxMs": 2350,
       "fireballDamage": 24,
+      "fireballLaneTolerance": 34,
       "fireWallDamage": 10,
       "fireWallDamageIntervalMs": 360,
       "zetnikHitDamage": 35,
