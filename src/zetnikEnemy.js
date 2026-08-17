@@ -203,7 +203,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
     this.gundosBoss = boss || null;
     this.redirectedToBoss = false;
     this.gundosDirection = -1;
-    this.gundosSpeed = 18 + Math.random() * 3.375;
+    this.gundosSpeed = this.getGundosSpeed(18 + Math.random() * 3.375);
     this.gundosHitPlayer = false;
     this.gundosGuarding = false;
     this.blocksWaveClear = false;
@@ -302,7 +302,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
     this.redirectedToBoss = true;
     this.gundosGuarding = false;
     this.gundosDirection = boss && boss.x < this.x ? -1 : 1;
-    this.gundosSpeed = Math.max(this.gundosSpeed, 30.75);
+    this.gundosSpeed = Math.max(this.gundosSpeed, this.getGundosSpeed(30.75));
     this.facing = this.gundosDirection >= 0 ? 1 : -1;
     this.flash = 260;
     this.state = 'gundosRedirected';
@@ -318,9 +318,15 @@ class ZetnikEnemy extends DogRegimeEnemy {
   releaseGundosGuard() {
     if (!this.gundosGuarding) return;
     this.gundosGuarding = false;
-    this.gundosSpeed = 18 + Math.random() * 3.375;
+    this.gundosSpeed = this.getGundosSpeed(18 + Math.random() * 3.375);
     this.state = 'gundosCharge';
     this.intent = 'gundosCharge';
+  }
+
+  getGundosSpeed(baseSpeed) {
+    const bossConfig = GAME_CONFIG.enemies && GAME_CONFIG.enemies.gundos;
+    const multiplier = Number(bossConfig && bossConfig.zetnikSpeedMultiplier);
+    return baseSpeed * (Number.isFinite(multiplier) ? multiplier : 0.6);
   }
 
   finishGundosCrash(scene) {

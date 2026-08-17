@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  "buildVersion": "0.4.232",
+  "buildVersion": "0.4.233",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -420,6 +420,7 @@ const GAME_CONFIG = {
       "entranceY": 720,
       "zetnikSpawnMinMs": 1450,
       "zetnikSpawnMaxMs": 2450,
+      "zetnikSpeedMultiplier": 0.6,
       "maxZetniks": 3,
       "guardZetniks": 3,
       "medicSpawnMs": 1200,
