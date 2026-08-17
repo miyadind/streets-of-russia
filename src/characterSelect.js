@@ -305,15 +305,11 @@ const CharacterSelect = {
     ctx.fillText(hero.name.toUpperCase(), modal.x + 300, modal.y + 82);
 
     ctx.font = 'bold 22px Arial';
-    ctx.fillStyle = '#fff';
-    ctx.fillText(hero.tagline || '', modal.x + 300, modal.y + 124);
-
-    ctx.font = 'bold 22px Arial';
     ctx.fillStyle = hero.color;
-    ctx.fillText('СУПЕРСПОСОБНОСТЬ', modal.x + 300, modal.y + 196);
+    ctx.fillText('СУПЕРСПОСОБНОСТЬ', modal.x + 300, modal.y + 150);
     ctx.font = '20px Arial';
     ctx.fillStyle = 'rgba(255,255,255,0.9)';
-    this.drawWrappedText(ctx, hero.ability || '', modal.x + 300, modal.y + 229, 505, 28);
+    this.drawWrappedText(ctx, hero.ability || '', modal.x + 300, modal.y + 184, 505, 28);
 
     ctx.font = '18px Arial';
     ctx.textAlign = 'center';

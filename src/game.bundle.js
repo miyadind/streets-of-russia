@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.229",
+  "buildVersion": "0.4.230",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -82,8 +82,6 @@ const GAME_CONFIG = {
       "abilities": {
         "reviveOnce": true
       },
-      "tagline": "Смелость. Ум. Стойкость.",
-      "bio": "",
       "ability": "Второе дыхание: один раз после поражения возвращается в бой с половиной здоровья."
     },
     "anna": {
@@ -111,9 +109,7 @@ const GAME_CONFIG = {
         "noKnockdown": true,
         "combo3Damage": 45
       },
-      "tagline": "Честь. Смелость. Правда.",
-      "bio": "",
-      "ability": "Несгибаемость: её нельзя сбить с ног. Третий успешный удар комбо наносит мощный урон."
+      "ability": "Несгибаемость: её нельзя сбить с ног."
     },
     "boris": {
       "name": "Борис",
@@ -139,8 +135,6 @@ const GAME_CONFIG = {
       "abilities": {
         "rangedDamageMultiplier": 0.5
       },
-      "tagline": "Воля. Честь. Прямота.",
-      "bio": "",
       "ability": "Стальная выдержка: дальние атаки наносят на 50% меньше урона."
     }
   },
@@ -6710,15 +6704,11 @@ const CharacterSelect = {
     ctx.fillText(hero.name.toUpperCase(), modal.x + 300, modal.y + 82);
 
     ctx.font = 'bold 22px Arial';
-    ctx.fillStyle = '#fff';
-    ctx.fillText(hero.tagline || '', modal.x + 300, modal.y + 124);
-
-    ctx.font = 'bold 22px Arial';
     ctx.fillStyle = hero.color;
-    ctx.fillText('СУПЕРСПОСОБНОСТЬ', modal.x + 300, modal.y + 196);
+    ctx.fillText('СУПЕРСПОСОБНОСТЬ', modal.x + 300, modal.y + 150);
     ctx.font = '20px Arial';
     ctx.fillStyle = 'rgba(255,255,255,0.9)';
-    this.drawWrappedText(ctx, hero.ability || '', modal.x + 300, modal.y + 229, 505, 28);
+    this.drawWrappedText(ctx, hero.ability || '', modal.x + 300, modal.y + 184, 505, 28);
 
     ctx.font = '18px Arial';
     ctx.textAlign = 'center';
