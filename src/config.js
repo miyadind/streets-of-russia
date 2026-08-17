@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  "buildVersion": "0.4.223",
+  "buildVersion": "0.4.224",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -54,7 +54,7 @@ const GAME_CONFIG = {
       "name": "Алексей",
       "role": "balanced",
       "hp": 120,
-      "speed": 3.9,
+      "speed": 2.6,
       "damage": 16,
       "scale": 0.185,
       "knockdownDraw": {
@@ -83,7 +83,7 @@ const GAME_CONFIG = {
       "name": "Анна",
       "role": "fast",
       "hp": 100,
-      "speed": 4.725,
+      "speed": 3.15,
       "damage": 12,
       "scale": 0.11,
       "knockdownDraw": {
@@ -112,7 +112,7 @@ const GAME_CONFIG = {
       "name": "Борис",
       "role": "tank",
       "hp": 160,
-      "speed": 3.375,
+      "speed": 2.25,
       "damage": 22,
       "scale": 0.16,
       "knockdownDraw": {
@@ -184,7 +184,7 @@ const GAME_CONFIG = {
     "dogRegime": {
       "name": "Пёс режима",
       "hp": 90,
-      "speed": 2.025,
+      "speed": 1.35,
       "damage": 10,
       "scale": 0.105,
       "attackScale": 1.11,
@@ -221,7 +221,7 @@ const GAME_CONFIG = {
     "zetnik": {
       "name": "Зетник",
       "hp": 110,
-      "speed": 5.8125,
+      "speed": 3.875,
       "damage": 12,
       "scale": 0.105,
       "bossMusic": false,
@@ -245,7 +245,7 @@ const GAME_CONFIG = {
     "sucker": {
       "name": "Sucker",
       "hp": 180,
-      "speed": 1.725,
+      "speed": 1.15,
       "damage": 12,
       "scale": 0.13,
       "bossMusic": false,
@@ -253,12 +253,12 @@ const GAME_CONFIG = {
       "attackStartDistance": 420,
       "minDistance": 220,
       "alignToleranceY": 30,
-      "slideSpeed": 10.875,
+      "slideSpeed": 7.25,
       "slideRange": 520,
       "windupMs": 560,
       "slideRecoveryMs": 650,
       "interruptedRecoveryMs": 1100,
-      "fastRetreatSpeed": 14.5,
+      "fastRetreatSpeed": 9.666666666666666,
       "fastRetreatMs": 620,
       "hitsBeforeFastRetreat": 2,
       "counterRangeX": 74,
@@ -276,7 +276,7 @@ const GAME_CONFIG = {
     "bastard": {
       "name": "Bastard",
       "hp": 9999,
-      "speed": 1.125,
+      "speed": 0.75,
       "damage": 0,
       "scale": 0.12,
       "bossMusic": false,
@@ -300,7 +300,7 @@ const GAME_CONFIG = {
     "horse": {
       "name": "Horse",
       "hp": 125,
-      "speed": 2.025,
+      "speed": 1.35,
       "damage": 28,
       "attackDamageSource": "ranged",
       "scale": 0.13,
@@ -412,7 +412,7 @@ const GAME_CONFIG = {
       "name": "gundos",
       "bossId": "farEastRoc",
       "hp": 666,
-      "speed": 1.875,
+      "speed": 1.25,
       "scale": 0.266,
       "damage": 0,
       "bossMusic": true,
