@@ -2,6 +2,7 @@
   "scripts": {
     "build": "node tools/build-single.js",
     "check": "node --check src/game.bundle.js",
+    "assets:check": "node tools/check-assets.js",
     "apply-dev-export": "node tools/apply-dev-export.js"
   }
 }

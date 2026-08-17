@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.224",
+  "buildVersion": "0.4.225",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -1433,9 +1433,9 @@ window.Assets = {
       menuTheme:'assets/audio/music/Main_menu1.mp3',
       menuThemeAlt:'assets/audio/music/Main_menu2.mp3',
       mapTheme:'assets/audio/music/Map.mp3',
-      levelTheme:'assets/audio/music/menu-theme.mp3',
+      levelTheme:'assets/audio/music/Dalnii_vostok.mp3',
       farEastTheme:'assets/audio/music/Dalnii_vostok.mp3',
-      street03Theme:'assets/audio/music/menu-theme.mp3',
+      street03Theme:'assets/audio/music/Gundos music.mp3',
       siberiaTheme:'assets/audio/music/Sibir.mp3',
       bossTheme:'assets/audio/music/Gundos music.mp3'
     },
@@ -9550,6 +9550,7 @@ const CampaignMapScreen = {
       this.order = GAME_CONFIG.campaignRegions.map(region => region.mapId).filter(Boolean);
     }
     this.activeIndex = 0;
+    this.devLevelIndex = 0;
     this.clearSavedProgress();
     this.images = this.createImageSet(this.sources);
   },
@@ -9625,7 +9626,168 @@ const CampaignMapScreen = {
     }
   },
 
+  getDesktopPanelRect() {
+    return { x: 70, y: GAME_CONFIG.height - 128, w: GAME_CONFIG.width - 140, h: 92 };
+  },
+
+  getDesktopStartButton() {
+    const panel = this.getDesktopPanelRect();
+    return { x: panel.x + panel.w - 250, y: panel.y + 24, w: 200, h: 44 };
+  },
+
+  pointInRect(point, rect) {
+    return point && point.x >= rect.x && point.x <= rect.x + rect.w && point.y >= rect.y && point.y <= rect.y + rect.h;
+  },
+
+  drawButton(ctx, rect, text, active, fontSize) {
+    ctx.save();
+    ctx.fillStyle = active ? 'rgba(255,255,255,0.16)' : 'rgba(0,0,0,0.50)';
+    ctx.strokeStyle = active ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.62)';
+    ctx.lineWidth = active ? 4 : 2;
+    ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+    ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
+    ctx.font = 'bold ' + (fontSize || 24) + 'px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#fff';
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 4;
+    ctx.strokeText(text, rect.x + rect.w / 2, rect.y + rect.h / 2 + 1);
+    ctx.fillText(text, rect.x + rect.w / 2, rect.y + rect.h / 2 + 1);
+    ctx.restore();
+  },
+
+  isDevMode() {
+    return GAME_CONFIG.adminTuningEnabled === true;
+  },
+
+  getDevPanelRects() {
+    return {
+      panel: { x: GAME_CONFIG.width - 420, y: 94, w: 380, h: 282 },
+      regionPrev: { x: GAME_CONFIG.width - 392, y: 202, w: 58, h: 38 },
+      regionNext: { x: GAME_CONFIG.width - 112, y: 202, w: 58, h: 38 },
+      levelPrev: { x: GAME_CONFIG.width - 392, y: 252, w: 58, h: 38 },
+      levelNext: { x: GAME_CONFIG.width - 112, y: 252, w: 58, h: 38 },
+      start: { x: GAME_CONFIG.width - 324, y: 302, w: 202, h: 42 },
+      dev: { x: GAME_CONFIG.width - 392, y: 352, w: 338, h: 18 }
+    };
+  },
+
+  getSelectedLevels() {
+    const activeId = this.getActiveRegionId();
+    const regions = Array.isArray(GAME_CONFIG.campaignRegions) ? GAME_CONFIG.campaignRegions : [];
+    const configured = regions.find((region) => region && region.mapId === activeId);
+    if (configured && Array.isArray(configured.levels) && configured.levels.length) return configured.levels;
+
+    return (GAME_CONFIG.levelOrder || []).filter((key) => {
+      const level = GAME_CONFIG.levels && GAME_CONFIG.levels[key];
+      return level && level.region === activeId;
+    });
+  },
+
+  getSelectedLevel() {
+    const levels = this.getSelectedLevels();
+    if (!levels.length) return { levels, index: 0, key: null };
+    const index = Math.max(0, Math.min(levels.length - 1, Number(this.devLevelIndex) || 0));
+    this.devLevelIndex = index;
+    return { levels, index, key: levels[index] };
+  },
+
+  setDevRegionIndex(index) {
+    this.activeIndex = Math.max(0, Math.min(Math.max(0, this.order.length - 1), index));
+    this.devLevelIndex = 0;
+    this.clearSavedProgress();
+  },
+
+  moveDevRegion(delta) {
+    const count = Math.max(1, this.order.length);
+    this.activeIndex = (this.activeIndex + delta + count) % count;
+    this.devLevelIndex = 0;
+    this.clearSavedProgress();
+    AudioManager.playSfx('menuMove', 0.7);
+  },
+
+  moveDevLevel(delta) {
+    const levels = this.getSelectedLevels();
+    if (!levels.length) return;
+    const current = Math.max(0, Math.min(levels.length - 1, Number(this.devLevelIndex) || 0));
+    this.devLevelIndex = (current + delta + levels.length) % levels.length;
+    AudioManager.playSfx('menuMove', 0.7);
+  },
+
+  startDevSelection(game) {
+    if (!game) return;
+    AudioManager.unlock();
+    AudioManager.playSfx('menuSelect', 0.85);
+    const selection = this.getSelectedLevel();
+    game.devStartLevelKey = selection.key;
+    game.devMapStartLevelKey = selection.key;
+    game.devSelectedStartLevelKey = selection.key;
+    if (window.CampaignFlow && window.CampaignFlow.openCharacterSelect) {
+      window.CampaignFlow.openCharacterSelect(game, 'campaignStart');
+      return;
+    }
+    game.resumeTarget = 'campaignMap';
+    game.characterSelectMode = 'campaignStart';
+    game.setState('characterSelect');
+  },
+
+  openDeveloperPanel(game) {
+    if (typeof DevPanel === 'undefined') return;
+    GAME_CONFIG.adminTuningEnabled = true;
+    if (typeof DevPanel.openFromPauseMenu === 'function') {
+      DevPanel.openFromPauseMenu(game);
+    } else {
+      DevPanel.open = true;
+      DevPanel.tab = 'LEVEL WAVES';
+      if (typeof DevPanel.ensureLevels === 'function') DevPanel.ensureLevels();
+      if (typeof DevPanel.syncSelectedLevelWithScene === 'function') DevPanel.syncSelectedLevelWithScene(game);
+    }
+    AudioManager.playSfx('menuSelect', 0.65);
+  },
+
+  handleDevInput(game) {
+    if (!this.isDevMode()) return false;
+
+    if (Input.consume('enter') || Input.consume('space')) {
+      this.startDevSelection(game);
+      return true;
+    }
+    if (Input.consume('[') || Input.consume('arrowleft')) {
+      this.moveDevRegion(-1);
+      return true;
+    }
+    if (Input.consume(']') || Input.consume('arrowright')) {
+      this.moveDevRegion(1);
+      return true;
+    }
+    if (Input.consume(',') || Input.consume('arrowup')) {
+      this.moveDevLevel(-1);
+      return true;
+    }
+    if (Input.consume('.') || Input.consume('arrowdown')) {
+      this.moveDevLevel(1);
+      return true;
+    }
+
+    const click = Input.consumePointer();
+    if (!click) return false;
+    const rects = this.getDevPanelRects();
+    if (!this.pointInRect(click, rects.panel)) {
+      Input.restorePointer(click);
+      return false;
+    }
+    if (this.pointInRect(click, rects.regionPrev)) this.moveDevRegion(-1);
+    else if (this.pointInRect(click, rects.regionNext)) this.moveDevRegion(1);
+    else if (this.pointInRect(click, rects.levelPrev)) this.moveDevLevel(-1);
+    else if (this.pointInRect(click, rects.levelNext)) this.moveDevLevel(1);
+    else if (this.pointInRect(click, rects.start)) this.startDevSelection(game);
+    else if (this.pointInRect(click, rects.dev)) this.openDeveloperPanel(game);
+    return true;
+  },
+
   update(game, dt) {
+    if (this.handleDevInput(game)) return;
     const click = Input.consumePointer();
 
     if (Input.consume('escape')) {
@@ -9639,7 +9801,8 @@ const CampaignMapScreen = {
       return;
     }
 
-    if (Input.consume('enter') || Input.consume('space') || click) {
+    const startButton = this.getDesktopStartButton();
+    if (Input.consume('enter') || Input.consume('space') || this.pointInRect(click, startButton)) {
       AudioManager.unlock();
       AudioManager.playSfx('menuSelect', 0.85);
       game.setState('characterSelect');
@@ -9667,6 +9830,7 @@ const CampaignMapScreen = {
     ctx.globalAlpha = 1;
 
     this.drawPanel(ctx, activeId);
+    this.drawDevPanel(ctx);
     ctx.restore();
   },
 
@@ -9676,34 +9840,90 @@ const CampaignMapScreen = {
   },
 
   drawPanel(ctx, activeId) {
-    const panelX = 40;
-    const panelY = GAME_CONFIG.height - 160;
-    const panelW = GAME_CONFIG.width - 80;
-    const panelH = 126;
+    const panel = this.getDesktopPanelRect();
+    const completedCount = this.activeIndex;
+    const total = this.order.length;
+    const label = this.labels[activeId] || '';
+    const start = this.getDesktopStartButton();
 
     ctx.fillStyle = 'rgba(0, 10, 24, 0.78)';
-    ctx.fillRect(panelX, panelY, panelW, panelH);
+    ctx.fillRect(panel.x, panel.y, panel.w, panel.h);
     ctx.strokeStyle = '#55d5ff';
     ctx.lineWidth = 2;
-    ctx.strokeRect(panelX, panelY, panelW, panelH);
+    ctx.strokeRect(panel.x, panel.y, panel.w, panel.h);
 
-    ctx.font = 'bold 30px Arial';
-    ctx.fillStyle = '#ffffff';
-    ctx.textAlign = 'left';
-    ctx.fillText('КАРТА СОПРОТИВЛЕНИЯ', panelX + 28, panelY + 42);
-
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = '#dff8ff';
+    ctx.strokeStyle = '#001019';
+    ctx.lineWidth = 4;
     ctx.font = 'bold 22px Arial';
-    ctx.fillStyle = '#c8f7ff';
-    ctx.fillText(this.labels[activeId] || activeId, panelX + 30, panelY + 76);
-
-    ctx.font = '18px Arial';
-    ctx.fillStyle = '#d8e8f2';
-    ctx.fillText('Enter / Space / клик — начать миссию', panelX + 30, panelY + 108);
-
-    ctx.textAlign = 'right';
-    ctx.fillStyle = '#89f0ff';
-    ctx.fillText('Прогресс: ' + this.activeIndex + ' / ' + (this.order.length - 1), panelX + panelW - 28, panelY + 108);
     ctx.textAlign = 'left';
+    ctx.strokeText('КАРТА СОПРОТИВЛЕНИЯ', panel.x + 26, panel.y + 31);
+    ctx.fillText('КАРТА СОПРОТИВЛЕНИЯ', panel.x + 26, panel.y + 31);
+
+    ctx.font = 'bold 24px Arial';
+    ctx.fillStyle = '#fff';
+    ctx.strokeText(label, panel.x + 26, panel.y + 64);
+    ctx.fillText(label, panel.x + 26, panel.y + 64);
+
+    const barW = 230;
+    const barH = 16;
+    const barX = start.x - barW - 42;
+    const barY = panel.y + 34;
+    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    ctx.fillRect(barX, barY, barW, barH);
+    ctx.fillStyle = '#c8f7ff';
+    ctx.fillRect(barX, barY, barW * (completedCount / Math.max(1, total)), barH);
+    ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+    ctx.strokeRect(barX, barY, barW, barH);
+
+    ctx.font = 'bold 16px Arial';
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center';
+    ctx.fillText('ПРОГРЕСС ' + completedCount + ' / ' + total, barX + barW / 2, barY + 42);
+
+    this.drawButton(ctx, start, 'НАЧАТЬ', true, 21);
+    ctx.textAlign = 'left';
+  },
+
+  drawDevPanel(ctx) {
+    if (!this.isDevMode()) return;
+    const rects = this.getDevPanelRects();
+    const activeId = this.getActiveRegionId();
+    const label = this.labels[activeId] || String(activeId || '').toUpperCase();
+    const selection = this.getSelectedLevel();
+    const levelLabel = selection.key ? String(selection.key).toUpperCase() : 'NO LEVELS';
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(2, 8, 15, 0.84)';
+    ctx.fillRect(rects.panel.x, rects.panel.y, rects.panel.w, rects.panel.h);
+    ctx.strokeStyle = '#ffd45a';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(rects.panel.x, rects.panel.y, rects.panel.w, rects.panel.h);
+
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    ctx.font = 'bold 20px Arial';
+    ctx.fillStyle = '#ffd45a';
+    ctx.fillText('DEV CHAPTER SELECT', rects.panel.x + 22, rects.panel.y + 34);
+    ctx.font = 'bold 24px Arial';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(label, rects.panel.x + 22, rects.panel.y + 76);
+    ctx.font = '15px Arial';
+    ctx.fillStyle = 'rgba(255,255,255,0.72)';
+    ctx.fillText('REGION: [ / ] or arrows', rects.panel.x + 22, rects.panel.y + 104);
+    ctx.fillText('LEVEL: , / . or arrows', rects.panel.x + 22, rects.panel.y + 154);
+    ctx.font = 'bold 18px Arial';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('SCREEN ' + (selection.index + 1) + '/' + Math.max(1, selection.levels.length) + ': ' + levelLabel, rects.panel.x + 22, rects.panel.y + 178);
+
+    this.drawButton(ctx, rects.regionPrev, '<', false, 18);
+    this.drawButton(ctx, rects.start, 'START SCREEN', true, 18);
+    this.drawButton(ctx, rects.regionNext, '>', false, 18);
+    this.drawButton(ctx, rects.levelPrev, '<', false, 18);
+    this.drawButton(ctx, rects.levelNext, '>', false, 18);
+    this.drawButton(ctx, rects.dev, 'OPEN DEVELOPER PANEL', false, 14);
+    ctx.restore();
   }
 };
 
@@ -15175,80 +15395,6 @@ window.addEventListener('load', () => {
     };
   }
 
-  if (typeof CampaignMapScreen !== 'undefined') {
-    CampaignMapScreen.update = function (game, dt) {
-      const click = Input.consumePointer();
-      if (Input.consume('escape')) {
-        game.setState('mainMenu');
-        return;
-      }
-
-      const startButton = this.getDesktopStartButton();
-      if (Input.consume('enter') || Input.consume('space') || inRect(click, startButton)) {
-        AudioManager.unlock();
-        AudioManager.playSfx('menuSelect', 0.85);
-        game.setState('characterSelect');
-        return;
-      }
-    };
-
-    CampaignMapScreen.getDesktopPanelRect = function () {
-      return { x: 70, y: GAME_CONFIG.height - 128, w: GAME_CONFIG.width - 140, h: 92 };
-    };
-
-    CampaignMapScreen.getDesktopStartButton = function () {
-      const panel = this.getDesktopPanelRect();
-      return { x: panel.x + panel.w - 250, y: panel.y + 24, w: 200, h: 44 };
-    };
-
-    CampaignMapScreen.drawPanel = function (ctx, activeId) {
-      const panel = this.getDesktopPanelRect();
-      const completedCount = this.activeIndex;
-      const total = this.order.length;
-      const label = this.labels[activeId] || '';
-      const start = this.getDesktopStartButton();
-
-      ctx.fillStyle = 'rgba(0, 8, 22, 0.72)';
-      ctx.fillRect(panel.x, panel.y, panel.w, panel.h);
-      ctx.strokeStyle = 'rgba(60, 220, 255, 0.78)';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(panel.x, panel.y, panel.w, panel.h);
-
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'alphabetic';
-      ctx.fillStyle = '#dff8ff';
-      ctx.strokeStyle = '#001019';
-      ctx.lineWidth = 4;
-      ctx.font = 'bold 22px Arial';
-      ctx.strokeText('КАРТА СОПРОТИВЛЕНИЯ', panel.x + 26, panel.y + 31);
-      ctx.fillText('КАРТА СОПРОТИВЛЕНИЯ', panel.x + 26, panel.y + 31);
-
-      ctx.font = 'bold 24px Arial';
-      ctx.fillStyle = '#fff';
-      ctx.strokeText(label, panel.x + 26, panel.y + 64);
-      ctx.fillText(label, panel.x + 26, panel.y + 64);
-
-      const barW = 230;
-      const barH = 16;
-      const barX = start.x - barW - 42;
-      const barY = panel.y + 34;
-      ctx.fillStyle = 'rgba(255,255,255,0.12)';
-      ctx.fillRect(barX, barY, barW, barH);
-      ctx.fillStyle = '#c8f7ff';
-      ctx.fillRect(barX, barY, barW * (completedCount / Math.max(1, total)), barH);
-      ctx.strokeStyle = 'rgba(255,255,255,0.55)';
-      ctx.strokeRect(barX, barY, barW, barH);
-
-      ctx.font = 'bold 16px Arial';
-      ctx.fillStyle = '#fff';
-      ctx.textAlign = 'center';
-      ctx.fillText('ПРОГРЕСС ' + completedCount + ' / ' + total, barX + barW / 2, barY + 42);
-
-      drawButton(ctx, start, 'НАЧАТЬ', true, 21);
-      ctx.textAlign = 'left';
-    };
-  }
-
   if (typeof HUD !== 'undefined') {
     HUD.getLevelProgress = function (scene) {
       const total = scene.images && scene.images.streets ? scene.images.streets.length : 1;
@@ -20520,257 +20666,6 @@ window.addEventListener('load', () => {
     ctx.lineWidth = 4;
     ctx.strokeRect(box.x, box.y, box.w, box.h);
     ctx.restore();
-  };
-})();
-
-
-
-/* ===== src/campaignMapDevChapterPatch.js ===== */
-(function () {
-  if (typeof CampaignMapScreen === 'undefined' || typeof GAME_CONFIG === 'undefined') return;
-
-  const originalUpdate = CampaignMapScreen.update.bind(CampaignMapScreen);
-  const originalDraw = CampaignMapScreen.draw.bind(CampaignMapScreen);
-
-  function enabled() {
-    return GAME_CONFIG.adminTuningEnabled === true;
-  }
-
-  function rects() {
-    return {
-      panel: { x: GAME_CONFIG.width - 420, y: 94, w: 380, h: 282 },
-      regionPrev: { x: GAME_CONFIG.width - 392, y: 202, w: 58, h: 38 },
-      regionNext: { x: GAME_CONFIG.width - 112, y: 202, w: 58, h: 38 },
-      levelPrev: { x: GAME_CONFIG.width - 392, y: 252, w: 58, h: 38 },
-      levelNext: { x: GAME_CONFIG.width - 112, y: 252, w: 58, h: 38 },
-      start: { x: GAME_CONFIG.width - 324, y: 302, w: 202, h: 42 },
-      dev: { x: GAME_CONFIG.width - 392, y: 352, w: 338, h: 18 }
-    };
-  }
-
-  function inRect(point, rect) {
-    return point && point.x >= rect.x && point.x <= rect.x + rect.w && point.y >= rect.y && point.y <= rect.y + rect.h;
-  }
-
-  function clampIndex(map, index) {
-    return Math.max(0, Math.min(Math.max(0, map.order.length - 1), index));
-  }
-
-  function setRegionIndex(map, index) {
-    map.activeIndex = clampIndex(map, index);
-    map.devLevelIndex = 0;
-    if (map.clearSavedProgress) map.clearSavedProgress();
-  }
-
-  function moveRegion(map, delta) {
-    const count = Math.max(1, map.order.length);
-    map.activeIndex = (map.activeIndex + delta + count) % count;
-    map.devLevelIndex = 0;
-    if (map.clearSavedProgress) map.clearSavedProgress();
-    AudioManager.playSfx('menuMove', 0.7);
-  }
-
-  function getSelectedLevels(map) {
-    const activeId = map.getActiveRegionId ? map.getActiveRegionId() : map.order[map.activeIndex];
-    const regions = Array.isArray(GAME_CONFIG.campaignRegions) ? GAME_CONFIG.campaignRegions : [];
-    const configured = regions.find(region => region && region.mapId === activeId);
-    if (configured && Array.isArray(configured.levels) && configured.levels.length) return configured.levels;
-
-    return (GAME_CONFIG.levelOrder || []).filter((key) => {
-      const level = GAME_CONFIG.levels && GAME_CONFIG.levels[key];
-      return level && level.region === activeId;
-    });
-  }
-
-  function getSelectedLevel(map) {
-    const levels = getSelectedLevels(map);
-    if (!levels.length) return { levels, index: 0, key: null };
-    const index = Math.max(0, Math.min(levels.length - 1, Number(map.devLevelIndex) || 0));
-    map.devLevelIndex = index;
-    return { levels, index, key: levels[index] };
-  }
-
-  function moveLevel(map, delta) {
-    const levels = getSelectedLevels(map);
-    if (!levels.length) return;
-    const current = Math.max(0, Math.min(levels.length - 1, Number(map.devLevelIndex) || 0));
-    map.devLevelIndex = (current + delta + levels.length) % levels.length;
-    AudioManager.playSfx('menuMove', 0.7);
-  }
-
-  function startSelectedRegion(map, game) {
-    AudioManager.unlock();
-    AudioManager.playSfx('menuSelect', 0.85);
-    if (game) {
-      const selection = getSelectedLevel(map);
-      game.devStartLevelKey = selection.key;
-      game.devMapStartLevelKey = selection.key;
-      game.devSelectedStartLevelKey = selection.key;
-      if (window.CampaignFlow && window.CampaignFlow.openCharacterSelect) {
-        window.CampaignFlow.openCharacterSelect(game, 'campaignStart');
-      } else {
-        game.resumeTarget = 'campaignMap';
-        game.characterSelectMode = 'campaignStart';
-        game.setState('characterSelect');
-      }
-    }
-  }
-
-  function openDeveloperPanel(game) {
-    if (typeof DevPanel === 'undefined') return;
-    GAME_CONFIG.adminTuningEnabled = true;
-    if (typeof DevPanel.openFromPauseMenu === 'function') DevPanel.openFromPauseMenu(game);
-    else {
-      DevPanel.open = true;
-      DevPanel.tab = 'LEVEL WAVES';
-      if (typeof DevPanel.ensureLevels === 'function') DevPanel.ensureLevels();
-      if (typeof DevPanel.syncSelectedLevelWithScene === 'function') DevPanel.syncSelectedLevelWithScene(game);
-    }
-    AudioManager.playSfx('menuSelect', 0.65);
-  }
-
-  function handleDevInput(map, game) {
-    if (!enabled()) return false;
-
-    // The base map starts its default mission on Enter. Consume it here so the
-    // developer selection always launches the exact selected screen instead.
-    if (Input.consume('enter') || Input.consume('space')) {
-      startSelectedRegion(map, game);
-      return true;
-    }
-
-    if (Input.consume('[') || Input.consume('arrowleft')) {
-      moveRegion(map, -1);
-      return true;
-    }
-
-    if (Input.consume(']') || Input.consume('arrowright')) {
-      moveRegion(map, 1);
-      return true;
-    }
-
-    if (Input.consume(',') || Input.consume('arrowup')) {
-      moveLevel(map, -1);
-      return true;
-    }
-
-    if (Input.consume('.') || Input.consume('arrowdown')) {
-      moveLevel(map, 1);
-      return true;
-    }
-
-    const click = Input.consumePointer();
-    if (!click) return false;
-
-    const r = rects();
-    if (!inRect(click, r.panel)) {
-      Input.restorePointer(click);
-      return false;
-    }
-
-    if (inRect(click, r.regionPrev)) {
-      moveRegion(map, -1);
-      return true;
-    }
-
-    if (inRect(click, r.regionNext)) {
-      moveRegion(map, 1);
-      return true;
-    }
-
-    if (inRect(click, r.levelPrev)) {
-      moveLevel(map, -1);
-      return true;
-    }
-
-    if (inRect(click, r.levelNext)) {
-      moveLevel(map, 1);
-      return true;
-    }
-
-    if (inRect(click, r.start)) {
-      startSelectedRegion(map, game);
-      return true;
-    }
-
-    if (inRect(click, r.dev)) {
-      openDeveloperPanel(game);
-      return true;
-    }
-
-    return true;
-  }
-
-  function drawButton(ctx, rect, label, active) {
-    ctx.save();
-    ctx.fillStyle = active ? 'rgba(158, 26, 26, 0.88)' : 'rgba(0, 0, 0, 0.62)';
-    ctx.strokeStyle = active ? '#ffffff' : 'rgba(255,255,255,0.72)';
-    ctx.lineWidth = active ? 3 : 2;
-    ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
-    ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
-    ctx.font = 'bold 18px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText(label, rect.x + rect.w / 2, rect.y + rect.h / 2 + 1);
-    ctx.restore();
-  }
-
-  function drawDevPanel(map, ctx) {
-    if (!enabled()) return;
-    const r = rects();
-    const activeId = map.getActiveRegionId ? map.getActiveRegionId() : map.order[map.activeIndex];
-    const label = map.labels && map.labels[activeId] ? map.labels[activeId] : String(activeId || '').toUpperCase();
-    const selection = getSelectedLevel(map);
-    const levelLabel = selection.key ? String(selection.key).toUpperCase() : 'NO LEVELS';
-
-    ctx.save();
-    ctx.fillStyle = 'rgba(2, 8, 15, 0.84)';
-    ctx.fillRect(r.panel.x, r.panel.y, r.panel.w, r.panel.h);
-    ctx.strokeStyle = '#ffd45a';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(r.panel.x, r.panel.y, r.panel.w, r.panel.h);
-
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'alphabetic';
-    ctx.font = 'bold 20px Arial';
-    ctx.fillStyle = '#ffd45a';
-    ctx.fillText('DEV CHAPTER SELECT', r.panel.x + 22, r.panel.y + 34);
-
-    ctx.font = 'bold 24px Arial';
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText(label, r.panel.x + 22, r.panel.y + 76);
-
-    ctx.font = '15px Arial';
-    ctx.fillStyle = 'rgba(255,255,255,0.72)';
-    ctx.fillText('REGION: [ / ] or arrows', r.panel.x + 22, r.panel.y + 104);
-    ctx.fillText('LEVEL: , / . or arrows', r.panel.x + 22, r.panel.y + 154);
-
-    ctx.font = 'bold 18px Arial';
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText('SCREEN ' + (selection.index + 1) + '/' + Math.max(1, selection.levels.length) + ': ' + levelLabel, r.panel.x + 22, r.panel.y + 178);
-
-    drawButton(ctx, r.regionPrev, '<', false);
-    drawButton(ctx, r.start, 'START SCREEN', true);
-    drawButton(ctx, r.regionNext, '>', false);
-    drawButton(ctx, r.levelPrev, '<', false);
-    drawButton(ctx, r.levelNext, '>', false);
-    drawButton(ctx, r.dev, 'OPEN DEVELOPER PANEL', false);
-    ctx.restore();
-  }
-
-  CampaignMapScreen.update = function (game, dt) {
-    if (handleDevInput(this, game)) return;
-    originalUpdate(game, dt);
-  };
-
-  CampaignMapScreen.draw = function (ctx) {
-    originalDraw(ctx);
-    drawDevPanel(this, ctx);
-  };
-
-  CampaignMapScreen.setDevRegionIndex = function (index) {
-    setRegionIndex(this, index);
   };
 })();
 
