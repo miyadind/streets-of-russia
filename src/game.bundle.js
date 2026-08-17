@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.228",
+  "buildVersion": "0.4.229",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -13157,48 +13157,11 @@ window.addEventListener('load', () => {
 
     DogRegimeEnemy.prototype.horseTacticsPatchApplied = true;
   }
-})();
 
-
-
-/* ===== src/horseAssetsFixPatch.js ===== */
-(function () {
-  if (typeof GAME_CONFIG === 'undefined' || typeof Assets === 'undefined') return;
-
-  const FOLDER = 'assets/enemies/horse';
-  const HORSE_ASSET_VERSION = 'horse-rebuilt-6';
-  const KO_KEY = 'horseKo';
-  const KO_FILE = FOLDER + '/' + ['de', 'ath'].join('') + '.mp3';
-  const WHIPLASH_FINAL_KEY = 'horseWhiplashFinal';
-  const WHIPLASH_FINAL_FILE = FOLDER + '/WhiplashFinal.mp3';
-
-  function frame(name) {
-    return FOLDER + '/' + name + '.png?v=' + HORSE_ASSET_VERSION;
-  }
-
-  Assets.horse = Object.assign(Assets.horse || {}, {
-    idle: frame('idle'),
-    walk: [
-      frame('walk01'),
-      frame('walk02'),
-      frame('walk03')
-    ],
-    attack: [
-      frame('idle'),
-      [frame('Whiplash'), frame('Whiplash2'), frame('Whiplash3')],
-      [frame('WhiplashFinal'), frame('Whiplash'), frame('Whiplash2'), frame('Whiplash3')]
-    ]
-  });
-  Assets.horse.finalFrame = frame('knockdown');
-  Assets.horse.appear = FOLDER + '/Appear.mp3';
-  Assets.horse.koSound = KO_FILE;
-  Assets.horse.whiplashFinalSound = WHIPLASH_FINAL_FILE;
-
-  if (Assets.enemyAppear) Assets.enemyAppear.horse = Assets.horse.appear;
-  if (Assets.audio && Assets.audio.sfx) {
-    Assets.audio.sfx[KO_KEY] = KO_FILE;
-    Assets.audio.sfx[WHIPLASH_FINAL_KEY] = WHIPLASH_FINAL_FILE;
-  }
+  const HORSE_KO_KEY = 'horseKo';
+  const HORSE_KO_FILE = HORSE_FOLDER + '/death.mp3';
+  const HORSE_WHIPLASH_FINAL_KEY = 'horseWhiplashFinal';
+  const HORSE_WHIPLASH_FINAL_FILE = HORSE_FOLDER + '/WhiplashFinal.mp3';
 
   function loadFirstExistingImage(srcOrList) {
     const list = Array.isArray(srcOrList) ? srcOrList : [srcOrList];
@@ -13216,16 +13179,32 @@ window.addEventListener('load', () => {
     });
   }
 
+  Assets.horse = Object.assign(Assets.horse || {}, {
+    idle: horseFrame('idle'),
+    walk: [horseFrame('walk01'), horseFrame('walk02'), horseFrame('walk03')],
+    attack: [
+      horseFrame('idle'),
+      [horseFrame('Whiplash'), horseFrame('Whiplash2'), horseFrame('Whiplash3')],
+      [horseFrame('WhiplashFinal'), horseFrame('Whiplash'), horseFrame('Whiplash2'), horseFrame('Whiplash3')]
+    ],
+    finalFrame: horseFrame('knockdown'),
+    appear: HORSE_FOLDER + '/Appear.mp3',
+    koSound: HORSE_KO_FILE,
+    whiplashFinalSound: HORSE_WHIPLASH_FINAL_FILE
+  });
+
+  if (Assets.enemyAppear) Assets.enemyAppear.horse = Assets.horse.appear;
+  if (Assets.audio && Assets.audio.sfx) {
+    Assets.audio.sfx[HORSE_KO_KEY] = HORSE_KO_FILE;
+    Assets.audio.sfx[HORSE_WHIPLASH_FINAL_KEY] = HORSE_WHIPLASH_FINAL_FILE;
+  }
+
   if (typeof AudioManager !== 'undefined' && !AudioManager.horseKoPatchApplied) {
-    const previousInit = AudioManager.init;
+    const previousAudioInit = AudioManager.init;
     AudioManager.init = function () {
-      previousInit.call(this);
-      if (!this.sfx[KO_KEY] && this.createAudio) {
-        this.sfx[KO_KEY] = this.createAudio(KO_FILE, false);
-      }
-      if (!this.sfx[WHIPLASH_FINAL_KEY] && this.createAudio) {
-        this.sfx[WHIPLASH_FINAL_KEY] = this.createAudio(WHIPLASH_FINAL_FILE, false);
-      }
+      previousAudioInit.call(this);
+      if (!this.sfx[HORSE_KO_KEY] && this.createAudio) this.sfx[HORSE_KO_KEY] = this.createAudio(HORSE_KO_FILE, false);
+      if (!this.sfx[HORSE_WHIPLASH_FINAL_KEY] && this.createAudio) this.sfx[HORSE_WHIPLASH_FINAL_KEY] = this.createAudio(HORSE_WHIPLASH_FINAL_FILE, false);
     };
     AudioManager.horseKoPatchApplied = true;
   }
@@ -13235,19 +13214,16 @@ window.addEventListener('load', () => {
     DogRegimeEnemy.prototype.takeHit = function (damage, direction, knockback) {
       const wasAlive = this.alive;
       previousTakeHit.call(this, damage, direction, knockback);
-      if (wasAlive && !this.alive && this.enemyType === 'horse') {
-        AudioManager.playSfx(KO_KEY, 0.95, { startAt: 0.01 });
-      }
+      if (wasAlive && !this.alive && this.enemyType === 'horse') AudioManager.playSfx(HORSE_KO_KEY, 0.95, { startAt: 0.01 });
     };
     DogRegimeEnemy.prototype.horseKoPatchApplied = true;
   }
 
   if (typeof GameApp !== 'undefined' && !GameApp.prototype.horseWalkOnlyPatchApplied) {
-    const previousLoadImages = GameApp.prototype.loadImages;
+    const previousHorseLoadImages = GameApp.prototype.loadImages;
     GameApp.prototype.loadImages = async function () {
-      const loaded = await previousLoadImages.call(this);
+      const loaded = await previousHorseLoadImages.call(this);
       const horse = Assets.horse || {};
-
       const walk0 = await loadFirstExistingImage(horse.walk && horse.walk[0]);
       const walk1 = await loadFirstExistingImage(horse.walk && horse.walk[1]);
       const walk2 = await loadFirstExistingImage(horse.walk && horse.walk[2]);
@@ -13260,22 +13236,16 @@ window.addEventListener('load', () => {
       if (!loaded.enemies) loaded.enemies = {};
       loaded.enemies.horse = {
         idle: idle || walk0 || walk1 || walk2,
-        walk: [
-          walk0 || idle,
-          walk1 || walk0 || idle,
-          walk2 || walk1 || walk0 || idle
-        ],
+        walk: [walk0 || idle, walk1 || walk0 || idle, walk2 || walk1 || walk0 || idle],
         attack: [
           action0 || walk1 || walk0 || idle,
           action1 || walk2 || walk1 || walk0 || idle,
           action2 || action1 || walk2 || walk1 || walk0 || idle
-        ]
+        ],
+        dead: finalFrame || walk2 || walk1 || walk0 || idle
       };
-      loaded.enemies.horse['de' + 'ad'] = finalFrame || walk2 || walk1 || walk0 || idle;
-      loaded.enemies.horse.dead = loaded.enemies.horse['de' + 'ad'];
       return loaded;
     };
-
     GameApp.prototype.horseWalkOnlyPatchApplied = true;
   }
 })();

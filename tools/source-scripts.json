@@ -29,7 +29,6 @@
   "src/game.js",
   "src/levelInteractives.js",
   "src/horseEnemyPatch.js",
-  "src/horseAssetsFixPatch.js",
   "src/mobileBootstrap.js",
   "src/campaignMapPatch.js",
   "src/globalQualityPatch.js",

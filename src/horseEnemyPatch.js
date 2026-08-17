@@ -313,4 +313,95 @@
 
     DogRegimeEnemy.prototype.horseTacticsPatchApplied = true;
   }
+
+  const HORSE_KO_KEY = 'horseKo';
+  const HORSE_KO_FILE = HORSE_FOLDER + '/death.mp3';
+  const HORSE_WHIPLASH_FINAL_KEY = 'horseWhiplashFinal';
+  const HORSE_WHIPLASH_FINAL_FILE = HORSE_FOLDER + '/WhiplashFinal.mp3';
+
+  function loadFirstExistingImage(srcOrList) {
+    const list = Array.isArray(srcOrList) ? srcOrList : [srcOrList];
+    return new Promise((resolve) => {
+      let index = 0;
+      function tryNext() {
+        const src = list[index++];
+        if (!src) return resolve(null);
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = tryNext;
+        img.src = src;
+      }
+      tryNext();
+    });
+  }
+
+  Assets.horse = Object.assign(Assets.horse || {}, {
+    idle: horseFrame('idle'),
+    walk: [horseFrame('walk01'), horseFrame('walk02'), horseFrame('walk03')],
+    attack: [
+      horseFrame('idle'),
+      [horseFrame('Whiplash'), horseFrame('Whiplash2'), horseFrame('Whiplash3')],
+      [horseFrame('WhiplashFinal'), horseFrame('Whiplash'), horseFrame('Whiplash2'), horseFrame('Whiplash3')]
+    ],
+    finalFrame: horseFrame('knockdown'),
+    appear: HORSE_FOLDER + '/Appear.mp3',
+    koSound: HORSE_KO_FILE,
+    whiplashFinalSound: HORSE_WHIPLASH_FINAL_FILE
+  });
+
+  if (Assets.enemyAppear) Assets.enemyAppear.horse = Assets.horse.appear;
+  if (Assets.audio && Assets.audio.sfx) {
+    Assets.audio.sfx[HORSE_KO_KEY] = HORSE_KO_FILE;
+    Assets.audio.sfx[HORSE_WHIPLASH_FINAL_KEY] = HORSE_WHIPLASH_FINAL_FILE;
+  }
+
+  if (typeof AudioManager !== 'undefined' && !AudioManager.horseKoPatchApplied) {
+    const previousAudioInit = AudioManager.init;
+    AudioManager.init = function () {
+      previousAudioInit.call(this);
+      if (!this.sfx[HORSE_KO_KEY] && this.createAudio) this.sfx[HORSE_KO_KEY] = this.createAudio(HORSE_KO_FILE, false);
+      if (!this.sfx[HORSE_WHIPLASH_FINAL_KEY] && this.createAudio) this.sfx[HORSE_WHIPLASH_FINAL_KEY] = this.createAudio(HORSE_WHIPLASH_FINAL_FILE, false);
+    };
+    AudioManager.horseKoPatchApplied = true;
+  }
+
+  if (typeof DogRegimeEnemy !== 'undefined' && !DogRegimeEnemy.prototype.horseKoPatchApplied) {
+    const previousTakeHit = DogRegimeEnemy.prototype.takeHit;
+    DogRegimeEnemy.prototype.takeHit = function (damage, direction, knockback) {
+      const wasAlive = this.alive;
+      previousTakeHit.call(this, damage, direction, knockback);
+      if (wasAlive && !this.alive && this.enemyType === 'horse') AudioManager.playSfx(HORSE_KO_KEY, 0.95, { startAt: 0.01 });
+    };
+    DogRegimeEnemy.prototype.horseKoPatchApplied = true;
+  }
+
+  if (typeof GameApp !== 'undefined' && !GameApp.prototype.horseWalkOnlyPatchApplied) {
+    const previousHorseLoadImages = GameApp.prototype.loadImages;
+    GameApp.prototype.loadImages = async function () {
+      const loaded = await previousHorseLoadImages.call(this);
+      const horse = Assets.horse || {};
+      const walk0 = await loadFirstExistingImage(horse.walk && horse.walk[0]);
+      const walk1 = await loadFirstExistingImage(horse.walk && horse.walk[1]);
+      const walk2 = await loadFirstExistingImage(horse.walk && horse.walk[2]);
+      const idle = await loadFirstExistingImage(horse.idle) || walk0;
+      const action0 = await loadFirstExistingImage(horse.attack && horse.attack[0]);
+      const action1 = await loadFirstExistingImage(horse.attack && horse.attack[1]);
+      const action2 = await loadFirstExistingImage(horse.attack && horse.attack[2]);
+      const finalFrame = await loadFirstExistingImage(horse.finalFrame);
+
+      if (!loaded.enemies) loaded.enemies = {};
+      loaded.enemies.horse = {
+        idle: idle || walk0 || walk1 || walk2,
+        walk: [walk0 || idle, walk1 || walk0 || idle, walk2 || walk1 || walk0 || idle],
+        attack: [
+          action0 || walk1 || walk0 || idle,
+          action1 || walk2 || walk1 || walk0 || idle,
+          action2 || action1 || walk2 || walk1 || walk0 || idle
+        ],
+        dead: finalFrame || walk2 || walk1 || walk0 || idle
+      };
+      return loaded;
+    };
+    GameApp.prototype.horseWalkOnlyPatchApplied = true;
+  }
 })();
