@@ -39,6 +39,7 @@
   "src/exitArrowPatch.js",
   "src/teamStatePatch.js",
   "src/runProgressPatch.js",
+  "src/campaignMapDevTools.js",
   "src/fullscreenPatch.js",
   "src/bestiaryPatch.js",
   "src/gundosEnemyPatch.js",

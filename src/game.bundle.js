@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.235",
+  "buildVersion": "0.4.236",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -17091,6 +17091,20 @@ window.addEventListener('load', () => {
       }
     };
   }
+})();
+
+
+
+/* ===== src/campaignMapDevTools.js ===== */
+(function () {
+  if (typeof CampaignMapScreen === 'undefined') return;
+
+  const previousUpdate = CampaignMapScreen.update;
+
+  CampaignMapScreen.update = function (game, dt) {
+    if (this.isDevMode && this.isDevMode() && this.handleDevInput && this.handleDevInput(game)) return;
+    return previousUpdate.call(this, game, dt);
+  };
 })();
 
 
