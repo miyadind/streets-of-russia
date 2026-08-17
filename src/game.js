@@ -23,6 +23,7 @@ class GameApp {
   }
 
   async init() {
+    window.game = this;
     Responsive.init(this.canvas, this.ctx);
     Input.init(this.canvas);
     AudioManager.init();

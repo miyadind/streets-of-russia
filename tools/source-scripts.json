@@ -46,11 +46,11 @@
   "src/gundosEnemyPatch.js",
   "src/hitboxEditorPatch.js",
   "src/devCacheBustPatch.js",
-  "src/gameReferencePatch.js",
   "src/saveSystemPatch.js",
   "src/storyFlowPatch.js",
   "src/sessionOnlyRunPatch.js",
   "src/heroDefeatOverlayPatch.js",
   "src/heroVoiceLines.js",
-  "src/borisVoicePatch.js"
+  "src/borisVoicePatch.js",
+  "src/analyticsPatch.js"
 ]
