@@ -15,7 +15,33 @@
     if (!getActiveClips(game) || !player || game.state !== 'level' || game.paused ||
         (typeof DevPanel !== 'undefined' && DevPanel.open) || game.scene.gundosIntroLocked) return false;
 
-    return player.state === 'idle';
+    return player.state === 'idle' && !hasSceneActivity(game.scene);
+  }
+
+  function hasSceneActivity(scene) {
+    if (!scene || scene.hitStop > 0 || scene.pendingWave || scene.nonBlockingWaveTimer > 0) return true;
+
+    return (scene.enemies || []).some((enemy) => enemy && enemy.alive && !enemy.remove);
+  }
+
+  function hasGameplayActionInput() {
+    const justPressed = Input.just || {};
+    const pressedAction = Object.keys(justPressed).some((key) =>
+      key !== 'any' && key !== 'x' && key !== 'z' && justPressed[key]
+    );
+    const heldAction = [
+      'a', 'd', 'w', 's', 'arrowleft', 'arrowright', 'arrowup', 'arrowdown', 'space'
+    ].some((key) => Input.pressed(key));
+
+    return pressedAction || heldAction || Input.pointer.justDown || Input.touches.length > 0;
+  }
+
+  function shouldStopVoiceForGameplay(game, actionInput) {
+    const player = game && game.scene && game.scene.player;
+    if (!game || game.state !== 'level' || game.paused || !player ||
+        (typeof DevPanel !== 'undefined' && DevPanel.open)) return true;
+
+    return actionInput || player.state !== 'idle' || hasSceneActivity(game.scene);
   }
 
   function stopVoice(game) {
@@ -92,6 +118,8 @@
 
   const previousUpdate = GameApp.prototype.update;
   GameApp.prototype.update = function (dt) {
+    let requestedVoice = null;
+    let actionInput = false;
     if (this.state === 'level') {
       const activeHeroKey = this.scene && this.scene.player ? this.scene.player.heroKey : null;
       if (activeHeroKey !== this.heroVoiceHeroKey) {
@@ -104,30 +132,53 @@
       }
       const clips = getActiveClips(this);
       if (Input.consume('z') && clips) {
-        this.heroVoiceAutoIndex = (this.heroVoiceIndex + clips.length - 1) % clips.length;
-        playVoice(this, this.heroVoiceAutoIndex);
+        requestedVoice = (this.heroVoiceIndex + clips.length - 1) % clips.length;
       } else if (Input.consume('x') && clips) {
-        this.heroVoiceAutoIndex = (this.heroVoiceIndex + 1) % clips.length;
-        playVoice(this, this.heroVoiceAutoIndex);
+        requestedVoice = (this.heroVoiceIndex + 1) % clips.length;
       }
+      actionInput = hasGameplayActionInput();
 
       if (!clips && this.heroVoicePlaying) stopVoice(this);
       if (!AudioManager.isSfxOn() && this.heroVoicePlaying) stopVoice(this);
-      if (this.heroVoicePlaying || !isGameplayIdle(this)) {
-        this.heroVoiceIdleMs = 0;
-        this.heroVoiceIdleStartedAt = 0;
-      } else {
-        const now = performance.now();
-        if (!this.heroVoiceIdleStartedAt) this.heroVoiceIdleStartedAt = now;
-        this.heroVoiceIdleMs = now - this.heroVoiceIdleStartedAt;
-        if (this.heroVoiceIdleMs >= IDLE_DELAY_MS) {
-          playVoice(this, this.heroVoiceAutoIndex);
-          this.heroVoiceAutoIndex = (this.heroVoiceAutoIndex + 1) % clips.length;
-          this.heroVoiceIdleStartedAt = 0;
-        }
-      }
     }
-    return previousUpdate.call(this, dt);
+    const result = previousUpdate.call(this, dt);
+
+    if (this.state !== 'level') {
+      stopVoice(this);
+      return result;
+    }
+
+    const clips = getActiveClips(this);
+    if (!clips || !AudioManager.isSfxOn()) {
+      stopVoice(this);
+      return result;
+    }
+
+    if (this.heroVoicePlaying && shouldStopVoiceForGameplay(this, actionInput)) stopVoice(this);
+
+    if (requestedVoice !== null) {
+      if (isGameplayIdle(this) && !actionInput) {
+        this.heroVoiceAutoIndex = requestedVoice;
+        playVoice(this, requestedVoice);
+      }
+      return result;
+    }
+
+    if (this.heroVoicePlaying || !isGameplayIdle(this)) {
+      this.heroVoiceIdleMs = 0;
+      this.heroVoiceIdleStartedAt = 0;
+      return result;
+    }
+
+    const now = performance.now();
+    if (!this.heroVoiceIdleStartedAt) this.heroVoiceIdleStartedAt = now;
+    this.heroVoiceIdleMs = now - this.heroVoiceIdleStartedAt;
+    if (this.heroVoiceIdleMs >= IDLE_DELAY_MS) {
+      playVoice(this, this.heroVoiceAutoIndex);
+      this.heroVoiceAutoIndex = (this.heroVoiceAutoIndex + 1) % clips.length;
+      this.heroVoiceIdleStartedAt = 0;
+    }
+    return result;
   };
 
   function wrapText(ctx, text, maxWidth) {
