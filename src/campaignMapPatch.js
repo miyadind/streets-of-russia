@@ -73,6 +73,13 @@
   const INTRO_READER_LINE_HEIGHT = 32;
   const INTRO_READER_SCROLL_STEP = 42;
 
+  function getIntroText() {
+    const text = window.STREETS_INTRO_TEXT;
+    if (typeof text === 'string' && text.trim()) return text;
+    console.error('[CAMPAIGN INTRO] window.STREETS_INTRO_TEXT is missing or empty. Check src/introContent.js.');
+    return INTRO_TEXT;
+  }
+
   function loadPatchImage(src) {
     return new Promise((resolve) => {
       const img = new Image();
@@ -198,7 +205,7 @@
     CampaignMapScreen.init();
     this.campaignMap = CampaignMapScreen;
     this.intro = {
-      text: INTRO_TEXT,
+      text: getIntroText(),
       time: 0,
       firstRun: false,
       fastForward: false,
@@ -309,6 +316,8 @@
   };
 
   GameApp.prototype.startIntro = function () {
+    this.intro.text = getIntroText();
+    this.intro.layoutLines = [];
     this.intro.time = 0;
     this.intro.firstRun = !this.hasSeenIntro();
     this.intro.fastForward = false;
