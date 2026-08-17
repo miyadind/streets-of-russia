@@ -162,13 +162,14 @@ const DevPanel = {
     if (this.inRect(point, r.waveNext)) { this.selectedWaveIndex = Math.min(level.waves.length - 1, this.selectedWaveIndex + 1); this.selectedGroupIndex = 0; this.setStatus('Wave: ' + (this.selectedWaveIndex + 1)); return true; }
     if (this.inRect(point, r.groupPrev)) { this.selectedGroupIndex = Math.max(0, this.selectedGroupIndex - 1); this.setStatus('Group: ' + (this.selectedGroupIndex + 1)); return true; }
     if (this.inRect(point, r.groupNext)) { this.selectedGroupIndex = Math.min(wave.enemies.length - 1, this.selectedGroupIndex + 1); this.setStatus('Group: ' + (this.selectedGroupIndex + 1)); return true; }
-    if (this.inRect(point, r.typeBtn)) { group.type = this.nextValue(group.type, enemyTypes); this.restartScene(game); this.setStatus('Enemy type: ' + group.type); return true; }
-    if (this.inRect(point, r.countMinus)) { group.count = Math.max(0, group.count - 1); this.restartScene(game); this.setStatus('Count: ' + group.count); return true; }
-    if (this.inRect(point, r.countPlus)) { group.count = Math.min(12, group.count + 1); this.restartScene(game); this.setStatus('Count: ' + group.count); return true; }
-    if (this.inRect(point, r.sideBtn)) { group.side = this.nextValue(group.side, ['right', 'left', 'both']); this.restartScene(game); this.setStatus('Side: ' + group.side); return true; }
-    if (this.inRect(point, r.delayMinus)) { group.delayMs = Math.max(0, (Number(group.delayMs) || 0) - 500); this.restartScene(game); this.setStatus('Group delay: ' + this.formatDelay(group.delayMs)); return true; }
-    if (this.inRect(point, r.delayPlus)) { group.delayMs = Math.min(60000, (Number(group.delayMs) || 0) + 500); this.restartScene(game); this.setStatus('Group delay: ' + this.formatDelay(group.delayMs)); return true; }
-    if (this.inRect(point, r.triggerBtn)) { wave.trigger = this.nextValue(wave.trigger, ['onEnter', 'afterWaveCleared']); this.restartScene(game); this.setStatus('Trigger: ' + wave.trigger); return true; }
+    if (this.inRect(point, r.typePrev)) { group.type = this.previousValue(group.type, enemyTypes); this.setStatus('Enemy type: ' + group.type); return true; }
+    if (this.inRect(point, r.typeNext)) { group.type = this.nextValue(group.type, enemyTypes); this.setStatus('Enemy type: ' + group.type); return true; }
+    if (this.inRect(point, r.countMinus)) { group.count = Math.max(0, group.count - 1); this.setStatus('Count: ' + group.count); return true; }
+    if (this.inRect(point, r.countPlus)) { group.count = Math.min(12, group.count + 1); this.setStatus('Count: ' + group.count); return true; }
+    if (this.inRect(point, r.sideBtn)) { group.side = this.nextValue(group.side, ['right', 'left', 'both']); this.setStatus('Side: ' + group.side); return true; }
+    if (this.inRect(point, r.delayMinus)) { group.delayMs = Math.max(0, (Number(group.delayMs) || 0) - 500); this.setStatus('Group delay: ' + this.formatDelay(group.delayMs)); return true; }
+    if (this.inRect(point, r.delayPlus)) { group.delayMs = Math.min(60000, (Number(group.delayMs) || 0) + 500); this.setStatus('Group delay: ' + this.formatDelay(group.delayMs)); return true; }
+    if (this.inRect(point, r.triggerBtn)) { wave.trigger = this.nextValue(wave.trigger, ['onEnter', 'afterWaveCleared']); this.setStatus('Trigger: ' + wave.trigger); return true; }
     if (this.inRect(point, r.addGroup)) { this.addEnemyGroup(game); return true; }
     if (this.inRect(point, r.removeGroup)) { this.removeEnemyGroup(game); return true; }
     if (this.inRect(point, r.addWave)) { this.addWave(game); return true; }
@@ -327,7 +328,9 @@ const DevPanel = {
     this.drawValue(ctx, String(this.selectedGroupIndex + 1) + ' / ' + wave.enemies.length, r.box.x + 145, r.box.y + 202);
 
     this.drawRowLabel(ctx, 'Enemy type:', r.box.x + 24, r.box.y + 248);
-    this.drawButton(ctx, r.typeBtn.x, r.typeBtn.y, r.typeBtn.w, r.typeBtn.h, group.type);
+    this.drawButton(ctx, r.typePrev.x, r.typePrev.y, r.typePrev.w, r.typePrev.h, '<');
+    this.drawValue(ctx, group.type, r.box.x + 290, r.box.y + 248);
+    this.drawButton(ctx, r.typeNext.x, r.typeNext.y, r.typeNext.w, r.typeNext.h, '>');
 
     this.drawRowLabel(ctx, 'Count:', r.box.x + 24, r.box.y + 294);
     this.drawButton(ctx, r.countMinus.x, r.countMinus.y, r.countMinus.w, r.countMinus.h, '-');
@@ -420,7 +423,8 @@ const DevPanel = {
       waveNext: { x: x + 190, y: y + 138, w: 36, h: 26 },
       groupPrev: { x: x + 92, y: y + 180, w: 36, h: 26 },
       groupNext: { x: x + 190, y: y + 180, w: 36, h: 26 },
-      typeBtn: { x: x + 132, y: y + 226, w: 160, h: 30 },
+      typePrev: { x: x + 132, y: y + 226, w: 36, h: 30 },
+      typeNext: { x: x + 376, y: y + 226, w: 36, h: 30 },
       countMinus: { x: x + 100, y: y + 272, w: 36, h: 26 },
       countPlus: { x: x + 180, y: y + 272, w: 36, h: 26 },
       sideBtn: { x: x + 132, y: y + 318, w: 160, h: 30 },
@@ -531,7 +535,6 @@ const DevPanel = {
     const wave = this.getSelectedWave();
     wave.enemies.push({ type: 'dogRegime', count: 1, side: 'right', delayMs: 0 });
     this.selectedGroupIndex = wave.enemies.length - 1;
-    this.restartScene(game);
     this.setStatus('Enemy group added');
   },
 
@@ -540,7 +543,6 @@ const DevPanel = {
     if (wave.enemies.length <= 1) { this.setStatus('Cannot remove last group'); return; }
     wave.enemies.splice(this.selectedGroupIndex, 1);
     this.selectedGroupIndex = Math.max(0, this.selectedGroupIndex - 1);
-    this.restartScene(game);
     this.setStatus('Enemy group removed');
   },
 
@@ -549,7 +551,6 @@ const DevPanel = {
     level.waves.push(this.createDefaultWave('afterWaveCleared'));
     this.selectedWaveIndex = level.waves.length - 1;
     this.selectedGroupIndex = 0;
-    this.restartScene(game);
     this.setStatus('Wave added');
   },
 
@@ -559,7 +560,6 @@ const DevPanel = {
     level.waves.splice(this.selectedWaveIndex, 1);
     this.selectedWaveIndex = Math.max(0, this.selectedWaveIndex - 1);
     this.selectedGroupIndex = 0;
-    this.restartScene(game);
     this.setStatus('Wave removed');
   },
 
@@ -569,7 +569,6 @@ const DevPanel = {
     level.waves.splice(this.selectedWaveIndex + 1, 0, copy);
     this.selectedWaveIndex += 1;
     this.selectedGroupIndex = 0;
-    this.restartScene(game);
     this.setStatus('Wave copied');
   },
 
@@ -597,6 +596,11 @@ const DevPanel = {
   nextValue(current, values) {
     const index = values.indexOf(current);
     return values[(index + 1) % values.length];
+  },
+
+  previousValue(current, values) {
+    const index = values.indexOf(current);
+    return values[(index + values.length - 1) % values.length];
   },
 
   wrap(index, length) {

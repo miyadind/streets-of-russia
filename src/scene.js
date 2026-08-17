@@ -351,7 +351,6 @@ class LevelScene {
     const delayMs = this.getWaveAppearDelayMs(wave);
 
     if (delayMs > 0) {
-      this.playWaveAppearSounds(wave);
       this.pendingWave = wave;
       this.pendingWaveTimer = delayMs;
       this.encounterActive = false;
@@ -361,15 +360,6 @@ class LevelScene {
     }
 
     this.materializeWave(wave);
-  }
-
-  playWaveAppearSounds(wave) {
-    const playedTypes = new Set();
-    for (const group of wave.enemies || []) {
-      if (!group.type || playedTypes.has(group.type)) continue;
-      playedTypes.add(group.type);
-      this.playEnemyAppearSound(group.type);
-    }
   }
 
   materializeWave(wave) {
