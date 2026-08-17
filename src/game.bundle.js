@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.231",
+  "buildVersion": "0.4.232",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -18499,32 +18499,44 @@ window.addEventListener('load', () => {
     };
 
     window.addEventListener('load', () => {
-      let hiddenPaused = false;
-      let hiddenPausedGameplay = false;
-      document.addEventListener('visibilitychange', () => {
+      let backgroundPauseActive = false;
+      let resumeLevelOnFocus = false;
+
+      const suspendForBackground = () => {
+        if (backgroundPauseActive) return;
+
         const game = window.game || null;
-        if (document.hidden) {
-          hiddenPaused = true;
-          hiddenPausedGameplay = !!(game && game.state === 'level' && !game.paused);
-          if (game && game.state === 'level') game.paused = true;
-          if (game && game.scene && game.scene.pauseGundosVoice) game.scene.pauseGundosVoice();
-          if (AudioManager.pauseAllAudio) AudioManager.pauseAllAudio();
-          if (game && game.state === 'level') game.gundosAudioPauseState = true;
-        } else if (hiddenPaused) {
-          hiddenPaused = false;
-          if (game && hiddenPausedGameplay) game.paused = false;
-          hiddenPausedGameplay = false;
-          if (game && game.scene && game.scene.resumeGundosVoice && !game.paused) game.scene.resumeGundosVoice();
-          if (AudioManager.resumePausedAudio && (!game || !game.paused)) AudioManager.resumePausedAudio();
+        backgroundPauseActive = true;
+        resumeLevelOnFocus = !!(game && game.state === 'level' && !game.paused);
+        if (resumeLevelOnFocus) {
+          game.paused = true;
+          if (game.scene && game.scene.pauseGundosVoice) game.scene.pauseGundosVoice();
+          game.gundosAudioPauseState = true;
         }
-      });
-      window.addEventListener('blur', () => {
-        const game = window.game || null;
-        if (game && game.state === 'level') game.paused = true;
-        if (game && game.scene && game.scene.pauseGundosVoice) game.scene.pauseGundosVoice();
         if (AudioManager.pauseAllAudio) AudioManager.pauseAllAudio();
-        if (game && game.state === 'level') game.gundosAudioPauseState = true;
+      };
+
+      const resumeFromBackground = () => {
+        if (!backgroundPauseActive || document.hidden) return;
+
+        const game = window.game || null;
+        const resumeLevel = resumeLevelOnFocus && game && game.state === 'level';
+        backgroundPauseActive = false;
+        resumeLevelOnFocus = false;
+        if (resumeLevel) {
+          game.paused = false;
+          if (game.scene && game.scene.resumeGundosVoice) game.scene.resumeGundosVoice();
+          game.gundosAudioPauseState = false;
+        }
+        if (AudioManager.resumePausedAudio && (!game || !game.paused)) AudioManager.resumePausedAudio();
+      };
+
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) suspendForBackground();
+        else resumeFromBackground();
       });
+      window.addEventListener('blur', suspendForBackground);
+      window.addEventListener('focus', resumeFromBackground);
     });
   }
 
