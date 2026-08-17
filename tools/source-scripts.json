@@ -45,7 +45,6 @@
   "src/bestiaryPatch.js",
   "src/gundosEnemyPatch.js",
   "src/hitboxEditorPatch.js",
-  "src/devCacheBustPatch.js",
   "src/saveSystemPatch.js",
   "src/storyFlowPatch.js",
   "src/sessionOnlyRunPatch.js",

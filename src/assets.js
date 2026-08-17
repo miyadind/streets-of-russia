@@ -110,3 +110,21 @@ for (let i = 1; i <= Assets.supportFigureCount; i++) {
   const id = 'support' + String(i).padStart(2, '0');
   Assets.pickups[id] = 'assets/support/support-' + String(i).padStart(2, '0') + '.webp';
 }
+
+const ASSET_CACHE_VERSION = encodeURIComponent(GAME_CONFIG.buildVersion || 'dev');
+
+function versionAssetPath(value) {
+  if (typeof value !== 'string' || !value.startsWith('assets/')) return value;
+  return value + (value.includes('?') ? '&' : '?') + 'v=' + ASSET_CACHE_VERSION;
+}
+
+function versionAssetTree(value) {
+  if (typeof value === 'string') return versionAssetPath(value);
+  if (Array.isArray(value)) return value.map(versionAssetTree);
+  if (!value || typeof value !== 'object') return value;
+
+  for (const key of Object.keys(value)) value[key] = versionAssetTree(value[key]);
+  return value;
+}
+
+versionAssetTree(Assets);

@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.226",
+  "buildVersion": "0.4.227",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -1535,6 +1535,24 @@ for (let i = 1; i <= Assets.supportFigureCount; i++) {
   const id = 'support' + String(i).padStart(2, '0');
   Assets.pickups[id] = 'assets/support/support-' + String(i).padStart(2, '0') + '.webp';
 }
+
+const ASSET_CACHE_VERSION = encodeURIComponent(GAME_CONFIG.buildVersion || 'dev');
+
+function versionAssetPath(value) {
+  if (typeof value !== 'string' || !value.startsWith('assets/')) return value;
+  return value + (value.includes('?') ? '&' : '?') + 'v=' + ASSET_CACHE_VERSION;
+}
+
+function versionAssetTree(value) {
+  if (typeof value === 'string') return versionAssetPath(value);
+  if (Array.isArray(value)) return value.map(versionAssetTree);
+  if (!value || typeof value !== 'object') return value;
+
+  for (const key of Object.keys(value)) value[key] = versionAssetTree(value[key]);
+  return value;
+}
+
+versionAssetTree(Assets);
 
 
 
@@ -19322,37 +19340,6 @@ window.addEventListener('load', () => {
 
     DevPanel.hitboxEditorSimplePatchApplied = true;
   }
-})();
-
-
-
-/* ===== src/devCacheBustPatch.js ===== */
-(function () {
-  const DEV_CACHE_BUST = String(Date.now());
-
-  function addCacheBust(url) {
-    if (typeof url !== 'string') return url;
-    if (!url.startsWith('assets/')) return url;
-    const separator = url.includes('?') ? '&' : '?';
-    return url + separator + 'dev=' + DEV_CACHE_BUST;
-  }
-
-  function patchAssetTree(value) {
-    if (typeof value === 'string') return addCacheBust(value);
-    if (Array.isArray(value)) {
-      for (let i = 0; i < value.length; i += 1) value[i] = patchAssetTree(value[i]);
-      return value;
-    }
-    if (value && typeof value === 'object') {
-      for (const key of Object.keys(value)) value[key] = patchAssetTree(value[key]);
-    }
-    return value;
-  }
-
-  if (typeof window !== 'undefined') window.DEV_CACHE_BUST = DEV_CACHE_BUST;
-  if (typeof Assets !== 'undefined') patchAssetTree(Assets);
-
-  console.info('[dev-cache] cache bust enabled:', DEV_CACHE_BUST);
 })();
 
 
