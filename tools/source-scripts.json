@@ -34,7 +34,7 @@
   "src/desktopUXPatch.js",
   "src/desktopRefinementPatch.js",
   "src/exitArrowPatch.js",
-  "src/teamStatePatch.js",
+  "src/teamState.js",
   "src/runProgressPatch.js",
   "src/fullscreen.js",
   "src/bestiaryPatch.js",
