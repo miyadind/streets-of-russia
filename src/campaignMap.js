@@ -290,6 +290,8 @@ const CampaignMapScreen = {
     const click = Input.consumePointer();
 
     if (Input.consume('escape')) {
+      game.runInProgress = true;
+      game.resumeTarget = 'campaignMap';
       game.setState('mainMenu');
       return;
     }
@@ -304,7 +306,14 @@ const CampaignMapScreen = {
     if (Input.consume('enter') || Input.consume('space') || this.pointInRect(click, startButton)) {
       AudioManager.unlock();
       AudioManager.playSfx('menuSelect', 0.85);
-      game.setState('characterSelect');
+      if (window.CampaignFlow && window.CampaignFlow.openCharacterSelect) {
+        window.CampaignFlow.openCharacterSelect(game, 'campaignStart');
+      } else {
+        game.runInProgress = true;
+        game.resumeTarget = 'campaignMap';
+        game.characterSelectMode = 'campaignStart';
+        game.setState('characterSelect');
+      }
     }
   },
 

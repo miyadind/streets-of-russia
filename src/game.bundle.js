@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.238",
+  "buildVersion": "0.4.239",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -9799,6 +9799,8 @@ const CampaignMapScreen = {
     const click = Input.consumePointer();
 
     if (Input.consume('escape')) {
+      game.runInProgress = true;
+      game.resumeTarget = 'campaignMap';
       game.setState('mainMenu');
       return;
     }
@@ -9813,7 +9815,14 @@ const CampaignMapScreen = {
     if (Input.consume('enter') || Input.consume('space') || this.pointInRect(click, startButton)) {
       AudioManager.unlock();
       AudioManager.playSfx('menuSelect', 0.85);
-      game.setState('characterSelect');
+      if (window.CampaignFlow && window.CampaignFlow.openCharacterSelect) {
+        window.CampaignFlow.openCharacterSelect(game, 'campaignStart');
+      } else {
+        game.runInProgress = true;
+        game.resumeTarget = 'campaignMap';
+        game.characterSelectMode = 'campaignStart';
+        game.setState('characterSelect');
+      }
     }
   },
 
@@ -16770,22 +16779,6 @@ window.addEventListener('load', () => {
     return items;
   }
 
-  function setCharacterSelectForCampaign(game) {
-    if (window.CampaignFlow) {
-      window.CampaignFlow.openCharacterSelect(game, 'campaignStart');
-      return;
-    }
-    game.runInProgress = true;
-    game.resumeTarget = 'campaignMap';
-    game.characterSelectMode = 'campaignStart';
-    if (typeof CharacterSelect !== 'undefined') {
-      CharacterSelect.infoOpen = false;
-      CharacterSelect.footerFocus = null;
-      CharacterSelect.gameRef = game;
-    }
-    game.setState('characterSelect');
-  }
-
   const previousSetState = GameApp.prototype.setState;
   GameApp.prototype.setState = function (nextState) {
     const previousState = this.state;
@@ -16849,22 +16842,6 @@ window.addEventListener('load', () => {
       }
     };
 
-    CampaignMapScreen.update = function (game) {
-      const click = Input.consumePointer();
-      if (Input.consume('escape')) {
-        game.runInProgress = true;
-        game.resumeTarget = 'campaignMap';
-        game.setState('mainMenu');
-        return;
-      }
-
-      const startButton = this.getDesktopStartButton ? this.getDesktopStartButton() : null;
-      if (Input.consume('enter') || Input.consume('space') || click && (!startButton || inRect(click, startButton))) {
-        AudioManager.unlock();
-        AudioManager.playSfx('menuSelect', 0.85);
-        setCharacterSelectForCampaign(game);
-      }
-    };
   }
 
   Menu.getRuntimeItems = function (game) {
@@ -17092,20 +17069,6 @@ window.addEventListener('load', () => {
       }
     };
   }
-})();
-
-
-
-/* ===== src/campaignMapDevTools.js ===== */
-(function () {
-  if (typeof CampaignMapScreen === 'undefined') return;
-
-  const previousUpdate = CampaignMapScreen.update;
-
-  CampaignMapScreen.update = function (game, dt) {
-    if (this.isDevMode && this.isDevMode() && this.handleDevInput && this.handleDevInput(game)) return;
-    return previousUpdate.call(this, game, dt);
-  };
 })();
 
 
