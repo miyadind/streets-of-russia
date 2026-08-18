@@ -46,5 +46,5 @@
   "src/heroDefeatOverlay.js",
   "src/heroVoiceLines.js",
   "src/borisVoicePatch.js",
-  "src/analyticsPatch.js"
+  "src/analytics.js"
 ]

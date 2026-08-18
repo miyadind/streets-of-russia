@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.250",
+  "buildVersion": "0.4.251",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -20356,7 +20356,7 @@ window.HeroVoiceLines = {
 
 
 
-/* ===== src/analyticsPatch.js ===== */
+/* ===== src/analytics.js ===== */
 (function () {
   if (typeof GameApp === 'undefined' || typeof Menu === 'undefined') return;
 
