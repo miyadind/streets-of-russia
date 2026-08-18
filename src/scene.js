@@ -718,6 +718,13 @@ class LevelScene {
       const wasAlive = enemy.alive;
       if (!wasAlive) this.maybeDropPickup(enemy, { source: 'system' });
       enemy.update(dt, this);
+      const canLeaveArea = enemy.isHealingExit && enemy.isHealingExit();
+      const isAreaBoundEnemy = (typeof DogRegimeEnemy !== 'undefined' && enemy instanceof DogRegimeEnemy) ||
+        (typeof BastardEnemy !== 'undefined' && enemy instanceof BastardEnemy);
+      if (isAreaBoundEnemy && !canLeaveArea) {
+        const offscreen = enemy.alive ? (GAME_CONFIG.enemyOffscreenMargin || 180) : 0;
+        this.clampActorPosition(enemy, 45, offscreen);
+      }
       if (wasAlive && !enemy.alive) this.maybeDropPickup(enemy, { source: 'system' });
     }
     this.cleanupEscapedZetniks();

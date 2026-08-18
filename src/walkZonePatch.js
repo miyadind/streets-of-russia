@@ -210,63 +210,6 @@
 
   ensureAllLevelAreas();
 
-  if (typeof Player !== 'undefined') {
-    const oldPlayerUpdate = Player.prototype.update;
-    Player.prototype.update = function (dt, scene) {
-      oldPlayerUpdate.call(this, dt, scene);
-      if (scene && typeof scene.clampActorPosition === 'function') scene.clampActorPosition(this, 70);
-    };
-  }
-
-  if (typeof DogRegimeEnemy !== 'undefined') {
-    const oldDogUpdate = DogRegimeEnemy.prototype.update;
-    DogRegimeEnemy.prototype.update = function (dt, scene) {
-      this.__scene = scene;
-      oldDogUpdate.call(this, dt, scene);
-      const offscreen = this.alive ? (GAME_CONFIG.enemyOffscreenMargin || 180) : 0;
-      if (scene && typeof scene.clampActorPosition === 'function') scene.clampActorPosition(this, 45, offscreen);
-    };
-
-    DogRegimeEnemy.prototype.clampToScreen = function () {
-      const scene = this.__scene;
-      const offscreen = this.alive ? (GAME_CONFIG.enemyOffscreenMargin || 180) : 0;
-      if (scene && typeof scene.clampActorPosition === 'function') {
-        scene.clampActorPosition(this, 45, offscreen);
-        return;
-      }
-      this.x = clamp(this.x, 45 - offscreen, GAME_CONFIG.width - 45 + offscreen);
-      this.y = clamp(this.y, GAME_CONFIG.laneTop, GAME_CONFIG.laneBottom);
-    };
-  }
-
-  if (typeof SuckerEnemy !== 'undefined') {
-    const oldSuckerUpdate = SuckerEnemy.prototype.update;
-    SuckerEnemy.prototype.update = function (dt, scene) {
-      this.__scene = scene;
-      oldSuckerUpdate.call(this, dt, scene);
-      const offscreen = this.alive ? (GAME_CONFIG.enemyOffscreenMargin || 180) : 0;
-      if (scene && typeof scene.clampActorPosition === 'function') scene.clampActorPosition(this, 45, offscreen);
-    };
-  }
-
-  if (typeof BastardEnemy !== 'undefined') {
-    const oldBastardUpdate = BastardEnemy.prototype.update;
-    BastardEnemy.prototype.update = function (dt, scene) {
-      this.__scene = scene;
-      oldBastardUpdate.call(this, dt, scene);
-      if (this.isHealingExit && this.isHealingExit()) return;
-      if (scene && typeof scene.clampActorPosition === 'function') scene.clampActorPosition(this, 45);
-    };
-
-    const oldBastardTakeHit = BastardEnemy.prototype.takeHit;
-    BastardEnemy.prototype.takeHit = function (damage, direction) {
-      oldBastardTakeHit.call(this, damage, direction);
-      const scene = this.__scene;
-      if (this.isHealingExit && this.isHealingExit()) return;
-      if (scene && typeof scene.clampActorPosition === 'function') scene.clampActorPosition(this, 45);
-    };
-  }
-
   if (typeof DevPanel !== 'undefined') {
     if (!DevPanel.tabs.includes('LEVEL AREA')) DevPanel.tabs.push('LEVEL AREA');
 

@@ -45,6 +45,7 @@ class SuckerEnemy extends DogRegimeEnemy {
   }
 
   update(dt, scene) {
+    this.__scene = scene;
     if (this.remove) return;
 
     if (!this.alive) {

@@ -202,6 +202,12 @@ class DogRegimeEnemy {
   }
 
   clampToScreen() {
+    const scene = this.__scene;
+    const offscreen = this.alive ? (GAME_CONFIG.enemyOffscreenMargin || 180) : 0;
+    if (scene && typeof scene.clampActorPosition === 'function') {
+      scene.clampActorPosition(this, 45, offscreen);
+      return;
+    }
     const tuning = GAME_CONFIG.enemies[this.enemyType] || {};
     const margin = tuning.keepOnScreen
       ? Math.max(0, Number(tuning.screenMarginX) || 0)
@@ -217,6 +223,7 @@ class DogRegimeEnemy {
   }
 
   update(dt, scene) {
+    this.__scene = scene;
     if (this.remove) return;
 
     if (!this.alive) {
