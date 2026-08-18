@@ -1,7 +1,7 @@
 const DevPanel = {
   open: false,
   tab: 'PLAYER',
-  tabs: ['PLAYER', 'DOG', 'SUCKER', 'LEVEL WAVES'],
+  tabs: ['PLAYER', 'DOG', 'SUCKER', 'ZETNIK', 'BASTARD', 'LEVEL WAVES', 'LEVEL AREA'],
   statusText: 'Ready',
   statusUntil: 0,
   selectedLevelIndex: 0,
@@ -20,7 +20,8 @@ const DevPanel = {
       { label: 'Anna HP', path: 'heroes.anna.hp', min: 10, max: 300, step: 5 },
       { label: 'Anna damage', path: 'heroes.anna.damage', min: 1, max: 80, step: 1 },
       { label: 'Player scale', path: 'playerScale', min: 0.05, max: 0.22, step: 0.005 },
-      { label: 'Walk frame ms', path: 'walkFrameMs', min: 80, max: 400, step: 10 }
+      { label: 'Walk frame ms', path: 'walkFrameMs', min: 80, max: 400, step: 10 },
+      { label: 'Hurt freeze ms', path: 'playerHurtFreezeMs', min: 80, max: 700, step: 10 }
     ],
     DOG: [
       { label: 'Dog speed', path: 'enemies.dogRegime.speed', min: 0.3, max: 4, step: 0.05 },
@@ -46,6 +47,38 @@ const DevPanel = {
       { label: 'Bite tick', path: 'enemies.sucker.biteTickMs', min: 150, max: 1200, step: 25 },
       { label: 'Bite damage', path: 'enemies.sucker.biteDamage', min: 1, max: 40, step: 1 },
       { label: 'Enemy scatter', path: 'enemies.sucker.otherEnemyScatterDistance', min: 0, max: 300, step: 10 }
+    ],
+    ZETNIK: [
+      { label: 'Zetnik speed', path: 'enemies.zetnik.speed', min: 0.3, max: 4, step: 0.05 },
+      { label: 'Zetnik HP', path: 'enemies.zetnik.hp', min: 10, max: 400, step: 5 },
+      { label: 'Zetnik damage', path: 'enemies.zetnik.damage', min: 1, max: 80, step: 1 },
+      { label: 'Zetnik scale', path: 'enemies.zetnik.scale', min: 0.05, max: 0.25, step: 0.005 },
+      { label: 'Min dist X', path: 'enemies.zetnik.minDistanceX', min: 20, max: 160, step: 2 },
+      { label: 'Preferred dist X', path: 'enemies.zetnik.preferredDistanceX', min: 40, max: 240, step: 2 },
+      { label: 'Attack range X', path: 'enemies.zetnik.attackRangeX', min: 30, max: 200, step: 2 },
+      { label: 'Attack range Y', path: 'enemies.zetnik.attackRangeY', min: 14, max: 100, step: 2 },
+      { label: 'Max attackers', path: 'enemies.zetnik.maxAttackers', min: 1, max: 5, step: 1 },
+      { label: 'Decision min ms', path: 'enemies.zetnik.decisionMinMs', min: 100, max: 1200, step: 20 },
+      { label: 'Decision max ms', path: 'enemies.zetnik.decisionMaxMs', min: 160, max: 2000, step: 20 },
+      { label: 'Strafe chance', path: 'enemies.zetnik.strafeChance', min: 0, max: 1, step: 0.05 },
+      { label: 'Retreat chance', path: 'enemies.zetnik.retreatChance', min: 0, max: 1, step: 0.05 },
+      { label: 'Attack chance', path: 'enemies.zetnik.attackChance', min: 0, max: 1, step: 0.05 },
+      { label: 'Self remove ms', path: 'enemies.zetnik.selfRemoveDelayMs', min: 1000, max: 30000, step: 500 }
+    ],
+    BASTARD: [
+      { label: 'Bastard HP', path: 'enemies.bastard.hp', min: 10, max: 9999, step: 10 },
+      { label: 'Bastard speed', path: 'enemies.bastard.speed', min: 0, max: 3, step: 0.05 },
+      { label: 'Bastard scale', path: 'enemies.bastard.scale', min: 0.05, max: 0.25, step: 0.005 },
+      { label: 'Wander min ms', path: 'enemies.bastard.wanderMinMs', min: 100, max: 4000, step: 50 },
+      { label: 'Wander max ms', path: 'enemies.bastard.wanderMaxMs', min: 100, max: 5000, step: 50 },
+      { label: 'Idle min ms', path: 'enemies.bastard.idleMinMs', min: 100, max: 4000, step: 50 },
+      { label: 'Idle max ms', path: 'enemies.bastard.idleMaxMs', min: 100, max: 5000, step: 50 },
+      { label: 'Fallen min ms', path: 'enemies.bastard.fallenMinMs', min: 100, max: 5000, step: 50 },
+      { label: 'Fallen max ms', path: 'enemies.bastard.fallenMaxMs', min: 100, max: 6000, step: 50 },
+      { label: 'Idle chance', path: 'enemies.bastard.idleChance', min: 0, max: 1, step: 0.05 },
+      { label: 'Fall chance', path: 'enemies.bastard.fallChance', min: 0, max: 1, step: 0.01 },
+      { label: 'Turn chance', path: 'enemies.bastard.turnChance', min: 0, max: 1, step: 0.05 },
+      { label: 'Knockback X', path: 'enemies.bastard.knockbackX', min: 0, max: 180, step: 4 }
     ]
   },
 
@@ -56,6 +89,8 @@ const DevPanel = {
 
   update(game) {
     if (!GAME_CONFIG.adminTuningEnabled) return;
+
+    if (this.open && !this.tabs.includes(this.tab)) this.tab = 'LEVEL WAVES';
 
     if (Input.consume('dev') || Input.consume('`') || Input.consume('ё')) {
       this.open = !this.open;
@@ -105,13 +140,19 @@ const DevPanel = {
   handleFieldsClick(point, game) {
     const fields = this.fieldGroups[this.tab] || [];
     const panel = this.panelRect();
-    const startY = panel.y + 120;
+    const startY = panel.y + 132;
+    const rowH = 34;
+    const colW = 565;
+    const perCol = 14;
 
     for (let i = 0; i < fields.length; i++) {
-      const y = startY + i * 32;
-      const minus = { x: panel.x + 350, y: y - 20, w: 34, h: 25 };
-      const plus = { x: panel.x + 640, y: y - 20, w: 34, h: 25 };
-      const bar = { x: panel.x + 395, y: y - 13, w: 235, h: 11 };
+      const col = Math.floor(i / perCol);
+      const row = i % perCol;
+      const x = panel.x + 36 + col * colW;
+      const y = startY + row * rowH;
+      const minus = { x: x + 290, y: y - 20, w: 34, h: 25 };
+      const plus = { x: x + 530, y: y - 20, w: 34, h: 25 };
+      const bar = { x: x + 335, y: y - 13, w: 185, h: 11 };
       const field = fields[i];
 
       if (this.inRect(point, minus)) { this.change(field, -field.step, game); return; }
@@ -267,8 +308,15 @@ const DevPanel = {
   drawFields(ctx) {
     const fields = this.fieldGroups[this.tab] || [];
     const panel = this.panelRect();
-    const startY = panel.y + 120;
-    for (let i = 0; i < fields.length; i++) this.drawField(ctx, fields[i], panel.x + 36, startY + i * 32);
+    const startY = panel.y + 132;
+    const rowH = 34;
+    const colW = 565;
+    const perCol = 14;
+    for (let i = 0; i < fields.length; i++) {
+      const col = Math.floor(i / perCol);
+      const row = i % perCol;
+      this.drawField(ctx, fields[i], panel.x + 36 + col * colW, startY + row * rowH);
+    }
   },
 
   drawField(ctx, field, x, y) {
@@ -278,16 +326,16 @@ const DevPanel = {
     ctx.fillStyle = '#fff';
     ctx.fillText(field.label, x, y);
     ctx.fillStyle = '#ccc';
-    ctx.fillText(String(value), x + 220, y);
+    ctx.fillText(String(value), x + 205, y);
 
-    this.drawButton(ctx, x + 314, y - 20, 34, 25, '-');
+    this.drawButton(ctx, x + 290, y - 20, 34, 25, '-');
     ctx.fillStyle = '#222';
-    ctx.fillRect(x + 359, y - 13, 235, 11);
+    ctx.fillRect(x + 335, y - 13, 185, 11);
     ctx.fillStyle = '#55ccff';
-    ctx.fillRect(x + 359, y - 13, 235 * Math.max(0, Math.min(1, ratio)), 11);
+    ctx.fillRect(x + 335, y - 13, 185 * Math.max(0, Math.min(1, ratio)), 11);
     ctx.strokeStyle = '#777';
-    ctx.strokeRect(x + 359, y - 13, 235, 11);
-    this.drawButton(ctx, x + 604, y - 20, 34, 25, '+');
+    ctx.strokeRect(x + 335, y - 13, 185, 11);
+    this.drawButton(ctx, x + 530, y - 20, 34, 25, '+');
   },
 
   drawWaveEditor(ctx) {
@@ -396,12 +444,14 @@ const DevPanel = {
   },
 
   panelRect() {
-    return { x: 24, y: 24, w: 1050, h: 670 };
+    return { x: 24, y: 18, w: 1232, h: 684 };
   },
 
   tabRect(index) {
     const panel = this.panelRect();
-    return { x: panel.x + 24 + index * 152, y: panel.y + 76, w: 142, h: 34 };
+    const gap = 8;
+    const w = Math.floor((panel.w - 48 - gap * (this.tabs.length - 1)) / this.tabs.length);
+    return { x: panel.x + 24 + index * (w + gap), y: panel.y + 76, w, h: 34 };
   },
 
   getClickedTab(point) {
@@ -529,6 +579,15 @@ const DevPanel = {
 
   createDefaultWave(trigger = 'afterWaveCleared') {
     return { trigger, enemies: [{ type: 'dogRegime', count: 1, side: 'right', delayMs: 0 }] };
+  },
+
+  openFromPauseMenu(game) {
+    GAME_CONFIG.adminTuningEnabled = true;
+    this.open = true;
+    this.tab = 'LEVEL WAVES';
+    this.ensureLevels();
+    this.syncSelectedLevelWithScene(game);
+    this.setStatus('Developer panel opened');
   },
 
   addEnemyGroup(game) {

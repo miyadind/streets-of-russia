@@ -19,7 +19,6 @@
   "src/devPanel.js",
   "src/devPanelDogAiPatch.js",
   "src/walkZonePatch.js",
-  "src/devPanelRepairPatch.js",
   "src/campaignMap.js",
   "src/campaignRuntime.js",
   "src/campaignFlow.js",
