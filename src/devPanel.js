@@ -139,9 +139,19 @@ const DevPanel = {
     if (this.inRect(point, close)) { this.open = false; return; }
 
     const tab = this.getClickedTab(point);
-    if (tab) { this.tab = tab; this.setStatus('Tab: ' + tab); return; }
+    if (tab) {
+      this.tab = tab;
+      this.syncSelectedLevelWithScene(game);
+      this.setStatus('Tab: ' + tab);
+      return;
+    }
 
     if (this.handleFooterClick(point, game)) return;
+
+    if (this.tab === 'LEVEL AREA' && typeof this.handleLevelAreaClick === 'function') {
+      this.handleLevelAreaClick(point, game);
+      return;
+    }
 
     if (this.tab === 'LEVEL WAVES') {
       this.handleWaveEditorClick(point, game);
@@ -290,12 +300,16 @@ const DevPanel = {
     ctx.fillText('DEVELOPER PANEL', panel.x + 22, panel.y + 38);
     ctx.font = '13px Arial';
     ctx.fillStyle = '#aaa';
-    ctx.fillText('Tabs: balance, enemies, level waves, and per-level music. SAVE stores in localStorage.', panel.x + 22, panel.y + 58);
+    const panelHint = this.tab === 'LEVEL AREA'
+      ? 'LEVEL AREA: grey box = walking area, blue dot = player start, orange lines = enemy spawn lanes.'
+      : 'Tabs: balance, enemies, level waves, and per-level music. SAVE stores in localStorage.';
+    ctx.fillText(panelHint, panel.x + 22, panel.y + 58);
 
     this.drawButton(ctx, panel.x + panel.w - 78, panel.y + 14, 56, 32, 'X');
     this.drawTabs(ctx);
 
     if (this.tab === 'LEVEL WAVES') this.drawWaveEditor(ctx);
+    else if (this.tab === 'LEVEL AREA' && typeof this.drawLevelAreaEditor === 'function') this.drawLevelAreaEditor(ctx);
     else this.drawFields(ctx);
 
     this.drawFooter(ctx);
@@ -664,6 +678,10 @@ const DevPanel = {
         }
       }
     }
+    const levelAreaTools = window.WalkZoneTools;
+    if (levelAreaTools && typeof levelAreaTools.ensureAllLevelAreas === 'function') {
+      levelAreaTools.ensureAllLevelAreas();
+    }
   },
 
   nextValue(current, values) {
@@ -887,6 +905,11 @@ const DevPanel = {
   },
 
   exportConfig() {
+    const levelAreaTools = window.WalkZoneTools;
+    if (levelAreaTools) {
+      if (typeof levelAreaTools.ensureAllLevelAreas === 'function') levelAreaTools.ensureAllLevelAreas();
+      if (typeof levelAreaTools.exportLevelAreas === 'function') levelAreaTools.exportLevelAreas();
+    }
     const exportData = {
       buildVersion: GAME_CONFIG.buildVersion,
       exportedAt: new Date().toISOString(),

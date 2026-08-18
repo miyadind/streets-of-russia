@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.244",
+  "buildVersion": "0.4.245",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -7836,9 +7836,19 @@ const DevPanel = {
     if (this.inRect(point, close)) { this.open = false; return; }
 
     const tab = this.getClickedTab(point);
-    if (tab) { this.tab = tab; this.setStatus('Tab: ' + tab); return; }
+    if (tab) {
+      this.tab = tab;
+      this.syncSelectedLevelWithScene(game);
+      this.setStatus('Tab: ' + tab);
+      return;
+    }
 
     if (this.handleFooterClick(point, game)) return;
+
+    if (this.tab === 'LEVEL AREA' && typeof this.handleLevelAreaClick === 'function') {
+      this.handleLevelAreaClick(point, game);
+      return;
+    }
 
     if (this.tab === 'LEVEL WAVES') {
       this.handleWaveEditorClick(point, game);
@@ -7987,12 +7997,16 @@ const DevPanel = {
     ctx.fillText('DEVELOPER PANEL', panel.x + 22, panel.y + 38);
     ctx.font = '13px Arial';
     ctx.fillStyle = '#aaa';
-    ctx.fillText('Tabs: balance, enemies, level waves, and per-level music. SAVE stores in localStorage.', panel.x + 22, panel.y + 58);
+    const panelHint = this.tab === 'LEVEL AREA'
+      ? 'LEVEL AREA: grey box = walking area, blue dot = player start, orange lines = enemy spawn lanes.'
+      : 'Tabs: balance, enemies, level waves, and per-level music. SAVE stores in localStorage.';
+    ctx.fillText(panelHint, panel.x + 22, panel.y + 58);
 
     this.drawButton(ctx, panel.x + panel.w - 78, panel.y + 14, 56, 32, 'X');
     this.drawTabs(ctx);
 
     if (this.tab === 'LEVEL WAVES') this.drawWaveEditor(ctx);
+    else if (this.tab === 'LEVEL AREA' && typeof this.drawLevelAreaEditor === 'function') this.drawLevelAreaEditor(ctx);
     else this.drawFields(ctx);
 
     this.drawFooter(ctx);
@@ -8361,6 +8375,10 @@ const DevPanel = {
         }
       }
     }
+    const levelAreaTools = window.WalkZoneTools;
+    if (levelAreaTools && typeof levelAreaTools.ensureAllLevelAreas === 'function') {
+      levelAreaTools.ensureAllLevelAreas();
+    }
   },
 
   nextValue(current, values) {
@@ -8584,6 +8602,11 @@ const DevPanel = {
   },
 
   exportConfig() {
+    const levelAreaTools = window.WalkZoneTools;
+    if (levelAreaTools) {
+      if (typeof levelAreaTools.ensureAllLevelAreas === 'function') levelAreaTools.ensureAllLevelAreas();
+      if (typeof levelAreaTools.exportLevelAreas === 'function') levelAreaTools.exportLevelAreas();
+    }
     const exportData = {
       buildVersion: GAME_CONFIG.buildVersion,
       exportedAt: new Date().toISOString(),
@@ -8865,63 +8888,6 @@ const DevPanel = {
   ensureAllLevelAreas();
 
   if (typeof DevPanel !== 'undefined') {
-    if (!DevPanel.tabs.includes('LEVEL AREA')) DevPanel.tabs.push('LEVEL AREA');
-
-    const oldEnsureLevels = DevPanel.ensureLevels;
-    DevPanel.ensureLevels = function () {
-      oldEnsureLevels.call(this);
-      ensureAllLevelAreas();
-    };
-
-    const oldHandleClick = DevPanel.handleClick;
-    DevPanel.handleClick = function (point, game) {
-      const panel = this.panelRect();
-      if (!this.inRect(point, panel)) return;
-
-      const close = { x: panel.x + panel.w - 78, y: panel.y + 14, w: 56, h: 32 };
-      if (this.inRect(point, close)) { this.open = false; return; }
-
-      const tab = this.getClickedTab(point);
-      if (tab) { this.tab = tab; this.syncSelectedLevelWithScene(game); this.setStatus('Tab: ' + tab); return; }
-
-      if (this.handleFooterClick(point, game)) return;
-
-      if (this.tab === 'LEVEL AREA') {
-        this.handleLevelAreaClick(point, game);
-        return;
-      }
-
-      oldHandleClick.call(this, point, game);
-    };
-
-    const oldDraw = DevPanel.draw;
-    DevPanel.draw = function (ctx) {
-      if (!GAME_CONFIG.adminTuningEnabled) return;
-      if (this.open && this.tab === 'LEVEL AREA') {
-        const panel = this.panelRect();
-        ctx.fillStyle = 'rgba(0,0,0,0.90)';
-        ctx.fillRect(panel.x, panel.y, panel.w, panel.h);
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(panel.x, panel.y, panel.w, panel.h);
-
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 24px Arial';
-        ctx.fillText('DEVELOPER PANEL', panel.x + 22, panel.y + 38);
-        ctx.font = '13px Arial';
-        ctx.fillStyle = '#aaa';
-        ctx.fillText('LEVEL AREA: grey box = walking area, blue dot = player start, orange lines = enemy spawn lanes.', panel.x + 22, panel.y + 58);
-
-        this.drawButton(ctx, panel.x + panel.w - 78, panel.y + 14, 56, 32, 'X');
-        this.drawTabs(ctx);
-        this.drawLevelAreaEditor(ctx);
-        this.drawFooter(ctx);
-        this.drawStatus(ctx, panel);
-        return;
-      }
-      oldDraw.call(this, ctx);
-    };
-
     DevPanel.levelAreaRects = function () {
       const panel = this.panelRect();
       const x = panel.x + 36;
@@ -9116,12 +9082,6 @@ const DevPanel = {
       level.playerStart.y = clamp(level.playerStart.y, z.top, z.bottom);
     };
 
-    const oldExportConfig = DevPanel.exportConfig;
-    DevPanel.exportConfig = function () {
-      ensureAllLevelAreas();
-      exportLevelAreas();
-      oldExportConfig.call(this);
-    };
   }
 
   window.WalkZoneTools = {
