@@ -29,7 +29,6 @@
   "src/horseEnemyPatch.js",
   "src/mobileBootstrap.js",
   "src/campaignMapPatch.js",
-  "src/globalQualityPatch.js",
   "src/introFlow.js",
   "src/pauseMenuPatch.js",
   "src/desktopUXPatch.js",

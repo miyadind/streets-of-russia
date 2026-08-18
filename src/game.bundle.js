@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.241",
+  "buildVersion": "0.4.242",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -11298,6 +11298,9 @@ class GameApp {
       zetnikWalk2: Assets.zetnik.walk[2],
       zetnikAttack0: Assets.zetnik.attack[0],
       zetnikAttack1: Assets.zetnik.attack[1],
+      zetnikPreparing: Assets.zetnik.preparing,
+      zetnikFly: Assets.zetnik.fly,
+      zetnikCrashed: Assets.zetnik.crashed,
       zetnikDead: Assets.zetnik.dead,
 
       suckerIdle: Assets.sucker.idle,
@@ -11394,7 +11397,10 @@ class GameApp {
           loaded.zetnikWalk2 || loaded.zetnikIdle || loaded.dogWalk0
         ],
         attack: [loaded.zetnikAttack0 || loaded.zetnikIdle || loaded.dogAttack0, loaded.zetnikAttack1 || loaded.zetnikAttack0 || loaded.dogAttack1],
-        dead: loaded.zetnikDead || loaded.zetnikAttack0 || loaded.zetnikIdle || loaded.dogDead
+        preparing: loaded.zetnikPreparing || loaded.zetnikAttack0 || loaded.zetnikIdle || loaded.dogAttack0,
+        fly: loaded.zetnikFly || loaded.zetnikAttack1 || loaded.zetnikAttack0 || loaded.zetnikIdle || loaded.dogAttack0,
+        crashed: loaded.zetnikCrashed || loaded.zetnikDead || loaded.zetnikAttack0 || loaded.zetnikIdle || loaded.dogDead,
+        dead: loaded.zetnikCrashed || loaded.zetnikDead || loaded.zetnikAttack0 || loaded.zetnikIdle || loaded.dogDead
       },
       sucker: {
         idle: loaded.suckerIdle || loaded.dogIdle,
@@ -13963,93 +13969,6 @@ window.addEventListener('load', () => {
     this.campaignMap.completeActiveRegion();
     this.setState('campaignMap');
     this.ensureMenuMusic();
-  };
-})();
-
-
-
-/* ===== src/globalQualityPatch.js ===== */
-(function () {
-  if (typeof GameApp === 'undefined') return;
-
-  function loadOptionalImage(src) {
-    return new Promise((resolve) => {
-      if (!src) {
-        resolve(null);
-        return;
-      }
-      const img = new Image();
-      img.onload = () => resolve(img);
-      img.onerror = () => {
-        console.warn('Missing image:', src);
-        resolve(null);
-      };
-      img.src = src;
-    });
-  }
-
-  const originalLoadImages = GameApp.prototype.loadImages;
-  GameApp.prototype.loadImages = async function () {
-    const loaded = await originalLoadImages.call(this);
-    const fly = await loadOptionalImage(Assets.zetnik && Assets.zetnik.fly);
-    const preparing = await loadOptionalImage(Assets.zetnik && Assets.zetnik.preparing);
-    const crashed = await loadOptionalImage(Assets.zetnik && Assets.zetnik.crashed);
-
-    if (loaded.enemies && loaded.enemies.zetnik) {
-      loaded.enemies.zetnik.preparing = preparing || loaded.enemies.zetnik.attack[0] || loaded.enemies.zetnik.idle;
-      loaded.enemies.zetnik.fly = fly || loaded.enemies.zetnik.attack[0] || loaded.enemies.zetnik.idle;
-      loaded.enemies.zetnik.crashed = crashed || loaded.enemies.zetnik.dead || loaded.enemies.zetnik.attack[0] || loaded.enemies.zetnik.idle;
-      loaded.enemies.zetnik.dead = loaded.enemies.zetnik.crashed;
-    }
-    return loaded;
-  };
-
-  const originalHandleSpeakerClick = GameApp.prototype.handleSpeakerClick;
-  GameApp.prototype.handleSpeakerClick = function (point) {
-    const rect = this.getSpeakerHitRect ? this.getSpeakerHitRect() : this.getSpeakerRect();
-    if (!rect || !point) return false;
-    if (point.x < rect.x || point.x > rect.x + rect.w || point.y < rect.y || point.y > rect.y + rect.h) return false;
-
-    AudioManager.unlock();
-    const musicOn = AudioManager.toggleMusic();
-
-    if (this.state === 'intro' && this.intro) {
-      if (this.syncIntroVoiceVolume) this.syncIntroVoiceVolume();
-      if (!musicOn && this.intro.voice) {
-        this.intro.voice.volume = 0;
-      }
-      if (musicOn && this.intro.voice && this.intro.voice.paused && !this.intro.readyToContinue) {
-        this.intro.voice.play().catch(() => {});
-      }
-    } else if (musicOn && this.isMenuState && this.isMenuState(this.state)) {
-      this.ensureMenuMusic();
-    }
-
-    AudioManager.playSfx('menuSelect', 0.7);
-    return true;
-  };
-
-  const originalUpdate = GameApp.prototype.update;
-  GameApp.prototype.update = function (dt) {
-    if (this.state === 'intro') {
-      const click = Input.consumePointer();
-      if (click) {
-        if (this.handleSpeakerClick(click)) return;
-        Input.restorePointer(click);
-      }
-    }
-
-    originalUpdate.call(this, dt);
-  };
-
-  const originalDraw = GameApp.prototype.draw;
-  GameApp.prototype.draw = function () {
-    originalDraw.call(this);
-
-    if (Responsive.isPortrait || this.state === 'loading') return;
-    if (this.state === 'intro' || this.state === 'splash') {
-      this.drawSpeaker(this.ctx);
-    }
   };
 })();
 
