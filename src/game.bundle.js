@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.242",
+  "buildVersion": "0.4.243",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -6999,6 +6999,31 @@ class LevelScene {
     return GAME_CONFIG.levels[this.getLevelKey()] || GAME_CONFIG.levels.street01;
   }
 
+  getWalkZone() {
+    const tools = window.WalkZoneTools;
+    if (tools && typeof tools.getWalkZone === 'function') return tools.getWalkZone(this);
+    return { left: 70, right: GAME_CONFIG.width - 70, top: GAME_CONFIG.laneTop, bottom: GAME_CONFIG.laneBottom };
+  }
+
+  getPlayerStart() {
+    const tools = window.WalkZoneTools;
+    const level = this.getLevelConfig();
+    if (tools && typeof tools.ensureLevelArea === 'function') tools.ensureLevelArea(level);
+    const zone = this.getWalkZone();
+    const start = (level && level.playerStart) || { x: 190, y: 620 };
+    return {
+      x: Math.max(zone.left, Math.min(zone.right, Number(start.x) || 190)),
+      y: Math.max(zone.top, Math.min(zone.bottom, Number(start.y) || 620))
+    };
+  }
+
+  clampActorPosition(actor, marginX = 0, offscreenMargin = 0) {
+    if (!actor) return;
+    const zone = this.getWalkZone();
+    actor.x = Math.max(zone.left + marginX - offscreenMargin, Math.min(zone.right - marginX + offscreenMargin, actor.x));
+    actor.y = Math.max(zone.top, Math.min(zone.bottom, actor.y));
+  }
+
   getLevelBackgroundImage() {
     return this.images.streets[this.screenIndex] || this.images.streets[0];
   }
@@ -7337,23 +7362,32 @@ class LevelScene {
   }
 
   getSpawnPoint(side, index, count) {
+    const tools = window.WalkZoneTools;
+    const level = this.getLevelConfig();
+    if (tools && typeof tools.ensureLevelArea === 'function') tools.ensureLevelArea(level);
+    const zone = this.getWalkZone();
     const safeSide = side || 'right';
     const rowRatio = count <= 1 ? 0.5 : index / Math.max(1, count - 1);
-    const y = GAME_CONFIG.laneTop + 28 + rowRatio * (GAME_CONFIG.laneBottom - GAME_CONFIG.laneTop - 56);
+    const margin = (level && level.enemySpawnMargin) || {};
+    const marginX = Math.max(0, Math.min(240, Number(margin.x) || 40));
+    const marginY = Math.max(0, Math.min(120, Number(margin.y) || 28));
+    const usableTop = Math.min(zone.bottom, zone.top + marginY);
+    const usableBottom = Math.max(usableTop, zone.bottom - marginY);
+    const y = usableTop + rowRatio * (usableBottom - usableTop);
 
     if (safeSide === 'left') {
-      return { x: 120 + index * 34, y };
+      return { x: zone.left + marginX + index * 34, y };
     }
 
     if (safeSide === 'both') {
       const fromLeft = index % 2 === 0;
       return {
-        x: fromLeft ? 110 + index * 18 : GAME_CONFIG.width - 110 - index * 18,
+        x: fromLeft ? zone.left + marginX + index * 18 : zone.right - marginX - index * 18,
         y
       };
     }
 
-    return { x: GAME_CONFIG.width - 130 - index * 34, y };
+    return { x: zone.right - marginX - index * 34, y };
   }
 
   enemyHasPhysicalPresence(enemy) {
@@ -7415,8 +7449,9 @@ class LevelScene {
   }
 
   restartCurrentLevel() {
-    this.player.x = 190;
-    this.player.y = 620;
+    const start = this.getPlayerStart();
+    this.player.x = start.x;
+    this.player.y = start.y;
     this.player.releaseFromPin();
     const level = this.getLevelConfig();
     AudioManager.playMusic((level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme');
@@ -7426,8 +7461,11 @@ class LevelScene {
   nextScreen() {
     if (this.screenIndex < this.images.streets.length - 1) {
       this.screenIndex += 1;
-      this.player.x = 190;
-      this.player.y = 620;
+      const tools = window.WalkZoneTools;
+      if (tools && typeof tools.syncLegacyLane === 'function') tools.syncLegacyLane(this);
+      const start = this.getPlayerStart();
+      this.player.x = start.x;
+      this.player.y = start.y;
       this.player.releaseFromPin();
       const level = this.getLevelConfig();
       AudioManager.playMusic((level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme');
@@ -7438,12 +7476,15 @@ class LevelScene {
   }
 
   update(dt) {
+    const tools = window.WalkZoneTools;
+    const zone = tools && typeof tools.syncLegacyLane === 'function' ? tools.syncLegacyLane(this) : this.getWalkZone();
     if (this.player) this.player.scene = this;
     if (Input.consume('q')) this.debug = !this.debug;
     if (Input.consume('escape')) this.game.setState('mainMenu');
 
     if (this.hitStop > 0) {
       this.hitStop -= dt;
+      if (this.player) this.clampActorPosition(this.player, 70);
       return;
     }
 
@@ -7494,7 +7535,9 @@ class LevelScene {
       }
     }
 
-    if (this.encounterCleared && this.player.x > GAME_CONFIG.width - 95) {
+    if (this.player) this.clampActorPosition(this.player, 70);
+
+    if (this.encounterCleared && this.player.x > zone.right - 35) {
       this.nextScreen();
     }
 
@@ -7505,6 +7548,8 @@ class LevelScene {
   }
 
   draw(ctx) {
+    const tools = window.WalkZoneTools;
+    if (tools && typeof tools.syncLegacyLane === 'function') tools.syncLegacyLane(this);
     const bg = this.getLevelBackgroundImage();
     if (bg) ctx.drawImage(bg, 0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
     else {
@@ -7540,6 +7585,11 @@ class LevelScene {
       ctx.strokeStyle = 'rgba(255,255,255,0.25)';
       ctx.lineWidth = 2;
       ctx.strokeRect(0, GAME_CONFIG.laneTop, GAME_CONFIG.width - 0, GAME_CONFIG.laneBottom - GAME_CONFIG.laneTop);
+    }
+
+    const showArea = this.debug || (typeof DevPanel !== 'undefined' && DevPanel.open && DevPanel.tab === 'LEVEL AREA');
+    if (showArea && tools && typeof tools.drawLevelAreaOverlay === 'function') {
+      tools.drawLevelAreaOverlay(ctx, this.getLevelConfig(), typeof DevPanel !== 'undefined' ? DevPanel.levelAreaActiveKey : null);
     }
   }
 
@@ -8799,101 +8849,6 @@ const DevPanel = {
 
   ensureAllLevelAreas();
 
-  if (typeof LevelScene !== 'undefined') {
-    LevelScene.prototype.getWalkZone = function () {
-      return getWalkZone(this);
-    };
-
-    LevelScene.prototype.getPlayerStart = function () {
-      const level = this.getLevelConfig();
-      ensureLevelArea(level);
-      const zone = this.getWalkZone();
-      return {
-        x: clamp(num(level.playerStart.x, DEFAULT_PLAYER_START.x), zone.left, zone.right),
-        y: clamp(num(level.playerStart.y, DEFAULT_PLAYER_START.y), zone.top, zone.bottom)
-      };
-    };
-
-    LevelScene.prototype.clampActorPosition = function (actor, marginX = 0, offscreenMargin = 0) {
-      const zone = this.getWalkZone();
-      actor.x = clamp(actor.x, zone.left + marginX - offscreenMargin, zone.right - marginX + offscreenMargin);
-      actor.y = clamp(actor.y, zone.top, zone.bottom);
-    };
-
-    LevelScene.prototype.getSpawnPoint = function (side, index, count) {
-      const level = this.getLevelConfig();
-      ensureLevelArea(level);
-      const zone = this.getWalkZone();
-      const marginX = clamp(num(level.enemySpawnMargin.x, 40), 0, 240);
-      const marginY = clamp(num(level.enemySpawnMargin.y, 28), 0, 120);
-      const safeSide = side || 'right';
-      const rowRatio = count <= 1 ? 0.5 : index / Math.max(1, count - 1);
-      const usableTop = Math.min(zone.bottom, zone.top + marginY);
-      const usableBottom = Math.max(usableTop, zone.bottom - marginY);
-      const y = usableTop + rowRatio * (usableBottom - usableTop);
-
-      if (safeSide === 'left') {
-        return { x: zone.left + marginX + index * 34, y };
-      }
-
-      if (safeSide === 'both') {
-        const fromLeft = index % 2 === 0;
-        return {
-          x: fromLeft ? zone.left + marginX + index * 18 : zone.right - marginX - index * 18,
-          y
-        };
-      }
-
-      return { x: zone.right - marginX - index * 34, y };
-    };
-
-    LevelScene.prototype.restartCurrentLevel = function () {
-      const start = this.getPlayerStart();
-      this.player.x = start.x;
-      this.player.y = start.y;
-      this.player.releaseFromPin();
-      const level = this.getLevelConfig();
-      AudioManager.playMusic((level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme');
-      this.spawnInitialWave();
-    };
-
-    LevelScene.prototype.nextScreen = function () {
-      if (this.screenIndex < this.images.streets.length - 1) {
-        this.screenIndex += 1;
-        syncLegacyLane(this);
-        const start = this.getPlayerStart();
-        this.player.x = start.x;
-        this.player.y = start.y;
-        this.player.releaseFromPin();
-        const level = this.getLevelConfig();
-        AudioManager.playMusic((level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme');
-        this.spawnInitialWave();
-      } else {
-        this.game.setState('mainMenu');
-      }
-    };
-
-    const oldLevelUpdate = LevelScene.prototype.update;
-    LevelScene.prototype.update = function (dt) {
-      const zone = syncLegacyLane(this);
-      oldLevelUpdate.call(this, dt);
-      if (this.player) this.clampActorPosition(this.player, 70);
-      if (this.encounterCleared && this.player && this.player.x > zone.right - 35) this.nextScreen();
-    };
-
-    const oldLevelDraw = LevelScene.prototype.draw;
-    LevelScene.prototype.draw = function (ctx) {
-      syncLegacyLane(this);
-      oldLevelDraw.call(this, ctx);
-
-      const showArea = this.debug || (typeof DevPanel !== 'undefined' && DevPanel.open && DevPanel.tab === 'LEVEL AREA');
-      if (!showArea) return;
-
-      const level = this.getLevelConfig();
-      if (level) drawLevelAreaOverlay(ctx, level, typeof DevPanel !== 'undefined' ? DevPanel.levelAreaActiveKey : null);
-    };
-  }
-
   if (typeof Player !== 'undefined') {
     const oldPlayerUpdate = Player.prototype.update;
     Player.prototype.update = function (dt, scene) {
@@ -9215,6 +9170,7 @@ const DevPanel = {
     ensureAllLevelAreas,
     ensureLevelArea,
     getWalkZone,
+    drawLevelAreaOverlay,
     buildLevelAreaExport,
     exportLevelAreas,
     syncLegacyLane

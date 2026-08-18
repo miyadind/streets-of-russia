@@ -210,101 +210,6 @@
 
   ensureAllLevelAreas();
 
-  if (typeof LevelScene !== 'undefined') {
-    LevelScene.prototype.getWalkZone = function () {
-      return getWalkZone(this);
-    };
-
-    LevelScene.prototype.getPlayerStart = function () {
-      const level = this.getLevelConfig();
-      ensureLevelArea(level);
-      const zone = this.getWalkZone();
-      return {
-        x: clamp(num(level.playerStart.x, DEFAULT_PLAYER_START.x), zone.left, zone.right),
-        y: clamp(num(level.playerStart.y, DEFAULT_PLAYER_START.y), zone.top, zone.bottom)
-      };
-    };
-
-    LevelScene.prototype.clampActorPosition = function (actor, marginX = 0, offscreenMargin = 0) {
-      const zone = this.getWalkZone();
-      actor.x = clamp(actor.x, zone.left + marginX - offscreenMargin, zone.right - marginX + offscreenMargin);
-      actor.y = clamp(actor.y, zone.top, zone.bottom);
-    };
-
-    LevelScene.prototype.getSpawnPoint = function (side, index, count) {
-      const level = this.getLevelConfig();
-      ensureLevelArea(level);
-      const zone = this.getWalkZone();
-      const marginX = clamp(num(level.enemySpawnMargin.x, 40), 0, 240);
-      const marginY = clamp(num(level.enemySpawnMargin.y, 28), 0, 120);
-      const safeSide = side || 'right';
-      const rowRatio = count <= 1 ? 0.5 : index / Math.max(1, count - 1);
-      const usableTop = Math.min(zone.bottom, zone.top + marginY);
-      const usableBottom = Math.max(usableTop, zone.bottom - marginY);
-      const y = usableTop + rowRatio * (usableBottom - usableTop);
-
-      if (safeSide === 'left') {
-        return { x: zone.left + marginX + index * 34, y };
-      }
-
-      if (safeSide === 'both') {
-        const fromLeft = index % 2 === 0;
-        return {
-          x: fromLeft ? zone.left + marginX + index * 18 : zone.right - marginX - index * 18,
-          y
-        };
-      }
-
-      return { x: zone.right - marginX - index * 34, y };
-    };
-
-    LevelScene.prototype.restartCurrentLevel = function () {
-      const start = this.getPlayerStart();
-      this.player.x = start.x;
-      this.player.y = start.y;
-      this.player.releaseFromPin();
-      const level = this.getLevelConfig();
-      AudioManager.playMusic((level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme');
-      this.spawnInitialWave();
-    };
-
-    LevelScene.prototype.nextScreen = function () {
-      if (this.screenIndex < this.images.streets.length - 1) {
-        this.screenIndex += 1;
-        syncLegacyLane(this);
-        const start = this.getPlayerStart();
-        this.player.x = start.x;
-        this.player.y = start.y;
-        this.player.releaseFromPin();
-        const level = this.getLevelConfig();
-        AudioManager.playMusic((level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme');
-        this.spawnInitialWave();
-      } else {
-        this.game.setState('mainMenu');
-      }
-    };
-
-    const oldLevelUpdate = LevelScene.prototype.update;
-    LevelScene.prototype.update = function (dt) {
-      const zone = syncLegacyLane(this);
-      oldLevelUpdate.call(this, dt);
-      if (this.player) this.clampActorPosition(this.player, 70);
-      if (this.encounterCleared && this.player && this.player.x > zone.right - 35) this.nextScreen();
-    };
-
-    const oldLevelDraw = LevelScene.prototype.draw;
-    LevelScene.prototype.draw = function (ctx) {
-      syncLegacyLane(this);
-      oldLevelDraw.call(this, ctx);
-
-      const showArea = this.debug || (typeof DevPanel !== 'undefined' && DevPanel.open && DevPanel.tab === 'LEVEL AREA');
-      if (!showArea) return;
-
-      const level = this.getLevelConfig();
-      if (level) drawLevelAreaOverlay(ctx, level, typeof DevPanel !== 'undefined' ? DevPanel.levelAreaActiveKey : null);
-    };
-  }
-
   if (typeof Player !== 'undefined') {
     const oldPlayerUpdate = Player.prototype.update;
     Player.prototype.update = function (dt, scene) {
@@ -626,6 +531,7 @@
     ensureAllLevelAreas,
     ensureLevelArea,
     getWalkZone,
+    drawLevelAreaOverlay,
     buildLevelAreaExport,
     exportLevelAreas,
     syncLegacyLane
