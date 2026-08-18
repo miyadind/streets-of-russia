@@ -34,7 +34,7 @@
 
   function install() {
     if (typeof GameApp === 'undefined') return false;
-    if (window.SessionOnlyRunPatch && window.SessionOnlyRunPatch.installed) {
+    if (window.SessionRun && window.SessionRun.installed) {
       removeStorageSave();
       return true;
     }
@@ -110,7 +110,7 @@
     window.addEventListener('beforeunload', clearTabRun);
     window.addEventListener('pagehide', clearTabRun);
 
-    window.SessionOnlyRunPatch = {
+    window.SessionRun = {
       installed: true,
       saveKey: SAVE_KEY,
       removeStorageSave,

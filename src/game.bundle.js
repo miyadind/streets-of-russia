@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.247",
+  "buildVersion": "0.4.248",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -19696,7 +19696,7 @@ if (document.readyState === 'loading') {
 
 
 
-/* ===== src/sessionOnlyRunPatch.js ===== */
+/* ===== src/sessionRun.js ===== */
 (function () {
   if (typeof window === 'undefined') return;
 
@@ -19733,7 +19733,7 @@ if (document.readyState === 'loading') {
 
   function install() {
     if (typeof GameApp === 'undefined') return false;
-    if (window.SessionOnlyRunPatch && window.SessionOnlyRunPatch.installed) {
+    if (window.SessionRun && window.SessionRun.installed) {
       removeStorageSave();
       return true;
     }
@@ -19809,7 +19809,7 @@ if (document.readyState === 'loading') {
     window.addEventListener('beforeunload', clearTabRun);
     window.addEventListener('pagehide', clearTabRun);
 
-    window.SessionOnlyRunPatch = {
+    window.SessionRun = {
       installed: true,
       saveKey: SAVE_KEY,
       removeStorageSave,

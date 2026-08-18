@@ -42,7 +42,7 @@
   "src/hitboxEditorPatch.js",
   "src/saveSystemPatch.js",
   "src/storyFlowPatch.js",
-  "src/sessionOnlyRunPatch.js",
+  "src/sessionRun.js",
   "src/heroDefeatOverlayPatch.js",
   "src/heroVoiceLines.js",
   "src/borisVoicePatch.js",
