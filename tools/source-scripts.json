@@ -36,7 +36,7 @@
   "src/exitArrowPatch.js",
   "src/teamStatePatch.js",
   "src/runProgressPatch.js",
-  "src/fullscreenPatch.js",
+  "src/fullscreen.js",
   "src/bestiaryPatch.js",
   "src/gundosEnemyPatch.js",
   "src/hitboxEditorPatch.js",
