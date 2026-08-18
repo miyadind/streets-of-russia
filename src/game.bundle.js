@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.248",
+  "buildVersion": "0.4.249",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -19827,7 +19827,7 @@ if (document.readyState === 'loading') {
 
 
 
-/* ===== src/heroDefeatOverlayPatch.js ===== */
+/* ===== src/heroDefeatOverlay.js ===== */
 (function () {
   if (typeof GameApp === 'undefined' || typeof LevelScene === 'undefined' || typeof CharacterSelect === 'undefined') return;
 

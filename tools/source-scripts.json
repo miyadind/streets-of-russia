@@ -43,7 +43,7 @@
   "src/saveSystemPatch.js",
   "src/storyFlowPatch.js",
   "src/sessionRun.js",
-  "src/heroDefeatOverlayPatch.js",
+  "src/heroDefeatOverlay.js",
   "src/heroVoiceLines.js",
   "src/borisVoicePatch.js",
   "src/analyticsPatch.js"
