@@ -170,12 +170,14 @@ class DogRegimeEnemy {
     this.attackActiveMs = config.attackActiveMs || GAME_CONFIG.enemyActiveMs;
     this.attackRecoveryMs = config.attackRecoveryMs || GAME_CONFIG.enemyRecoveryMs;
     this.minDistanceX = config.minDistanceX || 42;
-    this.preferredDistanceX = config.preferredDistanceX || 76;
+    this.clubReachForward = config.clubReachForward || 142;
+    this.clubReachBack = config.clubReachBack || 16;
+    this.preferredDistanceX = config.preferredDistanceX || 64;
     this.tooFarDistanceX = config.tooFarDistanceX || Math.max(this.preferredDistanceX + 40, 140);
-    this.attackRangeX = config.attackRangeX || GAME_CONFIG.enemyAttackRangeX;
+    this.attackMinDistanceX = config.attackMinDistanceX || 30;
+    this.attackMaxDistanceX = config.attackMaxDistanceX || 128;
+    this.attackRangeX = Math.max(config.attackRangeX || 0, this.attackMaxDistanceX);
     this.attackRangeY = config.attackRangeY || GAME_CONFIG.enemyAttackRangeY;
-    this.attackMinDistanceX = config.attackMinDistanceX == null ? 28 : config.attackMinDistanceX;
-    this.attackMaxDistanceX = config.attackMaxDistanceX || this.attackRangeX;
     this.maxAttackers = config.maxAttackers || 1;
     this.decisionMinMs = config.decisionMinMs || 160;
     this.decisionMaxMs = config.decisionMaxMs || 420;
@@ -347,6 +349,14 @@ class DogRegimeEnemy {
 
   moveWithSpacing(dt, scene, canAttackNow) {
     const player = scene.player;
+    if (this.intent === 'attack' && !this.canClubReachPlayer(player, true)) {
+      const desiredSide = Math.sign(player.x - this.x || this.facing || 1);
+      this.facing = desiredSide;
+      const moveX = Math.sign(player.x - this.x);
+      const moveY = Math.abs(player.y - this.y) > this.attackRangeY * 0.55 ? Math.sign(player.y - this.y) : 0;
+      this.applyMovement(moveX, moveY, dt);
+      return;
+    }
     if (this.isOffscreenX()) {
       const returnX = this.x < 45 ? 1 : -1;
       const returnY = Math.abs(player.y - this.y) > 10 ? Math.sign(player.y - this.y) : 0;

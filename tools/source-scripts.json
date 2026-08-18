@@ -17,7 +17,6 @@
   "src/characterSelect.js",
   "src/scene.js",
   "src/devPanel.js",
-  "src/devPanelDogAiPatch.js",
   "src/walkZonePatch.js",
   "src/campaignMap.js",
   "src/campaignRuntime.js",

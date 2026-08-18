@@ -28,7 +28,21 @@ const DevPanel = {
       { label: 'Dog HP', path: 'enemies.dogRegime.hp', min: 10, max: 300, step: 5 },
       { label: 'Dog damage', path: 'enemies.dogRegime.damage', min: 1, max: 60, step: 1 },
       { label: 'Dog scale', path: 'enemies.dogRegime.scale', min: 0.05, max: 0.25, step: 0.005 },
-      { label: 'Enemy walk ms', path: 'enemyWalkFrameMs', min: 80, max: 500, step: 10 }
+      { label: 'Enemy walk ms', path: 'enemyWalkFrameMs', min: 80, max: 500, step: 10 },
+      { label: 'Min dist X', path: 'enemies.dogRegime.minDistanceX', min: 20, max: 160, step: 2 },
+      { label: 'Preferred dist X', path: 'enemies.dogRegime.preferredDistanceX', min: 40, max: 240, step: 2 },
+      { label: 'Attack range X', path: 'enemies.dogRegime.attackRangeX', min: 30, max: 180, step: 2 },
+      { label: 'Attack range Y', path: 'enemies.dogRegime.attackRangeY', min: 14, max: 90, step: 2 },
+      { label: 'Max attackers', path: 'enemies.dogRegime.maxAttackers', min: 1, max: 4, step: 1 },
+      { label: 'Decision min ms', path: 'enemies.dogRegime.decisionMinMs', min: 120, max: 1200, step: 20 },
+      { label: 'Decision max ms', path: 'enemies.dogRegime.decisionMaxMs', min: 200, max: 2000, step: 20 },
+      { label: 'Strafe chance', path: 'enemies.dogRegime.strafeChance', min: 0, max: 1, step: 0.05 },
+      { label: 'Retreat chance', path: 'enemies.dogRegime.retreatChance', min: 0, max: 1, step: 0.05 },
+      { label: 'Attack chance', path: 'enemies.dogRegime.attackChance', min: 0, max: 1, step: 0.05 },
+      { label: 'Slot spacing X', path: 'enemies.dogRegime.slotSpacingX', min: 0, max: 180, step: 4 },
+      { label: 'Slot spacing Y', path: 'enemies.dogRegime.slotSpacingY', min: 0, max: 120, step: 4 },
+      { label: 'Flank distance X', path: 'enemies.dogRegime.flankDistanceX', min: 60, max: 240, step: 4 },
+      { label: 'Pressure distance X', path: 'enemies.dogRegime.pressureDistanceX', min: 80, max: 320, step: 4 }
     ],
     SUCKER: [
       { label: 'Sucker speed', path: 'enemies.sucker.speed', min: 0.3, max: 4, step: 0.05 },
