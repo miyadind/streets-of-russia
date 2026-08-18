@@ -47,7 +47,11 @@
     }
 
     if (mode === 'campaignStart') {
-      game.devMapStartLevelKey = null;
+      if (window.CampaignRuntime && window.CampaignRuntime.clearDevStartSelection) {
+        window.CampaignRuntime.clearDevStartSelection(game);
+      } else {
+        game.devStartLevelKey = null;
+      }
       game.resumeTarget = 'campaignMap';
       game.setState('campaignMap');
       return;

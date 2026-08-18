@@ -143,10 +143,9 @@
   function restartSceneAtActiveRegion(game) {
     if (!game || !game.scene) return;
     if (window.CampaignRuntime) {
-      const levelOrder = GAME_CONFIG.levelOrder || [];
-      const requestedIndex = game.devMapStartLevelKey ? levelOrder.indexOf(game.devMapStartLevelKey) : -1;
-      const targetIndex = requestedIndex >= 0 ? requestedIndex : window.CampaignRuntime.getActiveRegionStartIndex(game);
-      game.devMapStartLevelKey = null;
+      const targetIndex = window.CampaignRuntime.getStartScreenIndex
+        ? window.CampaignRuntime.getStartScreenIndex(game)
+        : window.CampaignRuntime.getActiveRegionStartIndex(game);
       if (game.scene.screenIndex !== targetIndex) {
         window.CampaignRuntime.setSceneScreen(game.scene, targetIndex);
         const level = game.scene.getLevelConfig ? game.scene.getLevelConfig() : null;
@@ -155,6 +154,7 @@
           : (level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme';
         AudioManager.playMusic(musicKey, true);
       }
+      if (window.CampaignRuntime.clearDevStartSelection) window.CampaignRuntime.clearDevStartSelection(game);
       window.__lastRegionStart = {
         activeIndex: game.campaignMap && game.campaignMap.activeIndex,
         targetIndex,

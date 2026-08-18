@@ -222,8 +222,6 @@ const CampaignMapScreen = {
     AudioManager.playSfx('menuSelect', 0.85);
     const selection = this.getSelectedLevel();
     game.devStartLevelKey = selection.key;
-    game.devMapStartLevelKey = selection.key;
-    game.devSelectedStartLevelKey = selection.key;
     if (window.CampaignFlow && window.CampaignFlow.openCharacterSelect) {
       window.CampaignFlow.openCharacterSelect(game, 'campaignStart');
       return;

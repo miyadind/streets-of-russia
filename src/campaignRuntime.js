@@ -148,6 +148,21 @@
     return clamp(getActiveRegionIndex(game) * 3, 0, order.length - 1);
   }
 
+  function getRequestedStartIndex(game) {
+    const order = getLevelOrder();
+    if (!game || !game.devStartLevelKey) return -1;
+    return order.indexOf(game.devStartLevelKey);
+  }
+
+  function getStartScreenIndex(game) {
+    const requestedIndex = getRequestedStartIndex(game);
+    return requestedIndex >= 0 ? requestedIndex : getActiveRegionStartIndex(game);
+  }
+
+  function clearDevStartSelection(game) {
+    if (game) game.devStartLevelKey = null;
+  }
+
   function getLocalScreenIndex(game) {
     const scene = game && game.scene;
     if (!scene || !Number.isFinite(scene.screenIndex)) return 0;
@@ -224,10 +239,7 @@
 
   function startActiveRegionScene(game) {
     if (!game || !game.scene) return;
-    const order = getLevelOrder();
-    const devStartIndex = game.devStartLevelKey ? order.indexOf(game.devStartLevelKey) : -1;
-    const targetIndex = devStartIndex >= 0 ? devStartIndex : getActiveRegionStartIndex(game);
-    game.devStartLevelKey = null;
+    const targetIndex = getStartScreenIndex(game);
     if (game.scene.screenIndex === targetIndex) {
       placePlayerAtLevelStart(game.scene);
     } else {
@@ -250,6 +262,9 @@
     getRegionStartIndexByScreen,
     getRegionEndIndexByStart,
     getActiveRegionStartIndex,
+    getRequestedStartIndex,
+    getStartScreenIndex,
+    clearDevStartSelection,
     getLocalScreenIndex,
     getAbsoluteScreenIndexForSave,
     resetGundosSceneState,

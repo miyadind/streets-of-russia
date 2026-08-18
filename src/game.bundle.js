@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.237",
+  "buildVersion": "0.4.238",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -9731,8 +9731,6 @@ const CampaignMapScreen = {
     AudioManager.playSfx('menuSelect', 0.85);
     const selection = this.getSelectedLevel();
     game.devStartLevelKey = selection.key;
-    game.devMapStartLevelKey = selection.key;
-    game.devSelectedStartLevelKey = selection.key;
     if (window.CampaignFlow && window.CampaignFlow.openCharacterSelect) {
       window.CampaignFlow.openCharacterSelect(game, 'campaignStart');
       return;
@@ -10090,6 +10088,21 @@ const CampaignMapScreen = {
     return clamp(getActiveRegionIndex(game) * 3, 0, order.length - 1);
   }
 
+  function getRequestedStartIndex(game) {
+    const order = getLevelOrder();
+    if (!game || !game.devStartLevelKey) return -1;
+    return order.indexOf(game.devStartLevelKey);
+  }
+
+  function getStartScreenIndex(game) {
+    const requestedIndex = getRequestedStartIndex(game);
+    return requestedIndex >= 0 ? requestedIndex : getActiveRegionStartIndex(game);
+  }
+
+  function clearDevStartSelection(game) {
+    if (game) game.devStartLevelKey = null;
+  }
+
   function getLocalScreenIndex(game) {
     const scene = game && game.scene;
     if (!scene || !Number.isFinite(scene.screenIndex)) return 0;
@@ -10166,10 +10179,7 @@ const CampaignMapScreen = {
 
   function startActiveRegionScene(game) {
     if (!game || !game.scene) return;
-    const order = getLevelOrder();
-    const devStartIndex = game.devStartLevelKey ? order.indexOf(game.devStartLevelKey) : -1;
-    const targetIndex = devStartIndex >= 0 ? devStartIndex : getActiveRegionStartIndex(game);
-    game.devStartLevelKey = null;
+    const targetIndex = getStartScreenIndex(game);
     if (game.scene.screenIndex === targetIndex) {
       placePlayerAtLevelStart(game.scene);
     } else {
@@ -10192,6 +10202,9 @@ const CampaignMapScreen = {
     getRegionStartIndexByScreen,
     getRegionEndIndexByStart,
     getActiveRegionStartIndex,
+    getRequestedStartIndex,
+    getStartScreenIndex,
+    clearDevStartSelection,
     getLocalScreenIndex,
     getAbsoluteScreenIndexForSave,
     resetGundosSceneState,
@@ -10254,7 +10267,11 @@ const CampaignMapScreen = {
     }
 
     if (mode === 'campaignStart') {
-      game.devMapStartLevelKey = null;
+      if (window.CampaignRuntime && window.CampaignRuntime.clearDevStartSelection) {
+        window.CampaignRuntime.clearDevStartSelection(game);
+      } else {
+        game.devStartLevelKey = null;
+      }
       game.resumeTarget = 'campaignMap';
       game.setState('campaignMap');
       return;
@@ -16652,23 +16669,6 @@ window.addEventListener('load', () => {
     this.ensureTeamHpState();
     this.saveCurrentHeroHp();
     await previousStartLevel.call(this);
-    if (this.scene && this.campaignMap && Number.isFinite(this.campaignMap.activeIndex)) {
-      const order = GAME_CONFIG.levelOrder || [];
-      const requestedIndex = this.devSelectedStartLevelKey ? order.indexOf(this.devSelectedStartLevelKey) : -1;
-      const targetIndex = requestedIndex >= 0
-        ? requestedIndex
-        : (window.CampaignRuntime
-          ? window.CampaignRuntime.getActiveRegionStartIndex(this)
-          : Math.max(0, Math.min(this.scene.images.streets.length - 1, this.campaignMap.activeIndex * 3)));
-      if (this.scene.screenIndex !== targetIndex) {
-        if (window.CampaignRuntime) window.CampaignRuntime.setSceneScreen(this.scene, targetIndex);
-        else {
-          this.scene.screenIndex = targetIndex;
-          if (this.scene.spawnInitialWave) this.scene.spawnInitialWave();
-        }
-      }
-      this.devSelectedStartLevelKey = null;
-    }
     if (this.scene && this.scene.player) {
       this.applySavedHeroHp(this.scene.player, this.scene.player.heroKey || this.selectedHero);
     }
@@ -19907,10 +19907,9 @@ window.addEventListener('load', () => {
   function restartSceneAtActiveRegion(game) {
     if (!game || !game.scene) return;
     if (window.CampaignRuntime) {
-      const levelOrder = GAME_CONFIG.levelOrder || [];
-      const requestedIndex = game.devMapStartLevelKey ? levelOrder.indexOf(game.devMapStartLevelKey) : -1;
-      const targetIndex = requestedIndex >= 0 ? requestedIndex : window.CampaignRuntime.getActiveRegionStartIndex(game);
-      game.devMapStartLevelKey = null;
+      const targetIndex = window.CampaignRuntime.getStartScreenIndex
+        ? window.CampaignRuntime.getStartScreenIndex(game)
+        : window.CampaignRuntime.getActiveRegionStartIndex(game);
       if (game.scene.screenIndex !== targetIndex) {
         window.CampaignRuntime.setSceneScreen(game.scene, targetIndex);
         const level = game.scene.getLevelConfig ? game.scene.getLevelConfig() : null;
@@ -19919,6 +19918,7 @@ window.addEventListener('load', () => {
           : (level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme';
         AudioManager.playMusic(musicKey, true);
       }
+      if (window.CampaignRuntime.clearDevStartSelection) window.CampaignRuntime.clearDevStartSelection(game);
       window.__lastRegionStart = {
         activeIndex: game.campaignMap && game.campaignMap.activeIndex,
         targetIndex,
