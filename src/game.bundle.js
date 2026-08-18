@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.249",
+  "buildVersion": "0.4.250",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -16689,7 +16689,7 @@ if (document.readyState === 'loading') {
 
 
 
-/* ===== src/bestiaryPatch.js ===== */
+/* ===== src/bestiary.js ===== */
 (function () {
   if (typeof GameApp === 'undefined' || typeof Menu === 'undefined') return;
 
