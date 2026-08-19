@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.252",
+  "buildVersion": "0.4.253",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -15261,7 +15261,7 @@ window.addEventListener('load', () => {
 
 
 
-/* ===== src/exitArrowPatch.js ===== */
+/* ===== src/levelFlow.js ===== */
 (function () {
   if (typeof LevelScene === 'undefined') return;
 

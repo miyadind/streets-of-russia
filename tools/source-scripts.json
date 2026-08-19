@@ -33,7 +33,7 @@
   "src/pauseMenuPatch.js",
   "src/desktopUXPatch.js",
   "src/desktopRefinementPatch.js",
-  "src/exitArrowPatch.js",
+  "src/levelFlow.js",
   "src/teamState.js",
   "src/campaignUi.js",
   "src/fullscreen.js",
