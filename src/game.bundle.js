@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.251",
+  "buildVersion": "0.4.252",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -16260,7 +16260,7 @@ window.addEventListener('load', () => {
 
 
 
-/* ===== src/runProgressPatch.js ===== */
+/* ===== src/campaignUi.js ===== */
 (function () {
   if (typeof GameApp === 'undefined' || typeof Menu === 'undefined') return;
 

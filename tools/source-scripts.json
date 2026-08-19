@@ -35,7 +35,7 @@
   "src/desktopRefinementPatch.js",
   "src/exitArrowPatch.js",
   "src/teamState.js",
-  "src/runProgressPatch.js",
+  "src/campaignUi.js",
   "src/fullscreen.js",
   "src/bestiary.js",
   "src/gundosEnemyPatch.js",
