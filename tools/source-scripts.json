@@ -32,7 +32,7 @@
   "src/introFlow.js",
   "src/pauseMenuPatch.js",
   "src/gameUi.js",
-  "src/desktopRefinementPatch.js",
+  "src/desktopUi.js",
   "src/levelFlow.js",
   "src/teamState.js",
   "src/campaignUi.js",

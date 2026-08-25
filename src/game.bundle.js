@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.254",
+  "buildVersion": "0.4.255",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -15000,7 +15000,7 @@ window.addEventListener('load', () => {
 
 
 
-/* ===== src/desktopRefinementPatch.js ===== */
+/* ===== src/desktopUi.js ===== */
 (function () {
   function inRect(point, rect) {
     return point && point.x >= rect.x && point.x <= rect.x + rect.w && point.y >= rect.y && point.y <= rect.y + rect.h;
