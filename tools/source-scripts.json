@@ -45,6 +45,6 @@
   "src/sessionRun.js",
   "src/heroDefeatOverlay.js",
   "src/heroVoiceLines.js",
-  "src/borisVoicePatch.js",
+  "src/heroVoice.js",
   "src/analytics.js"
 ]

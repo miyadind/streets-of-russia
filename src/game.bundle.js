@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.257",
+  "buildVersion": "0.4.258",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -20106,7 +20106,7 @@ window.HeroVoiceLines = {
 
 
 
-/* ===== src/borisVoicePatch.js ===== */
+/* ===== src/heroVoice.js ===== */
 (function () {
   if (typeof GameApp === 'undefined' || typeof AudioManager === 'undefined') return;
 
