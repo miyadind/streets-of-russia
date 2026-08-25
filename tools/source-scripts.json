@@ -28,7 +28,7 @@
   "src/levelInteractives.js",
   "src/horseEnemyPatch.js",
   "src/mobileBootstrap.js",
-  "src/campaignMapPatch.js",
+  "src/campaignMapUi.js",
   "src/introFlow.js",
   "src/pauseMenuPatch.js",
   "src/gameUi.js",

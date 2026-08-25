@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.255",
+  "buildVersion": "0.4.256",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -13011,7 +13011,7 @@ window.addEventListener('load', () => {
 
 
 
-/* ===== src/campaignMapPatch.js ===== */
+/* ===== src/campaignMapUi.js ===== */
 (function () {
   if (typeof CampaignMapScreen === 'undefined') {
     console.warn('CampaignMapScreen is not loaded');
