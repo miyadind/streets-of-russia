@@ -23,7 +23,7 @@
   "src/campaignFlow.js",
   "src/mobileControls.js",
   "src/mobileApp.js",
-  "src/mobileSafeUxPatch.js",
+  "src/mobileUi.js",
   "src/game.js",
   "src/levelInteractives.js",
   "src/horseEnemyPatch.js",
