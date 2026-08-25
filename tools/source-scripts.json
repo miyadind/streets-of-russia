@@ -30,7 +30,7 @@
   "src/mobileBootstrap.js",
   "src/campaignMapUi.js",
   "src/introFlow.js",
-  "src/pauseMenuPatch.js",
+  "src/pauseMenu.js",
   "src/gameUi.js",
   "src/desktopUi.js",
   "src/levelFlow.js",

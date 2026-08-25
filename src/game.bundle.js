@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.256",
+  "buildVersion": "0.4.257",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -14387,7 +14387,7 @@ window.addEventListener('load', () => {
 
 
 
-/* ===== src/pauseMenuPatch.js ===== */
+/* ===== src/pauseMenu.js ===== */
 (function () {
   if (typeof GameApp === 'undefined') return;
 
