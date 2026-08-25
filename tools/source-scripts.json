@@ -31,7 +31,7 @@
   "src/campaignMapPatch.js",
   "src/introFlow.js",
   "src/pauseMenuPatch.js",
-  "src/desktopUXPatch.js",
+  "src/gameUi.js",
   "src/desktopRefinementPatch.js",
   "src/levelFlow.js",
   "src/teamState.js",
