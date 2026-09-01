@@ -340,7 +340,8 @@ class LevelScene {
     const previousAppearType = AudioManager.enemyAppearType;
     AudioManager.enemyAppearType = type;
     try {
-      AudioManager.playOptionalSfx(this.getEnemyAppearSoundKey(type), 0.9, {
+      const appearVolume = type === 'negay' ? 1.8 : 0.9;
+      AudioManager.playOptionalSfx(this.getEnemyAppearSoundKey(type), appearVolume, {
         src: this.getEnemyAppearSoundPath(type),
         startAt: 0.01,
         duckMusic: type === 'negay',
