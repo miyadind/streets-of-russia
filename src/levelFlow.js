@@ -132,7 +132,7 @@
     const currentRegion = currentLevel && (currentLevel.region || currentLevel.regionKey || currentLevel.area || currentLevel.chapter);
     const nextRegion = nextLevel && (nextLevel.region || nextLevel.regionKey || nextLevel.area || nextLevel.chapter);
 
-    if (this.screenIndex < this.images.streets.length - 1 && currentRegion && nextRegion && currentRegion === nextRegion) {
+    if (this.screenIndex < order.length - 1 && currentRegion && nextRegion && currentRegion === nextRegion) {
       if (this.game && this.game.addPeopleSupport) this.game.addPeopleSupport(12);
       this.screenIndex += 1;
       this.player.x = 82;

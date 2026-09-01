@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.259",
+  "buildVersion": "0.4.260",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -7552,7 +7552,10 @@ class LevelScene {
 
     if (this.player) this.clampActorPosition(this.player, 70);
 
-    if (this.encounterCleared && this.player.x > zone.right - 35) {
+    // Player movement is clamped with a 70px horizontal margin, so the exit
+    // threshold must use that same reachable edge instead of the raw zone edge.
+    const exitThreshold = zone.right - 72;
+    if (this.encounterCleared && this.player.x >= exitThreshold) {
       this.nextScreen();
     }
 
@@ -15396,7 +15399,7 @@ window.addEventListener('load', () => {
     const currentRegion = currentLevel && (currentLevel.region || currentLevel.regionKey || currentLevel.area || currentLevel.chapter);
     const nextRegion = nextLevel && (nextLevel.region || nextLevel.regionKey || nextLevel.area || nextLevel.chapter);
 
-    if (this.screenIndex < this.images.streets.length - 1 && currentRegion && nextRegion && currentRegion === nextRegion) {
+    if (this.screenIndex < order.length - 1 && currentRegion && nextRegion && currentRegion === nextRegion) {
       if (this.game && this.game.addPeopleSupport) this.game.addPeopleSupport(12);
       this.screenIndex += 1;
       this.player.x = 82;

@@ -757,7 +757,10 @@ class LevelScene {
 
     if (this.player) this.clampActorPosition(this.player, 70);
 
-    if (this.encounterCleared && this.player.x > zone.right - 35) {
+    // Player movement is clamped with a 70px horizontal margin, so the exit
+    // threshold must use that same reachable edge instead of the raw zone edge.
+    const exitThreshold = zone.right - 72;
+    if (this.encounterCleared && this.player.x >= exitThreshold) {
       this.nextScreen();
     }
 
