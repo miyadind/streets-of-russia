@@ -640,6 +640,12 @@ class GameApp {
   }
 
   updateMusicForState(previousState, nextState) {
+    if (nextState === 'mainMenu' && previousState !== 'mainMenu') {
+      // A menu return ends the active game scene. Do not let boss narration,
+      // hero quotes, or delayed combat effects survive under the menu playlist.
+      if (AudioManager.stopGameplayAudio) AudioManager.stopGameplayAudio();
+    }
+
     if (nextState === 'characterSelect') {
       this.stopIntroAudioForStateChange();
       this.characterSelectMusicPaused = !!AudioManager.currentMusic;

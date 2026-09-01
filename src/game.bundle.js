@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.260",
+  "buildVersion": "0.4.261",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -2207,6 +2207,22 @@ const AudioManager = {
     if (this.audioContext) {
       try { this.audioContext.suspend(); } catch (error) {}
     }
+  },
+
+  stopGameplayAudio() {
+    for (const audio of this.activeSfx || []) {
+      if (audio && audio.__voiceDuckSource) this.setVoiceDucking(false, audio.__voiceDuckSource);
+      try {
+        audio.pause();
+        audio.currentTime = 0;
+      } catch (error) {}
+    }
+    this.activeSfx = [];
+    if (this.voiceDuckSources) this.voiceDuckSources.clear();
+    this.voiceDucking = false;
+    this.stopExternalAudio();
+    // A later focus event must not resume a track from the level we just left.
+    this.pausedAudio = [];
   },
 
   isSoundOn() {
@@ -11515,6 +11531,12 @@ class GameApp {
   }
 
   updateMusicForState(previousState, nextState) {
+    if (nextState === 'mainMenu' && previousState !== 'mainMenu') {
+      // A menu return ends the active game scene. Do not let boss narration,
+      // hero quotes, or delayed combat effects survive under the menu playlist.
+      if (AudioManager.stopGameplayAudio) AudioManager.stopGameplayAudio();
+    }
+
     if (nextState === 'characterSelect') {
       this.stopIntroAudioForStateChange();
       this.characterSelectMusicPaused = !!AudioManager.currentMusic;

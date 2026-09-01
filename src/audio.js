@@ -188,6 +188,22 @@ const AudioManager = {
     }
   },
 
+  stopGameplayAudio() {
+    for (const audio of this.activeSfx || []) {
+      if (audio && audio.__voiceDuckSource) this.setVoiceDucking(false, audio.__voiceDuckSource);
+      try {
+        audio.pause();
+        audio.currentTime = 0;
+      } catch (error) {}
+    }
+    this.activeSfx = [];
+    if (this.voiceDuckSources) this.voiceDuckSources.clear();
+    this.voiceDucking = false;
+    this.stopExternalAudio();
+    // A later focus event must not resume a track from the level we just left.
+    this.pausedAudio = [];
+  },
+
   isSoundOn() {
     return !GAME_CONFIG.settings || GAME_CONFIG.settings.soundEnabled !== false;
   },
