@@ -105,6 +105,21 @@
     }
   }
 
+  function getPostBossMusicKey(scene) {
+    const level = scene && scene.getLevelConfig ? scene.getLevelConfig() : null;
+    const regionId = level && (level.region || level.regionId || level.area || level.chapter);
+    const regionMusic = regionId && GAME_CONFIG.regionMusic && GAME_CONFIG.regionMusic[regionId];
+    if (regionMusic) return regionMusic;
+
+    if (level && level.musicMode !== 'boss' && level.music) return level.music;
+    return GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level || 'levelTheme';
+  }
+
+  function restorePostBossMusic(scene) {
+    const musicKey = getPostBossMusicKey(scene);
+    if (musicKey) AudioManager.playMusic(musicKey, true, true);
+  }
+
   migrateIntroSequence();
   configureFarEastFinale();
 
@@ -575,6 +590,7 @@
         scene.gundosArenaActive = false;
         scene.activeGundos = null;
         scene.gundosBossDefeated = true;
+        restorePostBossMusic(scene);
         if (scene.startGundosVictoryDelay) scene.startGundosVictoryDelay();
       }
       AudioManager.playSfx('enemyDown', 1, { playbackRate: 0.82, startAt: 0.01 });
