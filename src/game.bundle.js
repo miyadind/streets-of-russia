@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.264",
+  "buildVersion": "0.4.265",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -13276,7 +13276,7 @@ window.addEventListener('load', () => {
     this.intro.voice.addEventListener('ended', () => {
       this.intro.voiceStarted = false;
       this.intro.time = this.intro.totalTimelineDuration || this.intro.time;
-      this.intro.readyToContinue = true;
+      this.showIntroConclusion();
     });
     this.intro.voice.addEventListener('error', () => {
       this.intro.voiceMissing = true;
@@ -13465,6 +13465,11 @@ window.addEventListener('load', () => {
     this.intro.readerScroll = Math.max(0, Math.min(limits.max, this.intro.readerScroll + direction * INTRO_READER_SCROLL_STEP));
   };
 
+  GameApp.prototype.showIntroConclusion = function () {
+    this.intro.readyToContinue = true;
+    this.intro.readerScroll = this.getIntroReaderLimits().max;
+  };
+
   GameApp.prototype.getIntroVoiceProgress = function () {
     const voice = this.intro && this.intro.voice;
     if (!voice || this.intro.voiceMissing || !this.intro.voiceStarted) return null;
@@ -13613,8 +13618,8 @@ window.addEventListener('load', () => {
       : lines.slice(0, skipLineIndex + 1).reduce((total, line) => total + lineDuration(line), 0);
 
     const state = getTimelineState(lines, this.intro.time);
-    if (state.complete) {
-      this.intro.readyToContinue = true;
+    if (state.complete && !this.intro.readyToContinue) {
+      this.showIntroConclusion();
     }
 
     if (this.intro.readyToContinue) {
