@@ -66,6 +66,15 @@
     return smoothStep(t);
   }
 
+  function showIntroConclusion(game) {
+    if (game.showIntroConclusion) {
+      game.showIntroConclusion();
+      return;
+    }
+    game.intro.readyToContinue = true;
+    game.intro.readerScrollToConclusion = true;
+  }
+
   function ensureIntroMusic(game) {
     if (!game.intro) return;
     if (game.intro.music) return;
@@ -214,6 +223,7 @@
       this.intro.readyToContinue = false;
       this.intro.buttonFadeElapsed = 0;
       this.intro.readerScroll = 0;
+      this.intro.readerScrollToConclusion = false;
       this.intro.lastTypedCursor = 0;
       this.intro.lastTypeSoundAt = 0;
       this.intro.voiceStarted = false;
@@ -389,9 +399,8 @@
       this.intro.finalFadeElapsed += dt / 1000;
       if (this.intro.finalFadeElapsed >= INTRO_TEXT_FADE_SECONDS) {
         this.intro.finalFadeActive = false;
-        this.intro.readyToContinue = true;
+        showIntroConclusion(this);
         this.intro.buttonFadeElapsed = 0;
-        this.intro.readerScroll = 0;
       }
       return;
     }
@@ -428,9 +437,8 @@
       const step = Math.max(remaining / Math.max(0.01, INTRO_SKIP_REVEAL_SECONDS), this.intro.totalTimelineDuration * 0.5);
       this.intro.time = Math.min(this.intro.totalTimelineDuration, this.intro.time + step * (dt / 1000));
       if (this.intro.time >= this.intro.totalTimelineDuration) {
-        this.intro.readyToContinue = true;
+        showIntroConclusion(this);
         this.intro.buttonFadeElapsed = 0;
-        this.intro.readerScroll = 0;
       }
       return;
     }

@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.266",
+  "buildVersion": "0.4.267",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -13955,6 +13955,15 @@ window.addEventListener('load', () => {
     return smoothStep(t);
   }
 
+  function showIntroConclusion(game) {
+    if (game.showIntroConclusion) {
+      game.showIntroConclusion();
+      return;
+    }
+    game.intro.readyToContinue = true;
+    game.intro.readerScrollToConclusion = true;
+  }
+
   function ensureIntroMusic(game) {
     if (!game.intro) return;
     if (game.intro.music) return;
@@ -14103,6 +14112,7 @@ window.addEventListener('load', () => {
       this.intro.readyToContinue = false;
       this.intro.buttonFadeElapsed = 0;
       this.intro.readerScroll = 0;
+      this.intro.readerScrollToConclusion = false;
       this.intro.lastTypedCursor = 0;
       this.intro.lastTypeSoundAt = 0;
       this.intro.voiceStarted = false;
@@ -14278,9 +14288,8 @@ window.addEventListener('load', () => {
       this.intro.finalFadeElapsed += dt / 1000;
       if (this.intro.finalFadeElapsed >= INTRO_TEXT_FADE_SECONDS) {
         this.intro.finalFadeActive = false;
-        this.intro.readyToContinue = true;
+        showIntroConclusion(this);
         this.intro.buttonFadeElapsed = 0;
-        this.intro.readerScroll = 0;
       }
       return;
     }
@@ -14317,9 +14326,8 @@ window.addEventListener('load', () => {
       const step = Math.max(remaining / Math.max(0.01, INTRO_SKIP_REVEAL_SECONDS), this.intro.totalTimelineDuration * 0.5);
       this.intro.time = Math.min(this.intro.totalTimelineDuration, this.intro.time + step * (dt / 1000));
       if (this.intro.time >= this.intro.totalTimelineDuration) {
-        this.intro.readyToContinue = true;
+        showIntroConclusion(this);
         this.intro.buttonFadeElapsed = 0;
-        this.intro.readerScroll = 0;
       }
       return;
     }
@@ -15234,8 +15242,14 @@ window.addEventListener('load', () => {
       const panelW = GAME_CONFIG.width - 300;
       const panelH = GAME_CONFIG.height - 190;
       const lineHeight = 32;
+      const totalHeight = lines.length * lineHeight;
+      const maxScroll = Math.max(0, totalHeight - panelH);
 
       this.intro.layoutLines = lines;
+      if (this.intro.readerScrollToConclusion) {
+        this.intro.readerScroll = maxScroll;
+        this.intro.readerScrollToConclusion = false;
+      }
 
       ctx.fillStyle = 'rgba(0, 0, 0, 0.66)';
       ctx.fillRect(panelX - 20, panelY - 20, panelW + 40, panelH + 40);
@@ -15264,8 +15278,6 @@ window.addEventListener('load', () => {
       }
       ctx.restore();
 
-      const totalHeight = lines.length * lineHeight;
-      const maxScroll = Math.max(0, totalHeight - panelH);
       if (maxScroll > 0) {
         const barX = panelX + panelW + 16;
         const barY = panelY;

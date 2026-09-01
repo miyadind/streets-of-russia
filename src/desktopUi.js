@@ -193,8 +193,14 @@
       const panelW = GAME_CONFIG.width - 300;
       const panelH = GAME_CONFIG.height - 190;
       const lineHeight = 32;
+      const totalHeight = lines.length * lineHeight;
+      const maxScroll = Math.max(0, totalHeight - panelH);
 
       this.intro.layoutLines = lines;
+      if (this.intro.readerScrollToConclusion) {
+        this.intro.readerScroll = maxScroll;
+        this.intro.readerScrollToConclusion = false;
+      }
 
       ctx.fillStyle = 'rgba(0, 0, 0, 0.66)';
       ctx.fillRect(panelX - 20, panelY - 20, panelW + 40, panelH + 40);
@@ -223,8 +229,6 @@
       }
       ctx.restore();
 
-      const totalHeight = lines.length * lineHeight;
-      const maxScroll = Math.max(0, totalHeight - panelH);
       if (maxScroll > 0) {
         const barX = panelX + panelW + 16;
         const barY = panelY;
