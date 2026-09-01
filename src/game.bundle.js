@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.267",
+  "buildVersion": "0.4.268",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -787,6 +787,58 @@ const GAME_CONFIG = {
               "count": 2,
               "side": "right",
               "delayMs": 0
+            },
+            {
+              "type": "dogRegime",
+              "count": 1,
+              "side": "left",
+              "delayMs": 0
+            }
+          ]
+        },
+        {
+          "trigger": "afterWaveCleared",
+          "enemies": [
+            {
+              "type": "goydenish",
+              "count": 1,
+              "side": "left",
+              "delayMs": 0
+            },
+            {
+              "type": "zetnik",
+              "count": 1,
+              "side": "right",
+              "delayMs": 3000
+            }
+          ]
+        },
+        {
+          "trigger": "afterWaveCleared",
+          "enemies": [
+            {
+              "type": "negay",
+              "count": 1,
+              "side": "right",
+              "delayMs": 0
+            },
+            {
+              "type": "horse",
+              "count": 1,
+              "side": "left",
+              "delayMs": 3000
+            },
+            {
+              "type": "zetnik",
+              "count": 1,
+              "side": "right",
+              "delayMs": 7000
+            },
+            {
+              "type": "zetnik",
+              "count": 1,
+              "side": "left",
+              "delayMs": 10000
             }
           ]
         }
@@ -838,10 +890,16 @@ const GAME_CONFIG = {
           "trigger": "onEnter",
           "enemies": [
             {
-              "type": "dogRegime",
-              "count": 2,
+              "type": "sucker",
+              "count": 1,
               "side": "right",
               "delayMs": 0
+            },
+            {
+              "type": "sucker",
+              "count": 1,
+              "side": "left",
+              "delayMs": 3000
             }
           ]
         },
@@ -851,8 +909,26 @@ const GAME_CONFIG = {
             {
               "type": "zetnik",
               "count": 1,
-              "side": "right",
+              "side": "left",
               "delayMs": 0
+            },
+            {
+              "type": "zetnik",
+              "count": 1,
+              "side": "right",
+              "delayMs": 3000
+            },
+            {
+              "type": "goydenish",
+              "count": 1,
+              "side": "right",
+              "delayMs": 7000
+            },
+            {
+              "type": "goydenish",
+              "count": 1,
+              "side": "left",
+              "delayMs": 10000
             }
           ]
         }
