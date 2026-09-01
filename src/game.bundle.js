@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.265",
+  "buildVersion": "0.4.266",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -13252,6 +13252,7 @@ window.addEventListener('load', () => {
       fastForward: false,
       readyToContinue: false,
       readerScroll: 0,
+      readerScrollToConclusion: false,
       layoutLines: [],
       totalTimelineDuration: 0,
       skipUnlockAt: Number.POSITIVE_INFINITY,
@@ -13364,6 +13365,7 @@ window.addEventListener('load', () => {
     this.intro.fastForward = false;
     this.intro.readyToContinue = false;
     this.intro.readerScroll = 0;
+    this.intro.readerScrollToConclusion = false;
     this.intro.lastTypedCursor = 0;
     this.intro.lastTypeSoundAt = 0;
     this.intro.voiceStarted = false;
@@ -13467,7 +13469,7 @@ window.addEventListener('load', () => {
 
   GameApp.prototype.showIntroConclusion = function () {
     this.intro.readyToContinue = true;
-    this.intro.readerScroll = this.getIntroReaderLimits().max;
+    this.intro.readerScrollToConclusion = true;
   };
 
   GameApp.prototype.getIntroVoiceProgress = function () {
@@ -13623,6 +13625,10 @@ window.addEventListener('load', () => {
     }
 
     if (this.intro.readyToContinue) {
+      if (this.intro.readerScrollToConclusion) {
+        this.intro.readerScroll = this.getIntroReaderLimits().max;
+        this.intro.readerScrollToConclusion = false;
+      }
       this.drawIntroReader(ctx, lines, maxWidth);
       return;
     }

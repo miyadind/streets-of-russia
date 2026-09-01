@@ -211,6 +211,7 @@
       fastForward: false,
       readyToContinue: false,
       readerScroll: 0,
+      readerScrollToConclusion: false,
       layoutLines: [],
       totalTimelineDuration: 0,
       skipUnlockAt: Number.POSITIVE_INFINITY,
@@ -323,6 +324,7 @@
     this.intro.fastForward = false;
     this.intro.readyToContinue = false;
     this.intro.readerScroll = 0;
+    this.intro.readerScrollToConclusion = false;
     this.intro.lastTypedCursor = 0;
     this.intro.lastTypeSoundAt = 0;
     this.intro.voiceStarted = false;
@@ -426,7 +428,7 @@
 
   GameApp.prototype.showIntroConclusion = function () {
     this.intro.readyToContinue = true;
-    this.intro.readerScroll = this.getIntroReaderLimits().max;
+    this.intro.readerScrollToConclusion = true;
   };
 
   GameApp.prototype.getIntroVoiceProgress = function () {
@@ -582,6 +584,10 @@
     }
 
     if (this.intro.readyToContinue) {
+      if (this.intro.readerScrollToConclusion) {
+        this.intro.readerScroll = this.getIntroReaderLimits().max;
+        this.intro.readerScrollToConclusion = false;
+      }
       this.drawIntroReader(ctx, lines, maxWidth);
       return;
     }
