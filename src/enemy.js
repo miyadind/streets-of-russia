@@ -773,6 +773,7 @@ class DogRegimeEnemy {
         this.attackFacing = this.facing || 1;
         this.attackLockX = this.x;
         this.attackLockY = this.y;
+        this.attackTargetY = player.y;
         this.attackPositionLocked = true;
         this.attackTimer = 0;
         this.attackHasHit = false;
@@ -803,9 +804,8 @@ class DogRegimeEnemy {
 
     if (!this.attackHasHit && this.attackTimer >= windupMs) {
       const imageSet = this.getEnemyImages();
-      const launchY = player && player.hp > 0
-        ? Math.max(GAME_CONFIG.laneTop, Math.min(GAME_CONFIG.laneBottom, player.y))
-        : this.y;
+      const targetY = Number.isFinite(this.attackTargetY) ? this.attackTargetY : this.y;
+      const launchY = Math.max(GAME_CONFIG.laneTop, Math.min(GAME_CONFIG.laneBottom, targetY));
       const spawnX = this.x + this.facing * 92;
       const spawnY = launchY - 94;
       scene.enemies.push(new GoydenishZProjectile(spawnX, spawnY, this.facing, imageSet.projectile, config, this, launchY));
@@ -828,6 +828,7 @@ class DogRegimeEnemy {
       this.attackPositionLocked = false;
       this.attackLockX = null;
       this.attackLockY = null;
+      this.attackTargetY = null;
     }
   }
 
