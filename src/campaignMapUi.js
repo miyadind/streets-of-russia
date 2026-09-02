@@ -820,15 +820,11 @@
 
   const originalNextScreen = LevelScene.prototype.nextScreen;
   LevelScene.prototype.nextScreen = function () {
-    const order = GAME_CONFIG.levelOrder || [];
-    const currentKey = order[this.screenIndex];
-    const nextKey = order[this.screenIndex + 1];
-    const currentLevel = currentKey && GAME_CONFIG.levels && GAME_CONFIG.levels[currentKey];
-    const nextLevel = nextKey && GAME_CONFIG.levels && GAME_CONFIG.levels[nextKey];
-    const currentRegion = currentLevel && (currentLevel.region || currentLevel.regionKey || currentLevel.area || currentLevel.chapter);
-    const nextRegion = nextLevel && (nextLevel.region || nextLevel.regionKey || nextLevel.area || nextLevel.chapter);
+    const lastScreenInPart = window.CampaignRuntime && typeof window.CampaignRuntime.getRegionEndIndexByStart === 'function'
+      ? window.CampaignRuntime.getRegionEndIndexByStart(this.screenIndex)
+      : this.screenIndex;
 
-    if (this.screenIndex < this.images.streets.length - 1 && currentRegion && nextRegion && currentRegion === nextRegion) {
+    if (this.screenIndex < this.images.streets.length - 1 && this.screenIndex < lastScreenInPart) {
       originalNextScreen.call(this);
       return;
     }

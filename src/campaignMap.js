@@ -5,44 +5,28 @@ const CampaignMapScreen = {
   loaded: false,
 
   order: [
-    'farEast',
-    'siberia',
-    'ural',
-    'northwestPiter',
-    'volga',
-    'southSochi',
-    'centralMoscow'
+    'part1',
+    'part2',
+    'part3'
   ],
 
   labels: {
-    farEast: 'ДАЛЬНИЙ ВОСТОК',
-    siberia: 'СИБИРЬ',
-    ural: 'УРАЛ',
-    northwestPiter: 'СЕВЕРО-ЗАПАД',
-    volga: 'ПОВОЛЖЬЕ',
-    southSochi: 'ЮГ РОССИИ',
-    centralMoscow: 'МОСКОВСКИЙ РЕГИОН'
+    part1: 'ЧАСТЬ 1',
+    part2: 'ЧАСТЬ 2',
+    part3: 'ЧАСТЬ 3'
   },
 
   sources: {
     base: 'assets/map/campaign/map_base.png',
     active: {
-      farEast: 'assets/map/campaign/active/01_far_east_active.png',
-      siberia: 'assets/map/campaign/active/02_siberia_active.png',
-      ural: 'assets/map/campaign/active/03_ural_active.png',
-      volga: 'assets/map/campaign/active/04_volga_active.png',
-      centralMoscow: 'assets/map/campaign/active/05_central_moscow_active.png',
-      northwestPiter: 'assets/map/campaign/active/06_northwest_piter_active.png',
-      southSochi: 'assets/map/campaign/active/07_south_sochi_active.png'
+      part1: 'assets/map/campaign/active/01_part_1_active.png',
+      part2: 'assets/map/campaign/active/02_part_2_active.png',
+      part3: 'assets/map/campaign/active/03_part_3_active.png'
     },
     completed: {
-      farEast: 'assets/map/campaign/completed/01_far_east_completed.png',
-      siberia: 'assets/map/campaign/completed/02_siberia_completed.png',
-      ural: 'assets/map/campaign/completed/03_ural_completed.png',
-      volga: 'assets/map/campaign/completed/04_volga_completed.png',
-      centralMoscow: 'assets/map/campaign/completed/05_central_moscow_completed.png',
-      northwestPiter: 'assets/map/campaign/completed/06_northwest_piter_completed.png',
-      southSochi: 'assets/map/campaign/completed/07_south_sochi_completed.png'
+      part1: 'assets/map/campaign/completed/01_part_1_completed.png',
+      part2: 'assets/map/campaign/completed/02_part_2_completed.png',
+      part3: 'assets/map/campaign/completed/03_part_3_completed.png'
     }
   },
 

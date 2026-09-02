@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.269",
+  "buildVersion": "0.4.270",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -501,8 +501,8 @@ const GAME_CONFIG = {
   ],
   "campaignRegions": [
     {
-      "mapId": "farEast",
-      "levelRegion": "far-east",
+      "mapId": "part1",
+      "levelRegion": "part-1",
       "levels": [
         "street01",
         "street02",
@@ -510,8 +510,8 @@ const GAME_CONFIG = {
       ]
     },
     {
-      "mapId": "siberia",
-      "levelRegion": "siberia",
+      "mapId": "part2",
+      "levelRegion": "part-2",
       "levels": [
         "siberia01",
         "siberia02",
@@ -519,45 +519,21 @@ const GAME_CONFIG = {
       ]
     },
     {
-      "mapId": "ural",
-      "levelRegion": "ural",
+      "mapId": "part3",
+      "levelRegion": "part-3",
       "levels": [
         "ural01",
         "ural02",
-        "ural03"
-      ]
-    },
-    {
-      "mapId": "northwestPiter",
-      "levelRegion": "northwest",
-      "levels": [
+        "ural03",
         "northwest01",
         "northwest02",
-        "northwest03"
-      ]
-    },
-    {
-      "mapId": "volga",
-      "levelRegion": "volga",
-      "levels": [
+        "northwest03",
         "volga01",
         "volga02",
-        "volga03"
-      ]
-    },
-    {
-      "mapId": "southSochi",
-      "levelRegion": "south",
-      "levels": [
+        "volga03",
         "south01",
         "south02",
-        "south03"
-      ]
-    },
-    {
-      "mapId": "centralMoscow",
-      "levelRegion": "moscow",
-      "levels": [
+        "south03",
         "moscow01",
         "moscow02",
         "moscow03"
@@ -9214,44 +9190,28 @@ const CampaignMapScreen = {
   loaded: false,
 
   order: [
-    'farEast',
-    'siberia',
-    'ural',
-    'northwestPiter',
-    'volga',
-    'southSochi',
-    'centralMoscow'
+    'part1',
+    'part2',
+    'part3'
   ],
 
   labels: {
-    farEast: 'ДАЛЬНИЙ ВОСТОК',
-    siberia: 'СИБИРЬ',
-    ural: 'УРАЛ',
-    northwestPiter: 'СЕВЕРО-ЗАПАД',
-    volga: 'ПОВОЛЖЬЕ',
-    southSochi: 'ЮГ РОССИИ',
-    centralMoscow: 'МОСКОВСКИЙ РЕГИОН'
+    part1: 'ЧАСТЬ 1',
+    part2: 'ЧАСТЬ 2',
+    part3: 'ЧАСТЬ 3'
   },
 
   sources: {
     base: 'assets/map/campaign/map_base.png',
     active: {
-      farEast: 'assets/map/campaign/active/01_far_east_active.png',
-      siberia: 'assets/map/campaign/active/02_siberia_active.png',
-      ural: 'assets/map/campaign/active/03_ural_active.png',
-      volga: 'assets/map/campaign/active/04_volga_active.png',
-      centralMoscow: 'assets/map/campaign/active/05_central_moscow_active.png',
-      northwestPiter: 'assets/map/campaign/active/06_northwest_piter_active.png',
-      southSochi: 'assets/map/campaign/active/07_south_sochi_active.png'
+      part1: 'assets/map/campaign/active/01_part_1_active.png',
+      part2: 'assets/map/campaign/active/02_part_2_active.png',
+      part3: 'assets/map/campaign/active/03_part_3_active.png'
     },
     completed: {
-      farEast: 'assets/map/campaign/completed/01_far_east_completed.png',
-      siberia: 'assets/map/campaign/completed/02_siberia_completed.png',
-      ural: 'assets/map/campaign/completed/03_ural_completed.png',
-      volga: 'assets/map/campaign/completed/04_volga_completed.png',
-      centralMoscow: 'assets/map/campaign/completed/05_central_moscow_completed.png',
-      northwestPiter: 'assets/map/campaign/completed/06_northwest_piter_completed.png',
-      southSochi: 'assets/map/campaign/completed/07_south_sochi_completed.png'
+      part1: 'assets/map/campaign/completed/01_part_1_completed.png',
+      part2: 'assets/map/campaign/completed/02_part_2_completed.png',
+      part3: 'assets/map/campaign/completed/03_part_3_completed.png'
     }
   },
 
@@ -13949,15 +13909,11 @@ window.addEventListener('load', () => {
 
   const originalNextScreen = LevelScene.prototype.nextScreen;
   LevelScene.prototype.nextScreen = function () {
-    const order = GAME_CONFIG.levelOrder || [];
-    const currentKey = order[this.screenIndex];
-    const nextKey = order[this.screenIndex + 1];
-    const currentLevel = currentKey && GAME_CONFIG.levels && GAME_CONFIG.levels[currentKey];
-    const nextLevel = nextKey && GAME_CONFIG.levels && GAME_CONFIG.levels[nextKey];
-    const currentRegion = currentLevel && (currentLevel.region || currentLevel.regionKey || currentLevel.area || currentLevel.chapter);
-    const nextRegion = nextLevel && (nextLevel.region || nextLevel.regionKey || nextLevel.area || nextLevel.chapter);
+    const lastScreenInPart = window.CampaignRuntime && typeof window.CampaignRuntime.getRegionEndIndexByStart === 'function'
+      ? window.CampaignRuntime.getRegionEndIndexByStart(this.screenIndex)
+      : this.screenIndex;
 
-    if (this.screenIndex < this.images.streets.length - 1 && currentRegion && nextRegion && currentRegion === nextRegion) {
+    if (this.screenIndex < this.images.streets.length - 1 && this.screenIndex < lastScreenInPart) {
       originalNextScreen.call(this);
       return;
     }
