@@ -424,10 +424,11 @@
     }
 
     pauseVoice() {
-      if (!this.voice || this.voice.paused || this.voice.ended) return;
+      if (!this.voice || this.voice.ended) return;
+      this.voicePausedByGame = true;
+      if (this.voice.paused) return;
       try {
         this.voice.pause();
-        this.voicePausedByGame = true;
       } catch (error) {}
     }
 

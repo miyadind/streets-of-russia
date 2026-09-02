@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.273",
+  "buildVersion": "0.4.274",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -524,19 +524,7 @@ const GAME_CONFIG = {
       "levels": [
         "ural01",
         "ural02",
-        "ural03",
-        "northwest01",
-        "northwest02",
-        "northwest03",
-        "volga01",
-        "volga02",
-        "volga03",
-        "south01",
-        "south02",
-        "south03",
-        "moscow01",
-        "moscow02",
-        "moscow03"
+        "ural03"
       ]
     }
   ],
@@ -17428,10 +17416,11 @@ if (document.readyState === 'loading') {
     }
 
     pauseVoice() {
-      if (!this.voice || this.voice.paused || this.voice.ended) return;
+      if (!this.voice || this.voice.ended) return;
+      this.voicePausedByGame = true;
+      if (this.voice.paused) return;
       try {
         this.voice.pause();
-        this.voicePausedByGame = true;
       } catch (error) {}
     }
 
