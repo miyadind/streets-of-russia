@@ -277,7 +277,7 @@
   GameApp.prototype.syncIntroVoiceVolume = function () {
     const voice = this.intro && this.intro.voice;
     if (!voice) return;
-    voice.volume = AudioManager.isMusicOn() ? 0.72 : 0;
+    voice.volume = AudioManager.isSfxOn() ? 0.72 : 0;
   };
 
   GameApp.prototype.playIntroVoice = function () {

@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.268",
+  "buildVersion": "0.4.269",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -2204,7 +2204,10 @@ const AudioManager = {
     const metadata = {
       owner: options.owner || 'external',
       channel: options.channel || 'sfx',
-      resume: options.resume !== false
+      resume: options.resume !== false,
+      baseVolume: Number.isFinite(options.volume)
+        ? Math.max(0, Math.min(1, options.volume))
+        : Math.max(0, Math.min(1, Number(audio.volume) || 1))
     };
     this.externalAudio.set(audio, metadata);
     const cleanup = () => this.externalAudio.delete(audio);
@@ -2349,8 +2352,8 @@ const AudioManager = {
 
   toggleSound() {
     GAME_CONFIG.settings.soundEnabled = GAME_CONFIG.settings.soundEnabled === false;
-    if (GAME_CONFIG.settings.soundEnabled === false) this.stopActiveSfx();
     this.refreshSettings();
+    this.syncExternalAudioVolumes();
     return GAME_CONFIG.settings.soundEnabled !== false;
   },
 
@@ -2784,6 +2787,15 @@ const AudioManager = {
     for (const audio of this.activeSfx || []) {
       if (!audio || audio.ended) continue;
       audio.volume = this.getSfxVolume(audio.__sfxVolumeMultiplier || 1);
+    }
+    this.syncExternalAudioVolumes();
+  },
+
+  syncExternalAudioVolumes() {
+    for (const [audio, metadata] of this.externalAudio || []) {
+      if (!audio || !metadata) continue;
+      const enabled = metadata.channel === 'music' ? this.isMusicOn() : this.isSfxOn();
+      audio.volume = enabled ? metadata.baseVolume : 0;
     }
   },
 
@@ -13394,7 +13406,7 @@ window.addEventListener('load', () => {
   GameApp.prototype.syncIntroVoiceVolume = function () {
     const voice = this.intro && this.intro.voice;
     if (!voice) return;
-    voice.volume = AudioManager.isMusicOn() ? 0.72 : 0;
+    voice.volume = AudioManager.isSfxOn() ? 0.72 : 0;
   };
 
   GameApp.prototype.playIntroVoice = function () {
