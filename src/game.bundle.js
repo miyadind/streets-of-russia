@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.275",
+  "buildVersion": "0.4.276",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -525,6 +525,15 @@ const GAME_CONFIG = {
         "ural01",
         "ural02",
         "ural03"
+      ]
+    },
+    {
+      "mapId": "part4",
+      "levelRegion": "moscow",
+      "levels": [
+        "moscow01",
+        "moscow02",
+        "moscow03"
       ]
     }
   ],
@@ -9180,13 +9189,15 @@ const CampaignMapScreen = {
   order: [
     'part1',
     'part2',
-    'part3'
+    'part3',
+    'part4'
   ],
 
   labels: {
     part1: 'ЧАСТЬ 1',
     part2: 'ЧАСТЬ 2',
-    part3: 'ЧАСТЬ 3'
+    part3: 'ЧАСТЬ 3',
+    part4: 'ЧАСТЬ 4: МОСКВА'
   },
 
   sources: {
@@ -9194,7 +9205,8 @@ const CampaignMapScreen = {
     active: {
       part1: 'assets/map/campaign/active/01_part_1_active.png',
       part2: 'assets/map/campaign/active/02_part_2_active.png',
-      part3: 'assets/map/campaign/active/03_part_3_active.png'
+      part3: 'assets/map/campaign/active/03_part_3_active.png',
+      part4: 'assets/map/campaign/active/04_moscow_star_active.png'
     },
     completed: {
       part1: 'assets/map/campaign/completed/01_part_1_completed.png',

@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  "buildVersion": "0.4.275",
+  "buildVersion": "0.4.276",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -518,6 +518,15 @@ const GAME_CONFIG = {
         "ural01",
         "ural02",
         "ural03"
+      ]
+    },
+    {
+      "mapId": "part4",
+      "levelRegion": "moscow",
+      "levels": [
+        "moscow01",
+        "moscow02",
+        "moscow03"
       ]
     }
   ],
