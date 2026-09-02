@@ -20,6 +20,9 @@ const CampaignMapScreen = {
 
   sources: {
     base: 'assets/map/campaign/map_base.png',
+    locked: {
+      part4: 'assets/map/campaign/markers/04_moscow_star_locked.png'
+    },
     active: {
       part1: 'assets/map/campaign/active/01_part_1_active.png',
       part2: 'assets/map/campaign/active/02_part_2_active.png',
@@ -46,6 +49,7 @@ const CampaignMapScreen = {
   createImageSet(sources) {
     const set = {
       base: null,
+      locked: {},
       active: {},
       completed: {}
     };
@@ -78,6 +82,7 @@ const CampaignMapScreen = {
 
   ensureVisibleImages() {
     this.ensureImage('base');
+    this.ensureImage('locked', 'part4');
     const activeId = this.getActiveRegionId();
     this.ensureImage('active', activeId);
     for (let i = 0; i < this.activeIndex; i++) {
@@ -317,6 +322,8 @@ const CampaignMapScreen = {
       const id = this.order[i];
       this.drawImageStretch(ctx, this.images.completed[id]);
     }
+
+    this.drawImageStretch(ctx, this.images.locked.part4);
 
     const activeId = this.getActiveRegionId();
     const pulse = 0.72 + Math.sin(performance.now() / 180) * 0.18;
