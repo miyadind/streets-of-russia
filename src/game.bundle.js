@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.270",
+  "buildVersion": "0.4.271",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
