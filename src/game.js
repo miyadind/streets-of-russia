@@ -137,17 +137,22 @@ class GameApp {
   }
 
   async loadStoryAssets() {
+    const map = this.campaignMap;
+    const activeMapId = map && map.getActiveRegionId ? map.getActiveRegionId() : 'part1';
+    const activeMapSrc = map && map.sources && map.sources.active
+      ? map.sources.active[activeMapId]
+      : 'assets/map/campaign/active/01_part_1_active.png';
     const paths = {
       intro: 'assets/backgrounds/Intro.png?v=intro-20260803-1',
       mapBase: 'assets/map/campaign/map_base.png',
-      mapFarEast: 'assets/map/campaign/active/01_far_east_active.png'
+      mapActive: activeMapSrc
     };
     const loaded = await this.loadImageEntries(Object.entries(paths), 3);
 
     this.images.intro = loaded.intro;
-    if (this.campaignMap && this.campaignMap.images) {
-      this.campaignMap.images.base = loaded.mapBase;
-      this.campaignMap.images.active.farEast = loaded.mapFarEast;
+    if (map && map.images) {
+      map.images.base = loaded.mapBase;
+      map.images.active[activeMapId] = loaded.mapActive;
     }
 
     if (this.intro) {

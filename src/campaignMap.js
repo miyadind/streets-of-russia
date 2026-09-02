@@ -397,20 +397,20 @@ const CampaignMapScreen = {
     ctx.textBaseline = 'alphabetic';
     ctx.font = 'bold 20px Arial';
     ctx.fillStyle = '#ffd45a';
-    ctx.fillText('DEV CHAPTER SELECT', rects.panel.x + 22, rects.panel.y + 34);
+    ctx.fillText('ВЫБОР ЧАСТИ И ЭКРАНА', rects.panel.x + 22, rects.panel.y + 34);
     ctx.font = 'bold 24px Arial';
     ctx.fillStyle = '#ffffff';
     ctx.fillText(label, rects.panel.x + 22, rects.panel.y + 76);
     ctx.font = '15px Arial';
     ctx.fillStyle = 'rgba(255,255,255,0.72)';
-    ctx.fillText('REGION: [ / ] or arrows', rects.panel.x + 22, rects.panel.y + 104);
-    ctx.fillText('LEVEL: , / . or arrows', rects.panel.x + 22, rects.panel.y + 154);
+    ctx.fillText('ЧАСТЬ: [ / ] или стрелки влево-вправо', rects.panel.x + 22, rects.panel.y + 104);
+    ctx.fillText('ЭКРАН: , / . или стрелки вверх-вниз', rects.panel.x + 22, rects.panel.y + 154);
     ctx.font = 'bold 18px Arial';
     ctx.fillStyle = '#ffffff';
     ctx.fillText('SCREEN ' + (selection.index + 1) + '/' + Math.max(1, selection.levels.length) + ': ' + levelLabel, rects.panel.x + 22, rects.panel.y + 178);
 
     this.drawButton(ctx, rects.regionPrev, '<', false, 18);
-    this.drawButton(ctx, rects.start, 'START SCREEN', true, 18);
+    this.drawButton(ctx, rects.start, 'ЗАПУСТИТЬ ЭКРАН', true, 18);
     this.drawButton(ctx, rects.regionNext, '>', false, 18);
     this.drawButton(ctx, rects.levelPrev, '<', false, 18);
     this.drawButton(ctx, rects.levelNext, '>', false, 18);
