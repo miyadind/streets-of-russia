@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.312",
+  "buildVersion": "0.4.313",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -18227,7 +18227,12 @@ if (document.readyState === 'loading') {
 
         for (let y = 0; y < image.height; y += 2) {
           for (let x = 0; x < image.width; x += 2) {
-            if (pixels[(y * image.width + x) * 4 + 3] < 16) continue;
+            const offset = (y * image.width + x) * 4;
+            const alpha = pixels[offset + 3];
+            const brightness = pixels[offset] + pixels[offset + 1] + pixels[offset + 2];
+            // Several supplied sprites have an opaque black export canvas.
+            // Treat that canvas as empty so the visible character fills the frame.
+            if (alpha < 16 || brightness < 42) continue;
             left = Math.min(left, x);
             top = Math.min(top, y);
             right = Math.max(right, x);
@@ -18236,7 +18241,7 @@ if (document.readyState === 'loading') {
         }
 
         if (right >= left && bottom >= top) {
-          const padding = 8;
+          const padding = 18;
           const bounds = {
             x: Math.max(0, left - padding),
             y: Math.max(0, top - padding),
@@ -18331,7 +18336,7 @@ if (document.readyState === 'loading') {
           bounds.w,
           bounds.h,
           portrait.x + (portrait.w - width) / 2,
-          portrait.y + portrait.h - height - 14,
+          portrait.y + (portrait.h - height) / 2,
           width,
           height
         );
