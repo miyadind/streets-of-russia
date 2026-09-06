@@ -89,6 +89,30 @@ const HUD = {
     ctx.restore();
   },
 
+  drawSupportAchievement(ctx, scene) {
+    const game = scene && scene.game;
+    const count = Math.max(0, Number(game && game.supportFiguresCollected) || 0);
+    const x = 1092;
+    const y = 22;
+    const w = 100;
+    const h = 44;
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(255, 213, 90, 0.12)';
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = 'rgba(255, 213, 90, 0.72)';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+    ctx.fillStyle = '#ffd55a';
+    ctx.font = 'bold 11px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('ПОДДЕРЖКА', x + w / 2, y + 16);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 22px Arial';
+    ctx.fillText('x' + count, x + w / 2, y + 37);
+    ctx.restore();
+  },
+
   shouldShowLowHpSwitchHint(scene) {
     const game = scene && scene.game;
     const player = scene && scene.player;

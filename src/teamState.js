@@ -161,6 +161,9 @@
       if (this.drawSupportButtons) {
         this.drawSupportButtons(ctx, scene, 755, 22);
       }
+      if (this.drawSupportAchievement) {
+        this.drawSupportAchievement(ctx, scene);
+      }
       if (this.drawLowHpSwitchHint) {
         this.drawLowHpSwitchHint(ctx, scene);
       }

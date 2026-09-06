@@ -602,6 +602,16 @@
       this.flash = 120;
     }
 
+    applySupportImpact(damage, scene) {
+      if (!this.alive) return false;
+      const applied = Math.max(1, Math.round(Number(damage) || 0));
+      this.hp = Math.max(0, this.hp - applied);
+      this.flash = 320;
+      if (scene && scene.addDamageText) scene.addDamageText(applied, this);
+      if (this.hp <= 0) this.defeat(scene);
+      return true;
+    }
+
     getBodyBox() {
       const box = GAME_CONFIG.hitboxes && GAME_CONFIG.hitboxes.enemies &&
         GAME_CONFIG.hitboxes.enemies.gundos && GAME_CONFIG.hitboxes.enemies.gundos.body;

@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.281",
+  "buildVersion": "0.4.282",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -477,6 +477,7 @@ const GAME_CONFIG = {
       "label": "ПОДДЕРЖКА ПОЛУЧЕНА"
     }
   },
+  "supportImpactDamagePercent": 0.5,
   "levelOrder": [
     "street01",
     "street02",
@@ -5774,6 +5775,30 @@ const HUD = {
     ctx.restore();
   },
 
+  drawSupportAchievement(ctx, scene) {
+    const game = scene && scene.game;
+    const count = Math.max(0, Number(game && game.supportFiguresCollected) || 0);
+    const x = 1092;
+    const y = 22;
+    const w = 100;
+    const h = 44;
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(255, 213, 90, 0.12)';
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = 'rgba(255, 213, 90, 0.72)';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+    ctx.fillStyle = '#ffd55a';
+    ctx.font = 'bold 11px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('ПОДДЕРЖКА', x + w / 2, y + 16);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 22px Arial';
+    ctx.fillText('x' + count, x + w / 2, y + 37);
+    ctx.restore();
+  },
+
   shouldShowLowHpSwitchHint(scene) {
     const game = scene && scene.game;
     const player = scene && scene.player;
@@ -6937,7 +6962,9 @@ class HealthPickup {
     const cfg = this.getConfig();
     if (cfg.support) {
       if (player.scene && player.scene.addSupportFigure) player.scene.addSupportFigure(this.type);
-      this.floatText = cfg.label || 'ПОДДЕРЖКА ПОЛУЧЕНА';
+      if (player.scene && player.scene.applySupportFigureImpact) player.scene.applySupportFigureImpact(player);
+      const total = player.scene && player.scene.game ? Number(player.scene.game.supportFiguresCollected) || 0 : 0;
+      this.floatText = (cfg.label || 'ПОДДЕРЖКА ПОЛУЧЕНА') + ' x' + total;
       this.floatTextX = player.x;
       this.floatTextY = player.y - 136;
       this.floatTimer = 900;
@@ -7724,7 +7751,39 @@ class LevelScene {
       const collected = Array.isArray(this.game.supportFigures) ? this.game.supportFigures : [];
       if (!collected.includes(type)) collected.push(type);
       this.game.supportFigures = collected;
+      this.game.supportFiguresCollected = Math.max(0, Number(this.game.supportFiguresCollected) || 0) + 1;
     }
+  }
+
+  applySupportFigureImpact(player) {
+    const damagePercent = Math.max(0, Math.min(1, Number(GAME_CONFIG.supportImpactDamagePercent) || 0.5));
+    const direction = player && player.facing ? player.facing : 1;
+    let affected = 0;
+
+    for (const enemy of this.enemies || []) {
+      if (!enemy || !enemy.alive || enemy.remove || enemy.nonPhysical) continue;
+      const maxHp = Math.max(1, Number(enemy.maxHp) || Number(enemy.hp) || 1);
+      const damage = Math.max(1, Math.ceil(maxHp * damagePercent));
+
+      if (typeof enemy.applySupportImpact === 'function') {
+        if (enemy.applySupportImpact(damage, this)) affected += 1;
+        continue;
+      }
+
+      if (typeof enemy.takeHit !== 'function') continue;
+      enemy.takeHit(damage, direction, 72);
+      if (enemy.alive && typeof enemy.startKnockdown === 'function') {
+        enemy.startKnockdown(direction, 54);
+      }
+      this.addDamageText(damage, enemy);
+      affected += 1;
+    }
+
+    if (affected > 0) {
+      this.hitStop = Math.max(this.hitStop || 0, 95);
+      AudioManager.playSfx('waveClear', 0.72, { playbackRate: 1.15 });
+    }
+    return affected;
   }
 
   reserveSupportFigure() {
@@ -15982,6 +16041,7 @@ window.addEventListener('load', () => {
       this.peopleSupport = 25;
       this.supportFigures = [];
       this.supportFigureDrops = [];
+      this.supportFiguresCollected = 0;
       this.characterSelectMode = null;
       this.casualtyRespawn = null;
       this.gameOverRegionStartIndex = 0;
@@ -16434,6 +16494,9 @@ window.addEventListener('load', () => {
 
       if (this.drawSupportButtons) {
         this.drawSupportButtons(ctx, scene, 755, 22);
+      }
+      if (this.drawSupportAchievement) {
+        this.drawSupportAchievement(ctx, scene);
       }
       if (this.drawLowHpSwitchHint) {
         this.drawLowHpSwitchHint(ctx, scene);
@@ -17692,6 +17755,16 @@ if (document.readyState === 'loading') {
 
     takeHit() {
       this.flash = 120;
+    }
+
+    applySupportImpact(damage, scene) {
+      if (!this.alive) return false;
+      const applied = Math.max(1, Math.round(Number(damage) || 0));
+      this.hp = Math.max(0, this.hp - applied);
+      this.flash = 320;
+      if (scene && scene.addDamageText) scene.addDamageText(applied, this);
+      if (this.hp <= 0) this.defeat(scene);
+      return true;
     }
 
     getBodyBox() {

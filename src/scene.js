@@ -56,7 +56,9 @@ class HealthPickup {
     const cfg = this.getConfig();
     if (cfg.support) {
       if (player.scene && player.scene.addSupportFigure) player.scene.addSupportFigure(this.type);
-      this.floatText = cfg.label || 'ПОДДЕРЖКА ПОЛУЧЕНА';
+      if (player.scene && player.scene.applySupportFigureImpact) player.scene.applySupportFigureImpact(player);
+      const total = player.scene && player.scene.game ? Number(player.scene.game.supportFiguresCollected) || 0 : 0;
+      this.floatText = (cfg.label || 'ПОДДЕРЖКА ПОЛУЧЕНА') + ' x' + total;
       this.floatTextX = player.x;
       this.floatTextY = player.y - 136;
       this.floatTimer = 900;
@@ -843,7 +845,39 @@ class LevelScene {
       const collected = Array.isArray(this.game.supportFigures) ? this.game.supportFigures : [];
       if (!collected.includes(type)) collected.push(type);
       this.game.supportFigures = collected;
+      this.game.supportFiguresCollected = Math.max(0, Number(this.game.supportFiguresCollected) || 0) + 1;
     }
+  }
+
+  applySupportFigureImpact(player) {
+    const damagePercent = Math.max(0, Math.min(1, Number(GAME_CONFIG.supportImpactDamagePercent) || 0.5));
+    const direction = player && player.facing ? player.facing : 1;
+    let affected = 0;
+
+    for (const enemy of this.enemies || []) {
+      if (!enemy || !enemy.alive || enemy.remove || enemy.nonPhysical) continue;
+      const maxHp = Math.max(1, Number(enemy.maxHp) || Number(enemy.hp) || 1);
+      const damage = Math.max(1, Math.ceil(maxHp * damagePercent));
+
+      if (typeof enemy.applySupportImpact === 'function') {
+        if (enemy.applySupportImpact(damage, this)) affected += 1;
+        continue;
+      }
+
+      if (typeof enemy.takeHit !== 'function') continue;
+      enemy.takeHit(damage, direction, 72);
+      if (enemy.alive && typeof enemy.startKnockdown === 'function') {
+        enemy.startKnockdown(direction, 54);
+      }
+      this.addDamageText(damage, enemy);
+      affected += 1;
+    }
+
+    if (affected > 0) {
+      this.hitStop = Math.max(this.hitStop || 0, 95);
+      AudioManager.playSfx('waveClear', 0.72, { playbackRate: 1.15 });
+    }
+    return affected;
   }
 
   reserveSupportFigure() {

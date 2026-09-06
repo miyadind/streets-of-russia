@@ -526,6 +526,7 @@
       this.peopleSupport = 25;
       this.supportFigures = [];
       this.supportFigureDrops = [];
+      this.supportFiguresCollected = 0;
       this.characterSelectMode = null;
       this.casualtyRespawn = null;
       this.gameOverRegionStartIndex = 0;

@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  "buildVersion": "0.4.281",
+  "buildVersion": "0.4.282",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -470,6 +470,7 @@ const GAME_CONFIG = {
       "label": "ПОДДЕРЖКА ПОЛУЧЕНА"
     }
   },
+  "supportImpactDamagePercent": 0.5,
   "levelOrder": [
     "street01",
     "street02",
