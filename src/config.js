@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  "buildVersion": "0.4.311",
+  "buildVersion": "0.4.312",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -402,6 +402,32 @@ const GAME_CONFIG = {
       "attackCooldownMaxMs": 940,
       "bodyRadiusX": 48,
       "bodyRadiusY": 22
+    },
+    "gundon": {
+      "name": "Господин Пушка",
+      "hp": 180,
+      "speed": 1.15,
+      "damage": 18,
+      "appearSoundPath": "assets/enemies/GunDon/appear.mp3",
+      "scale": 0.13,
+      "attackDamageSource": "melee",
+      "minDistanceX": 80,
+      "preferredDistanceX": 120,
+      "tooFarDistanceX": 230,
+      "attackMinDistanceX": 55,
+      "attackMaxDistanceX": 150,
+      "attackRangeX": 160,
+      "attackRangeY": 44,
+      "maxAttackers": 1,
+      "decisionMinMs": 380,
+      "decisionMaxMs": 720,
+      "strafeChance": 0.18,
+      "retreatChance": 0.12,
+      "attackChance": 0.58,
+      "closeRetreatChance": 0.2,
+      "postAttackRetreatMs": 420,
+      "bodyRadiusX": 50,
+      "bodyRadiusY": 23
     },
   "4ort": {
     "name": "Губернатор",
@@ -1151,10 +1177,10 @@ const GAME_CONFIG = {
           "trigger": "onEnter",
           "enemies": [
             {
-              "type": "sucker",
+              "type": "gundon",
               "count": 1,
               "side": "right",
-              "delayMs": 0
+              "delayMs": 1200
             }
           ]
         }

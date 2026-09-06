@@ -60,11 +60,14 @@ function updateBundleVersion() {
   if (!versionMatch) throw new Error('GAME_CONFIG.buildVersion is missing.');
 
   const index = fs.readFileSync(indexPath, 'utf8');
+  const versionPattern = /const version = '[^']+';/;
+  if (!versionPattern.test(index)) {
+    throw new Error('Could not find the bundle version in index.html.');
+  }
   const updated = index.replace(
-    /const version = '[^']+';/,
+    versionPattern,
     `const version = '${versionMatch[1]}';`
   );
-  if (updated === index) throw new Error('Could not update the bundle version in index.html.');
   fs.writeFileSync(indexPath, updated, 'utf8');
 }
 
