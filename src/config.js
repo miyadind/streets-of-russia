@@ -1,8 +1,9 @@
 const GAME_CONFIG = {
-  "buildVersion": "0.4.277",
+  "buildVersion": "0.4.278",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
+  "gameSpeedMultiplier": 1.2,
   "adminTuningEnabled": true,
   "settings": {
     "difficulty": "normal",

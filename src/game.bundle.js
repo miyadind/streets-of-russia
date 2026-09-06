@@ -6,10 +6,11 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.277",
+  "buildVersion": "0.4.278",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
+  "gameSpeedMultiplier": 1.2,
   "adminTuningEnabled": true,
   "settings": {
     "difficulty": "normal",
@@ -2928,8 +2929,9 @@ class Player {
       const len = Math.hypot(dx, dy);
       dx /= len;
       dy /= len;
-      this.x += dx * this.speed;
-      this.y += dy * this.speed * GAME_CONFIG.ySpeedMultiplier;
+      const gameSpeed = Math.max(0.1, Number(GAME_CONFIG.gameSpeedMultiplier) || 1);
+      this.x += dx * this.speed * gameSpeed;
+      this.y += dy * this.speed * GAME_CONFIG.ySpeedMultiplier * gameSpeed;
       if (dx !== 0) this.facing = Math.sign(dx);
 
       if (updateState) {
@@ -3930,8 +3932,9 @@ class DogRegimeEnemy {
     const len = Math.hypot(moveX, moveY);
     moveX /= len;
     moveY /= len;
-    this.x += moveX * this.speed * speedMultiplier;
-    this.y += moveY * this.speed * GAME_CONFIG.ySpeedMultiplier * speedMultiplier;
+    const gameSpeed = Math.max(0.1, Number(GAME_CONFIG.gameSpeedMultiplier) || 1);
+    this.x += moveX * this.speed * speedMultiplier * gameSpeed;
+    this.y += moveY * this.speed * GAME_CONFIG.ySpeedMultiplier * speedMultiplier * gameSpeed;
     this.clampToScreen();
 
     this.walkTimer += dt;
@@ -5467,7 +5470,7 @@ class BastardEnemy {
 
     if (this.gundosMedicPhase === 'enter') {
       this.facing = 1;
-      this.x += this.speed * 1.75;
+      this.x += this.speed * 1.75 * (GAME_CONFIG.gameSpeedMultiplier || 1);
       if (this.x >= this.gundosMedicTargetX) {
         this.x = this.gundosMedicTargetX;
         this.gundosMedicPhase = 'idle';
@@ -5490,7 +5493,7 @@ class BastardEnemy {
 
     if (this.gundosMedicPhase === 'exit') {
       this.facing = -1;
-      this.x -= this.speed * 2.2;
+      this.x -= this.speed * 2.2 * (GAME_CONFIG.gameSpeedMultiplier || 1);
       if (this.x < -120) this.remove = true;
       return;
     }
@@ -5540,7 +5543,7 @@ class BastardEnemy {
     }
     this.state = 'wander';
     this.facing = this.bastardHealExitDirection || -1;
-    this.x += this.facing * Math.max(this.speed || 0.75, 1.55) * 2.45;
+    this.x += this.facing * Math.max(this.speed || 0.75, 1.55) * 2.45 * (GAME_CONFIG.gameSpeedMultiplier || 1);
     if (this.x < -140 || this.x > GAME_CONFIG.width + 140) this.remove = true;
   }
 
@@ -5584,8 +5587,9 @@ class BastardEnemy {
     if (moveX === 0 && moveY === 0) return;
 
     const len = Math.hypot(moveX, moveY);
-    this.x += (moveX / len) * this.speed;
-    this.y += (moveY / len) * this.speed * GAME_CONFIG.ySpeedMultiplier;
+    const gameSpeed = GAME_CONFIG.gameSpeedMultiplier || 1;
+    this.x += (moveX / len) * this.speed * gameSpeed;
+    this.y += (moveY / len) * this.speed * GAME_CONFIG.ySpeedMultiplier * gameSpeed;
     this.y = Math.max(GAME_CONFIG.laneTop, Math.min(GAME_CONFIG.laneBottom, this.y));
 
     this.walkTimer += dt;
@@ -11837,8 +11841,10 @@ class GameApp {
   }
 
   loop(time) {
-    const dt = Math.min(45, time - this.lastTime);
+    const elapsed = Math.min(45, time - this.lastTime);
     this.lastTime = time;
+    const speedMultiplier = Math.max(0.1, Number(GAME_CONFIG.gameSpeedMultiplier) || 1);
+    const dt = elapsed * speedMultiplier;
     try {
       if (this.runtimeErrorTimer > 0) this.runtimeErrorTimer -= dt;
       this.update(dt);

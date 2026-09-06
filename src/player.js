@@ -104,8 +104,9 @@ class Player {
       const len = Math.hypot(dx, dy);
       dx /= len;
       dy /= len;
-      this.x += dx * this.speed;
-      this.y += dy * this.speed * GAME_CONFIG.ySpeedMultiplier;
+      const gameSpeed = Math.max(0.1, Number(GAME_CONFIG.gameSpeedMultiplier) || 1);
+      this.x += dx * this.speed * gameSpeed;
+      this.y += dy * this.speed * GAME_CONFIG.ySpeedMultiplier * gameSpeed;
       if (dx !== 0) this.facing = Math.sign(dx);
 
       if (updateState) {

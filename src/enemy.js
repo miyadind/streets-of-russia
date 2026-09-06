@@ -476,8 +476,9 @@ class DogRegimeEnemy {
     const len = Math.hypot(moveX, moveY);
     moveX /= len;
     moveY /= len;
-    this.x += moveX * this.speed * speedMultiplier;
-    this.y += moveY * this.speed * GAME_CONFIG.ySpeedMultiplier * speedMultiplier;
+    const gameSpeed = Math.max(0.1, Number(GAME_CONFIG.gameSpeedMultiplier) || 1);
+    this.x += moveX * this.speed * speedMultiplier * gameSpeed;
+    this.y += moveY * this.speed * GAME_CONFIG.ySpeedMultiplier * speedMultiplier * gameSpeed;
     this.clampToScreen();
 
     this.walkTimer += dt;
