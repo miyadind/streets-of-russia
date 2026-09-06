@@ -150,8 +150,8 @@
 
   function getRequestedStartIndex(game) {
     const order = getLevelOrder();
-    if (!game || !game.devStartLevelKey) return -1;
-    return order.indexOf(game.devStartLevelKey);
+    if (!game) return -1;
+    return order.indexOf(game.campaignStartLevelKey || game.devStartLevelKey || '');
   }
 
   function getStartScreenIndex(game) {
@@ -160,7 +160,10 @@
   }
 
   function clearDevStartSelection(game) {
-    if (game) game.devStartLevelKey = null;
+    if (!game) return;
+    game.devStartLevelKey = null;
+    game.campaignStartLevelKey = null;
+    game.campaignRunRegionIndex = null;
   }
 
   function getLocalScreenIndex(game) {
@@ -246,6 +249,8 @@
       setSceneScreen(game.scene, targetIndex);
     }
     playSceneMusic(game.scene);
+    game.devStartLevelKey = null;
+    game.campaignStartLevelKey = null;
   }
 
   window.CampaignRuntime = {

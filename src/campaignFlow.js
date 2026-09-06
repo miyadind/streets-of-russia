@@ -84,7 +84,7 @@
     game.characterSelectMode = null;
     game.runInProgress = true;
     game.resumeTarget = 'level';
-    if (game.resetTeamRun) game.resetTeamRun();
+    if (game.resetTeamRun) game.resetTeamRun({ preserveCampaignSupport: true });
     game.startLevel();
   }
 

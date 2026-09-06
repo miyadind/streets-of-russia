@@ -833,7 +833,16 @@
   };
 
   GameApp.prototype.completeCampaignRegion = function () {
-    this.campaignMap.completeActiveRegion();
+    const completedIndex = Number.isFinite(this.campaignRunRegionIndex)
+      ? this.campaignRunRegionIndex
+      : this.campaignMap.activeIndex;
+    if (completedIndex === this.campaignMap.activeIndex) {
+      this.campaignMap.completeActiveRegion();
+      this.campaignMap.selectedIndex = this.campaignMap.activeIndex;
+      this.campaignMap.selectedLevelIndex = 0;
+    }
+    this.campaignRunRegionIndex = null;
+    if (this.campaignMap.ensureMapSelection) this.campaignMap.ensureMapSelection(this);
     this.setState('campaignMap');
     this.ensureMenuMusic();
   };

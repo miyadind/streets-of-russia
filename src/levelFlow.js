@@ -520,13 +520,17 @@
       if (this.peopleSupport == null) this.peopleSupport = 25;
     };
 
-    GameApp.prototype.resetTeamRun = function () {
+    GameApp.prototype.resetTeamRun = function (options = {}) {
+      const preserveCampaignSupport = options.preserveCampaignSupport === true;
+      const supportFigures = preserveCampaignSupport && Array.isArray(this.supportFigures) ? this.supportFigures.slice() : [];
+      const supportFigureDrops = preserveCampaignSupport && Array.isArray(this.supportFigureDrops) ? this.supportFigureDrops.slice() : [];
+      const supportFiguresCollected = preserveCampaignSupport ? Number(this.supportFiguresCollected) || supportFigures.length : 0;
       this.defeatedHeroes = { alexey: false, anna: false, boris: false };
       this.heroRecovery = {};
       this.peopleSupport = 25;
-      this.supportFigures = [];
-      this.supportFigureDrops = [];
-      this.supportFiguresCollected = 0;
+      this.supportFigures = supportFigures;
+      this.supportFigureDrops = supportFigureDrops;
+      this.supportFiguresCollected = supportFiguresCollected;
       this.characterSelectMode = null;
       this.casualtyRespawn = null;
       this.gameOverRegionStartIndex = 0;
