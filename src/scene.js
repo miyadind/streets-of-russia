@@ -62,7 +62,7 @@ class HealthPickup {
       this.floatTextX = player.x;
       this.floatTextY = player.y - 136;
       this.floatTimer = 900;
-      AudioManager.playSfx('waveClear', 0.5, { playbackRate: 1.48 });
+      AudioManager.playSfx('pickupCollect', 0.55, { playbackRate: 1.12 });
       return true;
     }
     const before = player.hp;
@@ -74,7 +74,7 @@ class HealthPickup {
     this.floatTextX = player.x;
     this.floatTextY = player.y - 136;
     this.floatTimer = 650;
-    AudioManager.playSfx('waveClear', 0.35, { playbackRate: 1.35 });
+    AudioManager.playSfx('pickupCollect', 0.42);
     return true;
   }
 
@@ -831,6 +831,7 @@ class LevelScene {
     const safeY = Math.max(GAME_CONFIG.laneTop + 35, Math.min(GAME_CONFIG.laneBottom, rawY));
     if (options.immediate) {
       this.pickups.push(new HealthPickup(type, safeX, safeY, this.images));
+      AudioManager.playSfx('pickupDrop', 0.42, { playbackRate: type.startsWith('support') ? 1.08 : 1 });
       return type;
     }
     if (!this.pendingPickupDrops) this.pendingPickupDrops = [];
@@ -921,6 +922,7 @@ class LevelScene {
     for (const drop of this.pendingPickupDrops) {
       if (!drop || !drop.type) continue;
       this.pickups.push(new HealthPickup(drop.type, drop.x, drop.y, this.images));
+      AudioManager.playSfx('pickupDrop', 0.42, { playbackRate: drop.type.startsWith('support') ? 1.08 : 1 });
     }
     this.pendingPickupDrops.length = 0;
   }

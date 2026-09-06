@@ -148,6 +148,7 @@
       const pickup = new HealthPickup(type, x, y, scene.images);
       pickup.age = pickup.popDuration;
       scene.pickups.push(pickup);
+      AudioManager.playSfx('pickupDrop', 0.42, { playbackRate: 1.08 });
       state.pickupDropped = true;
       return true;
     }

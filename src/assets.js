@@ -26,6 +26,8 @@ window.Assets = {
       playerDown:'assets/audio/sfx/punch3.mp3',
       waveStart:null,
       waveClear:null,
+      pickupDrop:null,
+      pickupCollect:null,
       bossAppear:null,
       zetnikPreparing:'assets/enemies/zetnik/preparing.mp3?v=zetnik-audio-1',
       zetnikCrash:'assets/enemies/zetnik/crash.mp3?v=zetnik-audio-1',
