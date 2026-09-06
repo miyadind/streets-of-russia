@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.300",
+  "buildVersion": "0.4.301",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -18005,7 +18005,12 @@ if (document.readyState === 'loading') {
   if (typeof GameApp === 'undefined' || typeof Menu === 'undefined') return;
 
   const ENEMIES = [
-    { type: 'dogRegime', label: 'dog-regime', name: 'Пёс режима' },
+    {
+      type: 'dogRegime',
+      label: 'dog-regime',
+      name: 'Пёс режима',
+      description: 'Бывший сотрудник силовых органов, окончательно утративший собственную волю. Годы бездумного подчинения и исполнения преступных распоряжений вытравили из него остатки совести и превратили в послушного цепного пса режима. Он не задаёт вопросов, не различает добро и зло и готов выполнить любой приказ хозяина, каким бы жестоким, незаконным или аморальным тот ни был.'
+    },
     {
       type: 'zetnik',
       label: 'zetnik',
