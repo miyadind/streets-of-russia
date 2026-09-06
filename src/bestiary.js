@@ -57,6 +57,7 @@
       description: 'Надменный церковный прислужник режима, который любит говорить людям о скромности, смирении и духовности, но сам явно тянется к роскоши, дорогим вещам, статусу и внешним атрибутам власти. Он легко оправдывает жестокость и аморальные поступки, если они выгодны системе, а к обычным людям относится свысока. Надменный, самодовольный и полностью встроенный в систему, он использует религию как прикрытие для власти, влияния и оправдания всего, что делает режим.'
     }
   ];
+  const visibleBoundsCache = new WeakMap();
 
   const BestiaryScreen = {
     index: 0,
@@ -155,6 +156,53 @@
       };
     },
 
+    getVisibleBounds(image) {
+      if (!image || !image.width || !image.height) return null;
+      const cached = visibleBoundsCache.get(image);
+      if (cached) return cached;
+
+      const fallback = { x: 0, y: 0, w: image.width, h: image.height };
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = image.width;
+        canvas.height = image.height;
+        const scan = canvas.getContext('2d', { willReadFrequently: true });
+        scan.drawImage(image, 0, 0);
+        const pixels = scan.getImageData(0, 0, image.width, image.height).data;
+        let left = image.width;
+        let top = image.height;
+        let right = -1;
+        let bottom = -1;
+
+        for (let y = 0; y < image.height; y += 2) {
+          for (let x = 0; x < image.width; x += 2) {
+            if (pixels[(y * image.width + x) * 4 + 3] < 16) continue;
+            left = Math.min(left, x);
+            top = Math.min(top, y);
+            right = Math.max(right, x);
+            bottom = Math.max(bottom, y);
+          }
+        }
+
+        if (right >= left && bottom >= top) {
+          const padding = 8;
+          const bounds = {
+            x: Math.max(0, left - padding),
+            y: Math.max(0, top - padding),
+            w: Math.min(image.width, right + padding + 1) - Math.max(0, left - padding),
+            h: Math.min(image.height, bottom + padding + 1) - Math.max(0, top - padding)
+          };
+          visibleBoundsCache.set(image, bounds);
+          return bounds;
+        }
+      } catch (error) {
+        // Some browsers can refuse pixel reads; the full image is still safe to draw.
+      }
+
+      visibleBoundsCache.set(image, fallback);
+      return fallback;
+    },
+
     draw(ctx, game) {
       const bg = game.images && game.images.main;
       if (bg) ctx.drawImage(bg, 0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
@@ -221,11 +269,16 @@
       if (image) {
         const maxW = portrait.w - 28;
         const maxH = portrait.h - 28;
-        const scale = Math.min(maxW / image.width, maxH / image.height);
-        const width = image.width * scale;
-        const height = image.height * scale;
+        const bounds = this.getVisibleBounds(image);
+        const scale = Math.min(maxW / bounds.w, maxH / bounds.h);
+        const width = bounds.w * scale;
+        const height = bounds.h * scale;
         ctx.drawImage(
           image,
+          bounds.x,
+          bounds.y,
+          bounds.w,
+          bounds.h,
           portrait.x + (portrait.w - width) / 2,
           portrait.y + portrait.h - height - 14,
           width,

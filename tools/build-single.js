@@ -4,6 +4,8 @@ const path = require('path');
 const root = path.resolve(__dirname, '..');
 const manifestPath = path.join(root, 'tools', 'source-scripts.json');
 const outputPath = path.join(root, 'src', 'game.bundle.js');
+const configPath = path.join(root, 'src', 'config.js');
+const indexPath = path.join(root, 'index.html');
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -48,7 +50,22 @@ function build() {
   ].join('\n');
 
   fs.writeFileSync(outputPath, banner + chunks.join('\n'), 'utf8');
+  updateBundleVersion();
   console.log(`Built ${path.relative(root, outputPath)} from ${sources.length} source files.`);
+}
+
+function updateBundleVersion() {
+  const config = fs.readFileSync(configPath, 'utf8');
+  const versionMatch = config.match(/"buildVersion"\s*:\s*"([^"]+)"/);
+  if (!versionMatch) throw new Error('GAME_CONFIG.buildVersion is missing.');
+
+  const index = fs.readFileSync(indexPath, 'utf8');
+  const updated = index.replace(
+    /const version = '[^']+';/,
+    `const version = '${versionMatch[1]}';`
+  );
+  if (updated === index) throw new Error('Could not update the bundle version in index.html.');
+  fs.writeFileSync(indexPath, updated, 'utf8');
 }
 
 build();
