@@ -489,6 +489,7 @@ class GameApp {
 
   async loadLevelInteractiveImages(loaded) {
     loaded.levelInteractiveBackgrounds = loaded.levelInteractiveBackgrounds || {};
+    loaded.levelVictoryBackgrounds = loaded.levelVictoryBackgrounds || {};
     loaded.levelInteractiveImages = loaded.levelInteractiveImages || {};
 
     const cache = {};
@@ -514,6 +515,9 @@ class GameApp {
     });
 
     for (const level of Object.values(GAME_CONFIG.levels || {})) {
+      if (level.victoryBackground && !loaded.levelVictoryBackgrounds[level.victoryBackground]) {
+        loaded.levelVictoryBackgrounds[level.victoryBackground] = await loadImage(level.victoryBackground, level.victoryBackground);
+      }
       for (const item of level.interactives || []) {
         if (item.altBackground && !loaded.levelInteractiveBackgrounds[item.altBackground]) {
           loaded.levelInteractiveBackgrounds[item.altBackground] = await loadImage(item.altBackground, item.altBackground);

@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.290",
+  "buildVersion": "0.4.291",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -983,6 +983,7 @@ const GAME_CONFIG = {
       "name": "Siberia 03",
       "region": "siberia",
       "background": "assets/backgrounds/2/street03_1.png",
+      "victoryBackground": "assets/backgrounds/2/street03_2.png",
       "music": "siberiaTheme",
       "musicMode": "boss",
       "waves": [
@@ -11832,6 +11833,7 @@ class GameApp {
 
   async loadLevelInteractiveImages(loaded) {
     loaded.levelInteractiveBackgrounds = loaded.levelInteractiveBackgrounds || {};
+    loaded.levelVictoryBackgrounds = loaded.levelVictoryBackgrounds || {};
     loaded.levelInteractiveImages = loaded.levelInteractiveImages || {};
 
     const cache = {};
@@ -11857,6 +11859,9 @@ class GameApp {
     });
 
     for (const level of Object.values(GAME_CONFIG.levels || {})) {
+      if (level.victoryBackground && !loaded.levelVictoryBackgrounds[level.victoryBackground]) {
+        loaded.levelVictoryBackgrounds[level.victoryBackground] = await loadImage(level.victoryBackground, level.victoryBackground);
+      }
       for (const item of level.interactives || []) {
         if (item.altBackground && !loaded.levelInteractiveBackgrounds[item.altBackground]) {
           loaded.levelInteractiveBackgrounds[item.altBackground] = await loadImage(item.altBackground, item.altBackground);
@@ -13348,7 +13353,6 @@ window.addEventListener('load', () => {
 
   DogRegimeEnemy.prototype.updateChortDissipate = function (dt, scene) {
     this.deadTimer += dt;
-    scene.chortSunlight = Math.min(1, (scene.chortSunlight || 0) + dt / 2200);
     if (this.deadTimer > 2600) this.remove = true;
   };
 
@@ -13400,7 +13404,7 @@ window.addEventListener('load', () => {
       this.chortCanBeHit = false;
       this.canBeHit = false;
       this.nonPhysical = true;
-      if (this.__scene) this.__scene.chortSunlight = 0.08;
+      if (this.__scene) this.__scene.chortVictoryBackgroundActive = true;
     }
   };
 
@@ -13432,18 +13436,14 @@ window.addEventListener('load', () => {
     return !!(boss && boss.beginChortCollection && boss.beginChortCollection(this, atm));
   };
 
-  const originalDrawBackgroundEffects = LevelScene.prototype.drawLevelBackgroundEffects;
-  LevelScene.prototype.drawLevelBackgroundEffects = function (ctx) {
-    originalDrawBackgroundEffects.call(this, ctx);
-    const sunlight = Math.max(0, Math.min(1, Number(this.chortSunlight) || 0));
-    if (!sunlight) return;
-    ctx.save();
-    ctx.globalCompositeOperation = 'screen';
-    ctx.fillStyle = 'rgba(112, 191, 255, ' + (sunlight * 0.62) + ')';
-    ctx.fillRect(0, 0, GAME_CONFIG.width, GAME_CONFIG.height * 0.62);
-    ctx.fillStyle = 'rgba(255, 238, 174, ' + (sunlight * 0.15) + ')';
-    ctx.fillRect(0, GAME_CONFIG.height * 0.28, GAME_CONFIG.width, GAME_CONFIG.height * 0.34);
-    ctx.restore();
+  const originalGetLevelBackgroundImage = LevelScene.prototype.getLevelBackgroundImage;
+  LevelScene.prototype.getLevelBackgroundImage = function () {
+    const level = this.getLevelConfig && this.getLevelConfig();
+    if (this.chortVictoryBackgroundActive && level && level.victoryBackground) {
+      const background = this.images && this.images.levelVictoryBackgrounds && this.images.levelVictoryBackgrounds[level.victoryBackground];
+      if (background && background.complete !== false && background.naturalWidth !== 0) return background;
+    }
+    return originalGetLevelBackgroundImage.call(this);
   };
 
   const originalDrawForeground = LevelScene.prototype.drawLevelForegroundObjects;

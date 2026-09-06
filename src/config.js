@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  "buildVersion": "0.4.290",
+  "buildVersion": "0.4.291",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -976,6 +976,7 @@ const GAME_CONFIG = {
       "name": "Siberia 03",
       "region": "siberia",
       "background": "assets/backgrounds/2/street03_1.png",
+      "victoryBackground": "assets/backgrounds/2/street03_2.png",
       "music": "siberiaTheme",
       "musicMode": "boss",
       "waves": [

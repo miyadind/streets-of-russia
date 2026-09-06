@@ -260,7 +260,6 @@
 
   DogRegimeEnemy.prototype.updateChortDissipate = function (dt, scene) {
     this.deadTimer += dt;
-    scene.chortSunlight = Math.min(1, (scene.chortSunlight || 0) + dt / 2200);
     if (this.deadTimer > 2600) this.remove = true;
   };
 
@@ -312,7 +311,7 @@
       this.chortCanBeHit = false;
       this.canBeHit = false;
       this.nonPhysical = true;
-      if (this.__scene) this.__scene.chortSunlight = 0.08;
+      if (this.__scene) this.__scene.chortVictoryBackgroundActive = true;
     }
   };
 
@@ -344,18 +343,14 @@
     return !!(boss && boss.beginChortCollection && boss.beginChortCollection(this, atm));
   };
 
-  const originalDrawBackgroundEffects = LevelScene.prototype.drawLevelBackgroundEffects;
-  LevelScene.prototype.drawLevelBackgroundEffects = function (ctx) {
-    originalDrawBackgroundEffects.call(this, ctx);
-    const sunlight = Math.max(0, Math.min(1, Number(this.chortSunlight) || 0));
-    if (!sunlight) return;
-    ctx.save();
-    ctx.globalCompositeOperation = 'screen';
-    ctx.fillStyle = 'rgba(112, 191, 255, ' + (sunlight * 0.62) + ')';
-    ctx.fillRect(0, 0, GAME_CONFIG.width, GAME_CONFIG.height * 0.62);
-    ctx.fillStyle = 'rgba(255, 238, 174, ' + (sunlight * 0.15) + ')';
-    ctx.fillRect(0, GAME_CONFIG.height * 0.28, GAME_CONFIG.width, GAME_CONFIG.height * 0.34);
-    ctx.restore();
+  const originalGetLevelBackgroundImage = LevelScene.prototype.getLevelBackgroundImage;
+  LevelScene.prototype.getLevelBackgroundImage = function () {
+    const level = this.getLevelConfig && this.getLevelConfig();
+    if (this.chortVictoryBackgroundActive && level && level.victoryBackground) {
+      const background = this.images && this.images.levelVictoryBackgrounds && this.images.levelVictoryBackgrounds[level.victoryBackground];
+      if (background && background.complete !== false && background.naturalWidth !== 0) return background;
+    }
+    return originalGetLevelBackgroundImage.call(this);
   };
 
   const originalDrawForeground = LevelScene.prototype.drawLevelForegroundObjects;
