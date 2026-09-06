@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.279",
+  "buildVersion": "0.4.280",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -847,6 +847,7 @@ const GAME_CONFIG = {
           "showDamageEffect": false,
           "silentImpact": true,
           "impactSfx": "garageGateMetal",
+          "hitEffect": "metalImpact",
           "dropPickup": "supportFigure",
           "dropAtHitbox": true,
           "laneY": 620,
@@ -11901,6 +11902,10 @@ window.addEventListener('load', () => {
     return isFruitKiosk(item) || !!(item && item.damageEffect === 'fruitBurst');
   }
 
+  function hasMetalImpact(item) {
+    return !!(item && item.hitEffect === 'metalImpact');
+  }
+
   function isInteractiveUnlocked(scene, item) {
     const requiresBossDefeat = item && (item.requiresBossDefeat || isFruitKiosk(item));
     return !requiresBossDefeat || !!(scene && (scene.gundosBossDefeated || scene.bossVictoryReady));
@@ -11918,7 +11923,9 @@ window.addEventListener('load', () => {
         hits: 0,
         replaced: false,
         flashMs: 0,
-        fruitBits: []
+        fruitBits: [],
+        impactFlashMs: 0,
+        impactBits: []
       };
     }
     return scene.levelInteractiveState[key];
@@ -11959,6 +11966,7 @@ window.addEventListener('load', () => {
   function hitPoster(scene, item, state) {
     state.hits += 1;
     state.flashMs = 150;
+    if (hasMetalImpact(item)) spawnMetalImpact(scene, item, state);
     scene.player.attackHasHit = true;
     scene.hitStop = Math.max(scene.hitStop || 0, GAME_CONFIG.playerHitStopMs || 55);
 
@@ -12047,6 +12055,75 @@ window.addEventListener('load', () => {
       fruit.rotation += fruit.vx * 0.08 * frame;
     }
     state.fruitBits = (state.fruitBits || []).filter(fruit => fruit.age < 850);
+  }
+
+  function spawnMetalImpact(scene, item, state) {
+    const rect = item.hitbox || item.effectRect || { x: 0, y: 0, w: 0, h: 0 };
+    const attackBox = scene && scene.player && scene.player.getHitbox ? scene.player.getHitbox() : null;
+    const rawX = attackBox ? attackBox.x + attackBox.w / 2 : rect.x + rect.w / 2;
+    const rawY = attackBox ? attackBox.y + attackBox.h / 2 : rect.y + rect.h / 2;
+    const x = Math.max(rect.x + 5, Math.min(rect.x + rect.w - 5, rawX));
+    const y = Math.max(rect.y + 5, Math.min(rect.y + rect.h - 5, rawY));
+
+    state.impactFlashMs = 135;
+    for (let index = 0; index < 9; index++) {
+      const angle = (Math.PI * 2 * index / 9) + (Math.random() - 0.5) * 0.45;
+      const speed = 1.25 + Math.random() * 2.25;
+      state.impactBits.push({
+        x,
+        y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 0.8,
+        age: 0,
+        life: 180 + Math.random() * 140
+      });
+    }
+  }
+
+  function updateMetalImpact(state, dt) {
+    if (state.impactFlashMs > 0) state.impactFlashMs = Math.max(0, state.impactFlashMs - dt);
+    const frame = Math.max(0.5, Math.min(2.2, dt / 16.67));
+    for (const spark of state.impactBits || []) {
+      spark.age += dt;
+      spark.x += spark.vx * frame;
+      spark.y += spark.vy * frame;
+      spark.vy += 0.11 * frame;
+    }
+    state.impactBits = (state.impactBits || []).filter(spark => spark.age < spark.life);
+  }
+
+  function drawMetalImpact(ctx, state) {
+    const sparks = state.impactBits || [];
+    if (state.impactFlashMs <= 0 && !sparks.length) return;
+
+    ctx.save();
+    if (state.impactFlashMs > 0 && sparks.length) {
+      const flash = Math.max(0, Math.min(1, state.impactFlashMs / 135));
+      const origin = sparks[0];
+      const radius = 17 + (1 - flash) * 16;
+      const gradient = ctx.createRadialGradient(origin.x, origin.y, 1, origin.x, origin.y, radius);
+      gradient.addColorStop(0, 'rgba(255,255,255,' + (0.9 * flash) + ')');
+      gradient.addColorStop(0.35, 'rgba(190,232,255,' + (0.6 * flash) + ')');
+      gradient.addColorStop(1, 'rgba(110,185,255,0)');
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(origin.x, origin.y, radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.lineCap = 'round';
+    for (const spark of sparks) {
+      const alpha = Math.max(0, 1 - spark.age / spark.life);
+      ctx.strokeStyle = 'rgba(225,248,255,' + alpha + ')';
+      ctx.lineWidth = 2;
+      ctx.shadowColor = 'rgba(120,205,255,' + alpha + ')';
+      ctx.shadowBlur = 5;
+      ctx.beginPath();
+      ctx.moveTo(spark.x - spark.vx * 2.1, spark.y - spark.vy * 2.1);
+      ctx.lineTo(spark.x, spark.y);
+      ctx.stroke();
+    }
+    ctx.restore();
   }
 
   function drawFruitBurst(ctx, state) {
@@ -12238,6 +12315,7 @@ window.addEventListener('load', () => {
       const state = getPosterState(this, item);
       if (state.flashMs > 0) state.flashMs = Math.max(0, state.flashMs - dt);
       updateFruitBurst(state, dt);
+      updateMetalImpact(state, dt);
       if (canHitPoster(this, item, state)) hitPoster(this, item, state);
     }
   };
@@ -12281,6 +12359,7 @@ window.addEventListener('load', () => {
       const state = getPosterState(this, item);
       if (!state.replaced && !hasFruitBurst(item) && item.showDamageEffect !== false) drawPosterDamage(ctx, item, state);
       if (hasFruitBurst(item)) drawFruitBurst(ctx, state);
+      if (hasMetalImpact(item)) drawMetalImpact(ctx, state);
 
       if (this.debug || showObjectEditor) {
         ctx.save();
