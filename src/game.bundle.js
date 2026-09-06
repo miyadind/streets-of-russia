@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.288",
+  "buildVersion": "0.4.289",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -7948,11 +7948,11 @@ class LevelScene {
     if (enemy.enemyType === 'zetnik') {
       if (enemy.gundosMinion || enemy.gundosGuarding || enemy.redirectedToBoss) return;
       if (this.gundosArenaActive || this.gundosIntroActive || this.gundosVictoryPending) return;
-      this.dropPickup('medkit', x, y);
+      const pickupTypes = ['pie', 'tea', 'medkit'];
+      const pickupType = pickupTypes[Math.floor(Math.random() * pickupTypes.length)];
+      this.dropPickup(pickupType, x, y);
       return;
     }
-
-    if (enemy.enemyType === 'sucker') this.dropPickup('tea', x, y);
   }
 
   flushPickupDrops() {

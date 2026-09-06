@@ -922,11 +922,11 @@ class LevelScene {
     if (enemy.enemyType === 'zetnik') {
       if (enemy.gundosMinion || enemy.gundosGuarding || enemy.redirectedToBoss) return;
       if (this.gundosArenaActive || this.gundosIntroActive || this.gundosVictoryPending) return;
-      this.dropPickup('medkit', x, y);
+      const pickupTypes = ['pie', 'tea', 'medkit'];
+      const pickupType = pickupTypes[Math.floor(Math.random() * pickupTypes.length)];
+      this.dropPickup(pickupType, x, y);
       return;
     }
-
-    if (enemy.enemyType === 'sucker') this.dropPickup('tea', x, y);
   }
 
   flushPickupDrops() {
