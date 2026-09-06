@@ -725,8 +725,11 @@ class LevelScene {
       const isAreaBoundEnemy = (typeof DogRegimeEnemy !== 'undefined' && enemy instanceof DogRegimeEnemy) ||
         (typeof BastardEnemy !== 'undefined' && enemy instanceof BastardEnemy);
       if (isAreaBoundEnemy && !canLeaveArea) {
-        const offscreen = enemy.alive ? (GAME_CONFIG.enemyOffscreenMargin || 180) : 0;
-        this.clampActorPosition(enemy, 45, offscreen);
+        const tuning = GAME_CONFIG.enemies[enemy.enemyType] || {};
+        const keepOnScreen = tuning.keepOnScreen === true;
+        const margin = keepOnScreen ? Math.max(0, Number(tuning.screenMarginX) || 45) : 45;
+        const offscreen = keepOnScreen ? 0 : (enemy.alive ? (GAME_CONFIG.enemyOffscreenMargin || 180) : 0);
+        this.clampActorPosition(enemy, margin, offscreen);
       }
       if (wasAlive && !enemy.alive) this.maybeDropPickup(enemy, { source: 'system' });
     }

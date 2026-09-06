@@ -203,17 +203,17 @@ class DogRegimeEnemy {
 
   clampToScreen() {
     const scene = this.__scene;
-    const offscreen = this.alive ? (GAME_CONFIG.enemyOffscreenMargin || 180) : 0;
+    const tuning = GAME_CONFIG.enemies[this.enemyType] || {};
+    const keepOnScreen = tuning.keepOnScreen === true;
+    const margin = keepOnScreen ? Math.max(0, Number(tuning.screenMarginX) || 45) : 45;
+    const offscreen = keepOnScreen ? 0 : (this.alive ? (GAME_CONFIG.enemyOffscreenMargin || 180) : 0);
     if (scene && typeof scene.clampActorPosition === 'function') {
-      scene.clampActorPosition(this, 45, offscreen);
+      scene.clampActorPosition(this, margin, offscreen);
       return;
     }
-    const tuning = GAME_CONFIG.enemies[this.enemyType] || {};
-    const margin = tuning.keepOnScreen
-      ? Math.max(0, Number(tuning.screenMarginX) || 0)
-      : (this.alive ? (GAME_CONFIG.enemyOffscreenMargin || 180) : 45);
-    const minX = tuning.keepOnScreen ? margin : -margin;
-    const maxX = tuning.keepOnScreen ? GAME_CONFIG.width - margin : GAME_CONFIG.width + margin;
+    const fallbackMargin = keepOnScreen ? margin : (this.alive ? (GAME_CONFIG.enemyOffscreenMargin || 180) : 45);
+    const minX = keepOnScreen ? fallbackMargin : -fallbackMargin;
+    const maxX = keepOnScreen ? GAME_CONFIG.width - fallbackMargin : GAME_CONFIG.width + fallbackMargin;
     this.x = Math.max(minX, Math.min(maxX, this.x));
     this.y = Math.max(GAME_CONFIG.laneTop, Math.min(GAME_CONFIG.laneBottom, this.y));
   }
@@ -732,11 +732,16 @@ class DogRegimeEnemy {
     const activeAttackers = this.countActiveAttackers(scene);
     const fleeDirection = this.x <= player.x ? -1 : 1;
     const screenMarginX = config.screenMarginX || 70;
-    const atScreenEdge = this.x <= screenMarginX + 12 || this.x >= GAME_CONFIG.width - screenMarginX - 12;
+    const zone = scene && typeof scene.getWalkZone === 'function'
+      ? scene.getWalkZone()
+      : { left: 0, right: GAME_CONFIG.width };
+    const minX = zone.left + screenMarginX;
+    const maxX = zone.right - screenMarginX;
+    const atScreenEdge = this.x <= minX + 12 || this.x >= maxX - 12;
 
     if (!this.fleeTargetSide && distanceX <= (config.fleeDistanceX || 270) && atScreenEdge) {
       // When cornered, route around the player rather than freezing at the edge.
-      this.fleeTargetSide = this.x <= screenMarginX + 12 ? 1 : -1;
+      this.fleeTargetSide = this.x <= minX + 12 ? 1 : -1;
       const laneMidY = (GAME_CONFIG.laneTop + GAME_CONFIG.laneBottom) / 2;
       this.fleeRouteY = player.y <= laneMidY
         ? GAME_CONFIG.laneBottom - 28
@@ -746,8 +751,8 @@ class DogRegimeEnemy {
     if (this.fleeTargetSide) {
       this.intent = 'flee';
       const targetX = this.fleeTargetSide > 0
-        ? GAME_CONFIG.width - screenMarginX
-        : screenMarginX;
+        ? maxX
+        : minX;
       const movingPastPlayer = this.fleeTargetSide > 0 ? this.x < player.x : this.x > player.x;
       const moveX = Math.abs(targetX - this.x) > 12 ? Math.sign(targetX - this.x) : 0;
       const moveY = movingPastPlayer || Math.abs(this.fleeRouteY - this.y) > 18
