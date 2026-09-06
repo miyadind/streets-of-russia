@@ -6,11 +6,11 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.278",
+  "buildVersion": "0.4.279",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
-  "gameSpeedMultiplier": 1.2,
+  "gameSpeedMultiplier": 1.3,
   "adminTuningEnabled": true,
   "settings": {
     "difficulty": "normal",
@@ -15992,7 +15992,6 @@ window.addEventListener('load', () => {
     GameApp.prototype.resumeAfterHeroDefeat = function (heroKey) {
       this.ensureRunState();
       if (this.defeatedHeroes[heroKey]) return;
-      const switchingWithoutDeath = this.characterSelectMode === 'switchHero';
       this.selectedHero = heroKey;
       if (!this.scene) this.scene = new LevelScene(this, this.images);
       const respawn = this.casualtyRespawn || {
@@ -16012,10 +16011,6 @@ window.addEventListener('load', () => {
       this.characterSelectMode = null;
       this.paused = false;
       this.setState('level');
-      if (!switchingWithoutDeath) {
-        const level = this.scene.getLevelConfig ? this.scene.getLevelConfig() : null;
-        AudioManager.playMusic((level && level.music) || (GAME_CONFIG.audio && GAME_CONFIG.audio.music && GAME_CONFIG.audio.music.level) || 'levelTheme', true);
-      }
     };
 
     GameApp.prototype.startRetryRegion = function (heroKey) {
