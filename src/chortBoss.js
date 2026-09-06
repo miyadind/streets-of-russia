@@ -82,6 +82,103 @@
     }
   }
 
+  class ChortSmokeBomb {
+    constructor(x, startY, targetY, config) {
+      this.enemyType = 'chortSmokeBomb';
+      this.x = x;
+      this.y = startY;
+      this.targetY = targetY;
+      this.laneY = targetY;
+      this.speed = Number(config.smokeBombDropSpeed) || 10.5;
+      this.damage = Number(config.smokeBombDamage) || 28;
+      this.radiusX = Number(config.smokeBombRadiusX) || 78;
+      this.laneTolerance = Number(config.smokeBombLaneTolerance) || 42;
+      this.age = 0;
+      this.explosionTimer = 0;
+      this.exploded = false;
+      this.alive = true;
+      this.remove = false;
+      this.blocksWaveClear = false;
+      this.nonPhysical = true;
+      this.canBeHit = false;
+    }
+
+    explode(scene) {
+      if (this.exploded) return;
+      this.exploded = true;
+      this.explosionTimer = 420;
+      const player = scene && scene.player;
+      const onTargetLane = player && Math.abs(player.y - this.targetY) <= this.laneTolerance;
+      const inBlast = player && Math.abs(player.x - this.x) <= this.radiusX;
+      if (onTargetLane && inBlast && player.hp > 0) {
+        player.receiveDamage(this.damage, {
+          source: 'ranged',
+          knockbackX: Math.sign(player.x - this.x) * 32 || 1,
+          hitStunMs: 190,
+          invulnerableMs: 300
+        });
+      }
+    }
+
+    update(dt, scene) {
+      const frame = Math.max(0.65, Math.min(1.45, dt / 16.67));
+      this.age += dt;
+      if (!this.exploded) {
+        this.y += this.speed * frame;
+        if (this.y >= this.targetY) {
+          this.y = this.targetY;
+          this.explode(scene);
+        }
+        return;
+      }
+      this.explosionTimer -= dt;
+      if (this.explosionTimer <= 0) this.remove = true;
+    }
+
+    draw(ctx, debug) {
+      ctx.save();
+      if (!this.exploded) {
+        const tailHeight = 54 + Math.min(64, this.age * 0.09);
+        const trail = ctx.createLinearGradient(this.x, this.y - tailHeight, this.x, this.y + 14);
+        trail.addColorStop(0, 'rgba(80,80,86,0)');
+        trail.addColorStop(0.72, 'rgba(55,54,54,0.48)');
+        trail.addColorStop(1, 'rgba(22,20,20,0.9)');
+        ctx.strokeStyle = trail;
+        ctx.lineWidth = 18;
+        ctx.beginPath();
+        ctx.moveTo(this.x, this.y - tailHeight);
+        ctx.lineTo(this.x, this.y);
+        ctx.stroke();
+        const glow = ctx.createRadialGradient(this.x - 4, this.y - 5, 2, this.x, this.y, 23);
+        glow.addColorStop(0, '#ffb02d');
+        glow.addColorStop(0.28, '#7a3216');
+        glow.addColorStop(1, '#181819');
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, 19, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        const progress = 1 - Math.max(0, this.explosionTimer) / 420;
+        const radius = 28 + progress * 72;
+        const explosion = ctx.createRadialGradient(this.x, this.y, 3, this.x, this.y, radius);
+        explosion.addColorStop(0, 'rgba(255,220,120,0.92)');
+        explosion.addColorStop(0.22, 'rgba(235,105,30,0.78)');
+        explosion.addColorStop(0.56, 'rgba(72,65,71,0.5)');
+        explosion.addColorStop(1, 'rgba(32,31,37,0)');
+        ctx.fillStyle = explosion;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      if (debug) {
+        ctx.strokeStyle = 'rgba(255,180,70,0.9)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(this.x - this.radiusX, this.targetY - this.laneTolerance, this.radiusX * 2, this.laneTolerance * 2);
+      }
+      ctx.restore();
+    }
+  }
+
   function getConfig() {
     return GAME_CONFIG.enemies['4ort'] || {};
   }
@@ -97,8 +194,14 @@
 
   function chooseSmokeTarget(enemy, scene) {
     const zone = getZone(scene);
-    enemy.chortSmokeTargetX = Math.max(zone.left + 650, Math.min(zone.right - 150, zone.left + 780 + Math.random() * 280));
-    enemy.chortSmokeTargetY = zone.top + 30 + Math.random() * Math.max(1, zone.bottom - zone.top - 60);
+    enemy.chortSmokeTargetX = Math.max(zone.left + 105, Math.min(zone.right - 105, zone.left + 140 + Math.random() * Math.max(1, zone.right - zone.left - 280)));
+    enemy.chortSmokeTargetY = zone.top + 36;
+  }
+
+  function getRandomDelay(config, minKey, maxKey, fallback) {
+    const min = Number(config[minKey]) || fallback;
+    const max = Math.max(min, Number(config[maxKey]) || min);
+    return min + Math.random() * (max - min);
   }
 
   function getVictoryTransition(scene) {
@@ -123,7 +226,11 @@
     this.chortPhase = 'humanIntro';
     this.chortRound = 0;
     this.chortPhaseTimer = Number(config.humanIntroMs) || 3200;
-    this.chortShotTimer = Number(config.smokeShotMinMs) || 1450;
+    this.chortBombTimer = getRandomDelay(config, 'smokeBombMinMs', 'smokeBombMaxMs', 1900);
+    this.chortBombState = 'patrol';
+    this.chortHoverTimer = 0;
+    this.chortMinionTimer = getRandomDelay(config, 'smokeMinionMinMs', 'smokeMinionMaxMs', 6200);
+    this.chortMinionIndex = 0;
     this.chortMoney = [];
     this.chortMoneyTimer = 0;
     // Voice lines play only when the ATM spills money, never at the boss spawn.
@@ -161,8 +268,31 @@
     this.nonPhysical = true;
     this.state = 'walk';
     this.intent = 'smoke';
-    this.chortShotTimer = (Number(config.smokeShotMinMs) || 1450) + Math.random() * Math.max(1, (Number(config.smokeShotMaxMs) || 2200) - (Number(config.smokeShotMinMs) || 1450));
+    this.chortBombTimer = getRandomDelay(config, 'smokeBombMinMs', 'smokeBombMaxMs', 1900);
+    this.chortBombState = 'patrol';
+    this.chortHoverTimer = 0;
     chooseSmokeTarget(this, scene);
+  };
+
+  DogRegimeEnemy.prototype.spawnChortMinion = function (scene) {
+    if (!scene || !scene.spawnEnemyGroup) return;
+    const config = getConfig();
+    const active = (scene.enemies || []).filter(enemy => enemy && enemy.alive && enemy.chortMinion).length;
+    if (active >= Math.max(1, Number(config.smokeMinionMaxActive) || 2)) return;
+    const types = (config.smokeMinionTypes || []).filter(type => GAME_CONFIG.enemies && GAME_CONFIG.enemies[type]);
+    if (!types.length) return;
+    const type = types[this.chortMinionIndex % types.length];
+    this.chortMinionIndex += 1;
+    const before = scene.enemies.length;
+    scene.spawnEnemyGroup({
+      type,
+      count: 1,
+      side: this.chortMinionIndex % 2 ? 'left' : 'right',
+      alignToPlayerLane: type === 'zetnik'
+    });
+    for (let index = before; index < scene.enemies.length; index++) {
+      if (scene.enemies[index]) scene.enemies[index].chortMinion = true;
+    }
   };
 
   DogRegimeEnemy.prototype.beginChortCollection = function (scene, atm) {
@@ -212,21 +342,35 @@
 
     if (this.chortPhase === 'smoke') {
       const speed = (Number(config.smokePhaseMoveSpeed) || 3.2) * frame;
-      if (!Number.isFinite(this.chortSmokeTargetX) || Math.abs(this.chortSmokeTargetX - this.x) < 12) chooseSmokeTarget(this, scene);
+      const player = scene && scene.player;
+      if (this.chortBombState === 'align') {
+        this.chortSmokeTargetX = Math.max(zone.left + 105, Math.min(zone.right - 105, player ? player.x : this.x));
+        this.chortSmokeTargetY = zone.top + 36;
+      } else if (!Number.isFinite(this.chortSmokeTargetX) || Math.abs(this.chortSmokeTargetX - this.x) < 12) {
+        chooseSmokeTarget(this, scene);
+      }
       this.x += Math.sign(this.chortSmokeTargetX - this.x) * Math.min(Math.abs(this.chortSmokeTargetX - this.x), speed);
       this.y += Math.sign(this.chortSmokeTargetY - this.y) * Math.min(Math.abs(this.chortSmokeTargetY - this.y), speed * 0.62);
-      this.chortShotTimer -= dt;
-      if (this.chortShotTimer <= 0) {
-        const player = scene && scene.player;
-        const spread = Number(config.smokeShotSpreadY) || 78;
-        const laneY = player
-          ? Math.max(zone.top, Math.min(zone.bottom, player.y + (Math.random() * 2 - 1) * spread))
-          : zone.top + Math.random() * Math.max(1, zone.bottom - zone.top);
-        const direction = player && player.x < this.x ? -1 : 1;
-        const images = this.getEnemyImages();
-        const smokeFrames = images.smoke || [];
-        scene.enemies.push(new ChortSmokeProjectile(this.x + direction * 72, this.y - 78, direction, smokeFrames[this.walkFrame % smokeFrames.length], config, laneY));
-        this.chortShotTimer = (Number(config.smokeShotMinMs) || 1450) + Math.random() * Math.max(1, (Number(config.smokeShotMaxMs) || 2200) - (Number(config.smokeShotMinMs) || 1450));
+      this.chortMinionTimer -= dt;
+      if (this.chortMinionTimer <= 0) {
+        this.spawnChortMinion(scene);
+        this.chortMinionTimer = getRandomDelay(config, 'smokeMinionMinMs', 'smokeMinionMaxMs', 6200);
+      }
+      if (this.chortBombState === 'align' && Math.abs(this.chortSmokeTargetX - this.x) < 12 && Math.abs(this.chortSmokeTargetY - this.y) < 10) {
+        this.chortBombState = 'hover';
+        this.chortHoverTimer = Number(config.smokeBombHoverMs) || 620;
+      } else if (this.chortBombState === 'hover') {
+        this.chortHoverTimer -= dt;
+        if (this.chortHoverTimer <= 0) {
+          const targetY = player ? Math.max(zone.top, Math.min(zone.bottom, player.y)) : zone.top + (zone.bottom - zone.top) / 2;
+          scene.enemies.push(new ChortSmokeBomb(this.x, this.y - 54, targetY, config));
+          this.chortBombState = 'patrol';
+          this.chortBombTimer = getRandomDelay(config, 'smokeBombMinMs', 'smokeBombMaxMs', 1900);
+          chooseSmokeTarget(this, scene);
+        }
+      } else {
+        this.chortBombTimer -= dt;
+        if (this.chortBombTimer <= 0) this.chortBombState = 'align';
       }
       this.clampToScreen();
       return;
@@ -342,6 +486,12 @@
       if (this.__scene) {
         this.__scene.chortVictoryTransitionMs = 0;
         this.__scene.chortVictoryBackgroundActive = false;
+        for (const enemy of this.__scene.enemies || []) {
+          if (enemy && enemy.chortMinion) {
+            enemy.remove = true;
+            enemy.blocksWaveClear = false;
+          }
+        }
       }
     }
   };
