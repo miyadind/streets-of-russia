@@ -924,9 +924,7 @@ class LevelScene {
     if (enemy.enemyType === 'zetnik') {
       if (enemy.gundosMinion || enemy.gundosGuarding || enemy.redirectedToBoss) return;
       if (this.gundosArenaActive || this.gundosIntroActive || this.gundosVictoryPending) return;
-      const pickupTypes = ['pie', 'tea', 'medkit'];
-      const pickupType = pickupTypes[Math.floor(Math.random() * pickupTypes.length)];
-      this.dropPickup(pickupType, x, y);
+      this.dropPickup('pirozhok', x, y);
       return;
     }
   }

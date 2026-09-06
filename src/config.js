@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  "buildVersion": "0.4.292",
+  "buildVersion": "0.4.293",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -1039,12 +1039,12 @@ const GAME_CONFIG = {
             "h": 268
           },
           "maskRect": {
-            "x": 554,
-            "y": 322,
-            "w": 176,
-            "h": 268
+            "x": 548,
+            "y": 332,
+            "w": 190,
+            "h": 378
           },
-          "occlusionY": 578,
+          "occlusionY": 665,
           "hitEffect": "metalImpact",
           "impactSfx": "garageGateMetal"
         }

@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.292",
+  "buildVersion": "0.4.293",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -1046,12 +1046,12 @@ const GAME_CONFIG = {
             "h": 268
           },
           "maskRect": {
-            "x": 554,
-            "y": 322,
-            "w": 176,
-            "h": 268
+            "x": 548,
+            "y": 332,
+            "w": 190,
+            "h": 378
           },
-          "occlusionY": 578,
+          "occlusionY": 665,
           "hitEffect": "metalImpact",
           "impactSfx": "garageGateMetal"
         }
@@ -7984,9 +7984,7 @@ class LevelScene {
     if (enemy.enemyType === 'zetnik') {
       if (enemy.gundosMinion || enemy.gundosGuarding || enemy.redirectedToBoss) return;
       if (this.gundosArenaActive || this.gundosIntroActive || this.gundosVictoryPending) return;
-      const pickupTypes = ['pie', 'tea', 'medkit'];
-      const pickupType = pickupTypes[Math.floor(Math.random() * pickupTypes.length)];
-      this.dropPickup(pickupType, x, y);
+      this.dropPickup('pirozhok', x, y);
       return;
     }
   }
@@ -16479,7 +16477,16 @@ window.addEventListener('load', () => {
     const entities = [{ type: 'player', y: this.player.y, ref: this.player }];
     for (const enemy of this.enemies) entities.push({ type: 'enemy', y: enemy.y, ref: enemy });
     entities.sort((a, b) => a.y - b.y);
-    for (const entity of entities) entity.ref.draw(ctx, this.debug);
+    const occluders = this.getLevelForegroundOccluders ? this.getLevelForegroundOccluders() : [];
+    const isBehindOccluder = (entity) => occluders.some((item) => {
+      const rect = item.maskRect;
+      return rect && entity.ref.x >= rect.x - 18 && entity.ref.x <= rect.x + rect.w + 18 && entity.y < item.occlusionY;
+    });
+    const behind = entities.filter(isBehindOccluder);
+    const front = entities.filter(entity => !isBehindOccluder(entity));
+    for (const entity of behind) entity.ref.draw(ctx, this.debug);
+    if (this.drawLevelForegroundOccluders) this.drawLevelForegroundOccluders(ctx, bg);
+    for (const entity of front) entity.ref.draw(ctx, this.debug);
     for (const pickup of this.pickups || []) {
       if (!pickup || pickup.remove || typeof pickup.draw !== 'function') continue;
       pickup.draw(ctx);
