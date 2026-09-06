@@ -41,6 +41,7 @@ const CampaignMapScreen = {
       this.order = GAME_CONFIG.campaignRegions.map(region => region.mapId).filter(Boolean);
     }
     this.activeIndex = 0;
+    this.devRegionIndex = 0;
     this.devLevelIndex = 0;
     this.selectedIndex = 0;
     this.selectedLevelIndex = 0;
@@ -85,9 +86,10 @@ const CampaignMapScreen = {
   ensureVisibleImages() {
     this.ensureImage('base');
     this.ensureImage('locked', 'part4');
-    const activeId = this.getActiveRegionId();
+    const displayIndex = this.getDisplayRegionIndex();
+    const activeId = this.order[displayIndex] || this.getActiveRegionId();
     this.ensureImage('active', activeId);
-    for (let i = 0; i < this.activeIndex; i++) {
+    for (let i = 0; i < displayIndex; i++) {
       this.ensureImage('completed', this.order[i]);
     }
   },
@@ -108,6 +110,7 @@ const CampaignMapScreen = {
 
   resetProgress() {
     this.activeIndex = 0;
+    this.devRegionIndex = 0;
     this.selectedIndex = 0;
     this.selectedLevelIndex = 0;
     this.clearSavedProgress();
@@ -208,6 +211,17 @@ const CampaignMapScreen = {
     return this.order[this.activeIndex] || this.order[this.order.length - 1];
   },
 
+  getDisplayRegionIndex() {
+    if (this.isDevMode()) {
+      return Math.max(0, Math.min(Math.max(0, this.order.length - 1), Number(this.devRegionIndex) || 0));
+    }
+    return Math.max(0, Math.min(Math.max(0, this.order.length - 1), Number(this.activeIndex) || 0));
+  },
+
+  getDevRegionId() {
+    return this.order[this.getDisplayRegionIndex()] || this.getActiveRegionId();
+  },
+
   completeActiveRegion() {
     if (this.activeIndex < this.order.length - 1) {
       this.activeIndex += 1;
@@ -272,7 +286,7 @@ const CampaignMapScreen = {
   },
 
   getSelectedLevels() {
-    const activeId = this.getActiveRegionId();
+    const activeId = this.getDevRegionId();
     const regions = Array.isArray(GAME_CONFIG.campaignRegions) ? GAME_CONFIG.campaignRegions : [];
     const configured = regions.find((region) => region && region.mapId === activeId);
     if (configured && Array.isArray(configured.levels) && configured.levels.length) return configured.levels;
@@ -292,16 +306,14 @@ const CampaignMapScreen = {
   },
 
   setDevRegionIndex(index) {
-    this.activeIndex = Math.max(0, Math.min(Math.max(0, this.order.length - 1), index));
+    this.devRegionIndex = Math.max(0, Math.min(Math.max(0, this.order.length - 1), index));
     this.devLevelIndex = 0;
-    this.clearSavedProgress();
   },
 
   moveDevRegion(delta) {
     const count = Math.max(1, this.order.length);
-    this.activeIndex = (this.activeIndex + delta + count) % count;
+    this.devRegionIndex = (this.getDisplayRegionIndex() + delta + count) % count;
     this.devLevelIndex = 0;
-    this.clearSavedProgress();
     AudioManager.playSfx('menuMove', 0.7);
   },
 
@@ -423,15 +435,16 @@ const CampaignMapScreen = {
 
     this.drawImageStretch(ctx, this.images && this.images.base);
 
-    for (let i = 0; i < Math.min(this.activeIndex, this.order.length - 1); i++) {
+    const displayIndex = this.getDisplayRegionIndex();
+    for (let i = 0; i < Math.min(displayIndex, this.order.length - 1); i++) {
       const id = this.order[i];
       this.drawImageStretch(ctx, this.images.completed[id]);
     }
 
     this.drawImageStretch(ctx, this.images.locked.part4);
 
-    this.ensureMapSelection(window.game);
-    const activeId = this.getMapSelectedRegionId();
+    if (!this.isDevMode()) this.ensureMapSelection(window.game);
+    const activeId = this.isDevMode() ? this.getDevRegionId() : this.getMapSelectedRegionId();
     const pulse = 0.72 + Math.sin(performance.now() / 180) * 0.18;
     ctx.globalAlpha = pulse;
     this.drawImageStretch(ctx, this.images.active[activeId]);
@@ -521,7 +534,7 @@ const CampaignMapScreen = {
   drawDevPanel(ctx) {
     if (!this.isDevMode()) return;
     const rects = this.getDevPanelRects();
-    const activeId = this.getActiveRegionId();
+    const activeId = this.getDevRegionId();
     const label = this.labels[activeId] || String(activeId || '').toUpperCase();
     const selection = this.getSelectedLevel();
     const levelLabel = selection.key ? String(selection.key).toUpperCase() : 'NO LEVELS';
