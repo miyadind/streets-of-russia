@@ -344,6 +344,13 @@ class GameApp {
       negayAttack1: Assets.negay.attack[1],
       negayDead: Assets.negay.dead,
 
+      chortIdle: Assets['4ort'].idle,
+      chortWalk0: Assets['4ort'].walk[0],
+      chortWalk1: Assets['4ort'].walk[1],
+      chortWalk2: Assets['4ort'].walk[2],
+      chortSmoke0: Assets['4ort'].smoke[0],
+      chortSmoke1: Assets['4ort'].smoke[1],
+
       pickupMedkit: Assets.pickups && Assets.pickups.medkit,
       pickupPirozhok: Assets.pickups && Assets.pickups.pirozhok,
       pickupTea: Assets.pickups && Assets.pickups.tea
@@ -448,6 +455,16 @@ class GameApp {
         walk: [loaded.negayWalk0 || loaded.dogWalk0, loaded.negayWalk1 || loaded.negayWalk0 || loaded.dogWalk1, loaded.negayWalk2 || loaded.negayWalk0 || loaded.dogWalk0],
         attack: [loaded.negayAttack0 || loaded.dogAttack0, loaded.negayAttack1 || loaded.negayAttack0 || loaded.dogAttack1],
         dead: loaded.negayDead || loaded.negayIdle || loaded.dogDead
+      },
+      '4ort': {
+        idle: loaded.chortIdle || loaded.dogIdle,
+        walk: [
+          loaded.chortWalk0 || loaded.chortIdle || loaded.dogWalk0,
+          loaded.chortWalk1 || loaded.chortIdle || loaded.dogWalk1,
+          loaded.chortWalk2 || loaded.chortIdle || loaded.dogWalk0
+        ],
+        attack: [loaded.chortIdle || loaded.dogAttack0, loaded.chortIdle || loaded.dogAttack1],
+        dead: loaded.chortSmoke1 || loaded.chortSmoke0 || loaded.chortIdle || loaded.dogDead
       }
     };
 

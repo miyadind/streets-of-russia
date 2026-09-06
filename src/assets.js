@@ -100,6 +100,12 @@ window.Assets = {
     attack:['assets/enemies/NEgay/Whiplash.png?v=negay-refresh-2','assets/enemies/NEgay/WhiplashFinal.png?v=negay-final-1'],
     dead:'assets/enemies/NEgay/knockdown.png?v=negay-refresh-2'
   },
+  '4ort':{
+    idle:'assets/enemies/4ort/idle.png',
+    walk:['assets/enemies/4ort/walk01.png','assets/enemies/4ort/walk02.png','assets/enemies/4ort/walk03.png'],
+    smoke:['assets/enemies/4ort/smoke_idle01.png','assets/enemies/4ort/smoke_idle02.png'],
+    appear:'assets/enemies/4ort/uss4.mp3'
+  },
   supportFigureCount: 18,
   pickups:{
     medkit:'assets/pickups/medkit.png?v=pickup-rebuilt-2',

@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  "buildVersion": "0.4.284",
+  "buildVersion": "0.4.285",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -402,6 +402,41 @@ const GAME_CONFIG = {
       "attackCooldownMaxMs": 940,
       "bodyRadiusX": 48,
       "bodyRadiusY": 22
+    },
+  "4ort": {
+    "name": "4ort",
+    "bossId": "siberiaBoss",
+    "hp": 460,
+    "speed": 1.05,
+    "damage": 28,
+    "appearSoundPath": "assets/enemies/4ort/uss4.mp3",
+    "scale": 0.17,
+      "bossMusic": true,
+      "bossMusicKey": "siberiaTheme",
+      "blocksWaveClear": true,
+      "attackDamageSource": "melee",
+      "minDistanceX": 66,
+      "preferredDistanceX": 108,
+      "tooFarDistanceX": 230,
+      "attackMinDistanceX": 38,
+      "attackMaxDistanceX": 150,
+      "attackRangeX": 172,
+      "attackRangeY": 48,
+      "maxAttackers": 1,
+      "decisionMinMs": 260,
+      "decisionMaxMs": 560,
+      "strafeChance": 0.22,
+      "retreatChance": 0.1,
+      "attackChance": 0.78,
+      "closeRetreatChance": 0.18,
+      "postAttackRetreatMs": 360,
+      "attackCooldownMinMs": 680,
+      "attackCooldownMaxMs": 980,
+      "attackWindupMs": 560,
+      "attackActiveMs": 260,
+      "attackRecoveryMs": 520,
+      "bodyRadiusX": 62,
+      "bodyRadiusY": 26
     },
     "gundos": {
       "name": "gundos",
@@ -923,23 +958,13 @@ const GAME_CONFIG = {
       "region": "siberia",
       "background": "assets/backgrounds/2/street03.png",
       "music": "siberiaTheme",
+      "musicMode": "boss",
       "waves": [
         {
           "trigger": "onEnter",
           "enemies": [
             {
-              "type": "dogRegime",
-              "count": 2,
-              "side": "right",
-              "delayMs": 0
-            }
-          ]
-        },
-        {
-          "trigger": "afterWaveCleared",
-          "enemies": [
-            {
-              "type": "sucker",
+              "type": "4ort",
               "count": 1,
               "side": "right",
               "delayMs": 0

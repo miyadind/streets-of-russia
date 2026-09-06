@@ -36,6 +36,7 @@ const HUD = {
     }
 
     this.drawSupportButtons(ctx, scene, 745, 22);
+    this.drawBossHealth(ctx, scene);
     this.drawLowHpSwitchHint(ctx, scene);
     this.drawSuckerPinHint(ctx, scene);
 
@@ -195,8 +196,43 @@ const HUD = {
   },
 
   getCombatHintY(scene, regularY, bossY = 126) {
-    const boss = scene && (scene.activeGundos || (scene.enemies || []).find((enemy) => enemy && enemy.enemyType === 'gundos' && enemy.alive));
+    const boss = scene && (scene.activeGundos || (scene.enemies || []).find((enemy) => {
+      const config = enemy && GAME_CONFIG.enemies && GAME_CONFIG.enemies[enemy.enemyType];
+      return enemy && enemy.alive && config && config.bossMusic === true;
+    }));
     return boss ? bossY : regularY;
+  },
+
+  drawBossHealth(ctx, scene) {
+    const boss = scene && (scene.enemies || []).find((enemy) => {
+      const config = enemy && GAME_CONFIG.enemies && GAME_CONFIG.enemies[enemy.enemyType];
+      return enemy && enemy.alive && config && config.bossMusic === true;
+    });
+    if (!boss) return;
+    const config = GAME_CONFIG.enemies[boss.enemyType] || {};
+    const maxHp = Math.max(1, Number(boss.maxHp) || Number(config.hp) || 1);
+    const hp = Math.max(0, Number(boss.hp) || 0);
+    const x = GAME_CONFIG.width / 2 - 210;
+    const y = 94;
+    const w = 420;
+    const h = 18;
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.72)';
+    ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = '#b32626';
+    ctx.fillRect(x, y, w * (hp / maxHp), h);
+    ctx.strokeStyle = '#f0c35a';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x, y, w, h);
+    ctx.font = 'bold 15px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#fff';
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 3;
+    const label = (config.name || boss.enemyType) + ' ' + hp + ' / ' + maxHp;
+    ctx.strokeText(label, x + w / 2, y - 7);
+    ctx.fillText(label, x + w / 2, y - 7);
+    ctx.restore();
   },
 
   drawEnemyRoster(ctx, scene) {

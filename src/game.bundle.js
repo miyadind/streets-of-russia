@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.284",
+  "buildVersion": "0.4.285",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -409,6 +409,41 @@ const GAME_CONFIG = {
       "attackCooldownMaxMs": 940,
       "bodyRadiusX": 48,
       "bodyRadiusY": 22
+    },
+  "4ort": {
+    "name": "4ort",
+    "bossId": "siberiaBoss",
+    "hp": 460,
+    "speed": 1.05,
+    "damage": 28,
+    "appearSoundPath": "assets/enemies/4ort/uss4.mp3",
+    "scale": 0.17,
+      "bossMusic": true,
+      "bossMusicKey": "siberiaTheme",
+      "blocksWaveClear": true,
+      "attackDamageSource": "melee",
+      "minDistanceX": 66,
+      "preferredDistanceX": 108,
+      "tooFarDistanceX": 230,
+      "attackMinDistanceX": 38,
+      "attackMaxDistanceX": 150,
+      "attackRangeX": 172,
+      "attackRangeY": 48,
+      "maxAttackers": 1,
+      "decisionMinMs": 260,
+      "decisionMaxMs": 560,
+      "strafeChance": 0.22,
+      "retreatChance": 0.1,
+      "attackChance": 0.78,
+      "closeRetreatChance": 0.18,
+      "postAttackRetreatMs": 360,
+      "attackCooldownMinMs": 680,
+      "attackCooldownMaxMs": 980,
+      "attackWindupMs": 560,
+      "attackActiveMs": 260,
+      "attackRecoveryMs": 520,
+      "bodyRadiusX": 62,
+      "bodyRadiusY": 26
     },
     "gundos": {
       "name": "gundos",
@@ -930,23 +965,13 @@ const GAME_CONFIG = {
       "region": "siberia",
       "background": "assets/backgrounds/2/street03.png",
       "music": "siberiaTheme",
+      "musicMode": "boss",
       "waves": [
         {
           "trigger": "onEnter",
           "enemies": [
             {
-              "type": "dogRegime",
-              "count": 2,
-              "side": "right",
-              "delayMs": 0
-            }
-          ]
-        },
-        {
-          "trigger": "afterWaveCleared",
-          "enemies": [
-            {
-              "type": "sucker",
+              "type": "4ort",
               "count": 1,
               "side": "right",
               "delayMs": 0
@@ -1573,6 +1598,12 @@ window.Assets = {
     walk:['assets/enemies/NEgay/walk01.png?v=negay-refresh-2','assets/enemies/NEgay/walk02.png?v=negay-refresh-2','assets/enemies/NEgay/walk03.png?v=negay-refresh-2'],
     attack:['assets/enemies/NEgay/Whiplash.png?v=negay-refresh-2','assets/enemies/NEgay/WhiplashFinal.png?v=negay-final-1'],
     dead:'assets/enemies/NEgay/knockdown.png?v=negay-refresh-2'
+  },
+  '4ort':{
+    idle:'assets/enemies/4ort/idle.png',
+    walk:['assets/enemies/4ort/walk01.png','assets/enemies/4ort/walk02.png','assets/enemies/4ort/walk03.png'],
+    smoke:['assets/enemies/4ort/smoke_idle01.png','assets/enemies/4ort/smoke_idle02.png'],
+    appear:'assets/enemies/4ort/uss4.mp3'
   },
   supportFigureCount: 18,
   pickups:{
@@ -5727,6 +5758,7 @@ const HUD = {
     }
 
     this.drawSupportButtons(ctx, scene, 745, 22);
+    this.drawBossHealth(ctx, scene);
     this.drawLowHpSwitchHint(ctx, scene);
     this.drawSuckerPinHint(ctx, scene);
 
@@ -5886,8 +5918,43 @@ const HUD = {
   },
 
   getCombatHintY(scene, regularY, bossY = 126) {
-    const boss = scene && (scene.activeGundos || (scene.enemies || []).find((enemy) => enemy && enemy.enemyType === 'gundos' && enemy.alive));
+    const boss = scene && (scene.activeGundos || (scene.enemies || []).find((enemy) => {
+      const config = enemy && GAME_CONFIG.enemies && GAME_CONFIG.enemies[enemy.enemyType];
+      return enemy && enemy.alive && config && config.bossMusic === true;
+    }));
     return boss ? bossY : regularY;
+  },
+
+  drawBossHealth(ctx, scene) {
+    const boss = scene && (scene.enemies || []).find((enemy) => {
+      const config = enemy && GAME_CONFIG.enemies && GAME_CONFIG.enemies[enemy.enemyType];
+      return enemy && enemy.alive && config && config.bossMusic === true;
+    });
+    if (!boss) return;
+    const config = GAME_CONFIG.enemies[boss.enemyType] || {};
+    const maxHp = Math.max(1, Number(boss.maxHp) || Number(config.hp) || 1);
+    const hp = Math.max(0, Number(boss.hp) || 0);
+    const x = GAME_CONFIG.width / 2 - 210;
+    const y = 94;
+    const w = 420;
+    const h = 18;
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.72)';
+    ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = '#b32626';
+    ctx.fillRect(x, y, w * (hp / maxHp), h);
+    ctx.strokeStyle = '#f0c35a';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x, y, w, h);
+    ctx.font = 'bold 15px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#fff';
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 3;
+    const label = (config.name || boss.enemyType) + ' ' + hp + ' / ' + maxHp;
+    ctx.strokeText(label, x + w / 2, y - 7);
+    ctx.fillText(label, x + w / 2, y - 7);
+    ctx.restore();
   },
 
   drawEnemyRoster(ctx, scene) {
@@ -11501,6 +11568,13 @@ class GameApp {
       negayAttack1: Assets.negay.attack[1],
       negayDead: Assets.negay.dead,
 
+      chortIdle: Assets['4ort'].idle,
+      chortWalk0: Assets['4ort'].walk[0],
+      chortWalk1: Assets['4ort'].walk[1],
+      chortWalk2: Assets['4ort'].walk[2],
+      chortSmoke0: Assets['4ort'].smoke[0],
+      chortSmoke1: Assets['4ort'].smoke[1],
+
       pickupMedkit: Assets.pickups && Assets.pickups.medkit,
       pickupPirozhok: Assets.pickups && Assets.pickups.pirozhok,
       pickupTea: Assets.pickups && Assets.pickups.tea
@@ -11605,6 +11679,16 @@ class GameApp {
         walk: [loaded.negayWalk0 || loaded.dogWalk0, loaded.negayWalk1 || loaded.negayWalk0 || loaded.dogWalk1, loaded.negayWalk2 || loaded.negayWalk0 || loaded.dogWalk0],
         attack: [loaded.negayAttack0 || loaded.dogAttack0, loaded.negayAttack1 || loaded.negayAttack0 || loaded.dogAttack1],
         dead: loaded.negayDead || loaded.negayIdle || loaded.dogDead
+      },
+      '4ort': {
+        idle: loaded.chortIdle || loaded.dogIdle,
+        walk: [
+          loaded.chortWalk0 || loaded.chortIdle || loaded.dogWalk0,
+          loaded.chortWalk1 || loaded.chortIdle || loaded.dogWalk1,
+          loaded.chortWalk2 || loaded.chortIdle || loaded.dogWalk0
+        ],
+        attack: [loaded.chortIdle || loaded.dogAttack0, loaded.chortIdle || loaded.dogAttack1],
+        dead: loaded.chortSmoke1 || loaded.chortSmoke0 || loaded.chortIdle || loaded.dogDead
       }
     };
 
@@ -17105,6 +17189,7 @@ if (document.readyState === 'loading') {
     { type: 'sucker', label: 'sucker' },
     { type: 'bastard', label: 'bastard' },
     { type: 'horse', label: 'horse' },
+    { type: '4ort', label: '4ort' },
     { type: 'gundos', label: 'gundos' }
   ];
 
@@ -18495,6 +18580,7 @@ if (document.readyState === 'loading') {
       horse: { w: 1024, h: 1536, scalePath: 'enemies.horse.scale' },
       goydenish: { w: 1335, h: 1178, scalePath: 'enemies.goydenish.scale' },
       negay: { w: 1024, h: 1536, scalePath: 'enemies.negay.scale' },
+      '4ort': { w: 1024, h: 1536, scalePath: 'enemies.4ort.scale' },
       gundos: { w: 1536, h: 1024, scalePath: 'enemies.gundos.scale' }
     }
   };
@@ -18624,6 +18710,7 @@ if (document.readyState === 'loading') {
       horse: makeEnemyBoxes('horse', 'horse'),
       goydenish: makeEnemyBoxes('goydenish', 'goydenish'),
       negay: makeEnemyBoxes('negay', 'negay'),
+      '4ort': makeEnemyBoxes('4ort', 'humanEnemy'),
       gundos: makeEnemyBoxes('gundos', 'gundos')
     }
   };
@@ -18979,6 +19066,7 @@ if (document.readyState === 'loading') {
         { group: 'enemies', key: 'horse', label: 'Enemy: Horse' },
         { group: 'enemies', key: 'goydenish', label: 'Enemy: Goydenish' },
         { group: 'enemies', key: 'negay', label: 'Enemy: NEgay' },
+        { group: 'enemies', key: '4ort', label: 'Enemy: 4ort' },
         { group: 'enemies', key: 'gundos', label: 'Enemy: Gundos' }
       ];
     };

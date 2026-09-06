@@ -28,6 +28,7 @@
       horse: { w: 1024, h: 1536, scalePath: 'enemies.horse.scale' },
       goydenish: { w: 1335, h: 1178, scalePath: 'enemies.goydenish.scale' },
       negay: { w: 1024, h: 1536, scalePath: 'enemies.negay.scale' },
+      '4ort': { w: 1024, h: 1536, scalePath: 'enemies.4ort.scale' },
       gundos: { w: 1536, h: 1024, scalePath: 'enemies.gundos.scale' }
     }
   };
@@ -157,6 +158,7 @@
       horse: makeEnemyBoxes('horse', 'horse'),
       goydenish: makeEnemyBoxes('goydenish', 'goydenish'),
       negay: makeEnemyBoxes('negay', 'negay'),
+      '4ort': makeEnemyBoxes('4ort', 'humanEnemy'),
       gundos: makeEnemyBoxes('gundos', 'gundos')
     }
   };
@@ -512,6 +514,7 @@
         { group: 'enemies', key: 'horse', label: 'Enemy: Horse' },
         { group: 'enemies', key: 'goydenish', label: 'Enemy: Goydenish' },
         { group: 'enemies', key: 'negay', label: 'Enemy: NEgay' },
+        { group: 'enemies', key: '4ort', label: 'Enemy: 4ort' },
         { group: 'enemies', key: 'gundos', label: 'Enemy: Gundos' }
       ];
     };

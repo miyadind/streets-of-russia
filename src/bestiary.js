@@ -7,6 +7,7 @@
     { type: 'sucker', label: 'sucker' },
     { type: 'bastard', label: 'bastard' },
     { type: 'horse', label: 'horse' },
+    { type: '4ort', label: '4ort' },
     { type: 'gundos', label: 'gundos' }
   ];
 
