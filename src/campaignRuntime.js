@@ -151,7 +151,8 @@
   function getRequestedStartIndex(game) {
     const order = getLevelOrder();
     if (!game) return -1;
-    return order.indexOf(game.campaignStartLevelKey || game.devStartLevelKey || '');
+    // A developer-map choice must always override a stale ordinary map choice.
+    return order.indexOf(game.devStartLevelKey || game.campaignStartLevelKey || '');
   }
 
   function getStartScreenIndex(game) {

@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.291",
+  "buildVersion": "0.4.292",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -9626,6 +9626,7 @@ const CampaignMapScreen = {
     if (!selection.key) return;
     AudioManager.unlock();
     AudioManager.playSfx('menuSelect', 0.85);
+    game.devStartLevelKey = null;
     game.campaignStartLevelKey = selection.key;
     game.campaignRunRegionIndex = this.selectedIndex;
     if (window.CampaignFlow && window.CampaignFlow.openCharacterSelect) {
@@ -9760,6 +9761,8 @@ const CampaignMapScreen = {
     AudioManager.unlock();
     AudioManager.playSfx('menuSelect', 0.85);
     const selection = this.getSelectedLevel();
+    game.campaignStartLevelKey = null;
+    game.campaignRunRegionIndex = this.getDisplayRegionIndex();
     game.devStartLevelKey = selection.key;
     if (window.CampaignFlow && window.CampaignFlow.openCharacterSelect) {
       window.CampaignFlow.openCharacterSelect(game, 'campaignStart');
@@ -10158,7 +10161,8 @@ const CampaignMapScreen = {
   function getRequestedStartIndex(game) {
     const order = getLevelOrder();
     if (!game) return -1;
-    return order.indexOf(game.campaignStartLevelKey || game.devStartLevelKey || '');
+    // A developer-map choice must always override a stale ordinary map choice.
+    return order.indexOf(game.devStartLevelKey || game.campaignStartLevelKey || '');
   }
 
   function getStartScreenIndex(game) {

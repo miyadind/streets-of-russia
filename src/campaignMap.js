@@ -196,6 +196,7 @@ const CampaignMapScreen = {
     if (!selection.key) return;
     AudioManager.unlock();
     AudioManager.playSfx('menuSelect', 0.85);
+    game.devStartLevelKey = null;
     game.campaignStartLevelKey = selection.key;
     game.campaignRunRegionIndex = this.selectedIndex;
     if (window.CampaignFlow && window.CampaignFlow.openCharacterSelect) {
@@ -330,6 +331,8 @@ const CampaignMapScreen = {
     AudioManager.unlock();
     AudioManager.playSfx('menuSelect', 0.85);
     const selection = this.getSelectedLevel();
+    game.campaignStartLevelKey = null;
+    game.campaignRunRegionIndex = this.getDisplayRegionIndex();
     game.devStartLevelKey = selection.key;
     if (window.CampaignFlow && window.CampaignFlow.openCharacterSelect) {
       window.CampaignFlow.openCharacterSelect(game, 'campaignStart');
