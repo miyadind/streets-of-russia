@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.308",
+  "buildVersion": "0.4.309",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -18064,10 +18064,8 @@ if (document.readyState === 'loading') {
   const BestiaryScreen = {
     index: 0,
 
-    getEntries(game) {
-      return ENEMIES.filter((entry) => (
-        game && game.images && game.images.enemies && game.images.enemies[entry.type]
-      ));
+    getEntries() {
+      return ENEMIES;
     },
 
     getRects() {
@@ -18145,6 +18143,21 @@ if (document.readyState === 'loading') {
       return lines;
     },
 
+    getDescriptionLayout(ctx, text, maxWidth, maxHeight) {
+      for (let size = 24; size >= 16; size -= 1) {
+        ctx.font = size + 'px Arial';
+        const lines = this.wrapText(ctx, text, maxWidth);
+        const lineHeight = Math.round(size * 1.36);
+        if (lines.length * lineHeight <= maxHeight) return { lines, lineHeight };
+      }
+
+      ctx.font = '16px Arial';
+      return {
+        lines: this.wrapText(ctx, text, maxWidth),
+        lineHeight: 22
+      };
+    },
+
     draw(ctx, game) {
       const bg = game.images && game.images.main;
       if (bg) ctx.drawImage(bg, 0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
@@ -18159,10 +18172,10 @@ if (document.readyState === 'loading') {
       if (!entries.length) return;
       this.index = Math.max(0, Math.min(entries.length - 1, this.index));
       const entry = entries[this.index];
-      const enemyImages = game.images.enemies[entry.type];
-      const image = enemyImages.idle ||
+      const enemyImages = game.images.enemies && game.images.enemies[entry.type];
+      const image = enemyImages && (enemyImages.idle ||
         (enemyImages.walk && enemyImages.walk[0]) ||
-        enemyImages.dead;
+        enemyImages.dead);
 
       ctx.save();
       ctx.textAlign = 'center';
@@ -18172,6 +18185,10 @@ if (document.readyState === 'loading') {
       ctx.font = 'bold 44px Arial';
       ctx.strokeText('ТВАРИ', GAME_CONFIG.width / 2, 78);
       ctx.fillText('ТВАРИ', GAME_CONFIG.width / 2, 78);
+      ctx.font = '20px Arial';
+      ctx.fillStyle = '#d8d8d8';
+      ctx.textAlign = 'right';
+      ctx.fillText(String(this.index + 1) + ' / ' + String(entries.length), 1160, 82);
 
       ctx.fillStyle = 'rgba(0,0,0,0.58)';
       ctx.fillRect(150, 110, 980, 455);
@@ -18194,13 +18211,12 @@ if (document.readyState === 'loading') {
       ctx.strokeText(entry.name || entry.label, 575, 184);
       ctx.fillText(entry.name || entry.label, 575, 184);
 
-      ctx.font = '24px Arial';
       ctx.fillStyle = '#fff';
       ctx.strokeStyle = '#000';
       ctx.lineWidth = 4;
-      const descriptionLines = this.wrapText(ctx, entry.description, 500);
-      descriptionLines.slice(0, 10).forEach((line, index) => {
-        const y = 235 + index * 33;
+      const description = this.getDescriptionLayout(ctx, entry.description, 500, 290);
+      description.lines.forEach((line, index) => {
+        const y = 235 + index * description.lineHeight;
         ctx.strokeText(line, 575, y);
         ctx.fillText(line, 575, y);
       });
@@ -18220,10 +18236,6 @@ if (document.readyState === 'loading') {
         );
       }
 
-      ctx.font = '20px Arial';
-      ctx.fillStyle = '#d8d8d8';
-      ctx.textAlign = 'center';
-      ctx.fillText(String(this.index + 1) + ' / ' + String(entries.length), GAME_CONFIG.width / 2, 542);
       ctx.restore();
 
       const rects = this.getRects();
@@ -18244,6 +18256,7 @@ if (document.readyState === 'loading') {
     this.bestiaryReturnState = returnState === 'level' && this.scene ? 'level' : 'mainMenu';
     BestiaryScreen.index = 0;
     this.setState('bestiary');
+    this.beginDeferredAssetLoad();
     AudioManager.playSfx('menuSelect', 0.75);
   };
 
