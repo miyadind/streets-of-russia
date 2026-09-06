@@ -6,11 +6,11 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.280",
+  "buildVersion": "0.4.281",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
-  "gameSpeedMultiplier": 1.3,
+  "movementSpeedMultiplier": 1.3,
   "adminTuningEnabled": true,
   "settings": {
     "difficulty": "normal",
@@ -2930,9 +2930,9 @@ class Player {
       const len = Math.hypot(dx, dy);
       dx /= len;
       dy /= len;
-      const gameSpeed = Math.max(0.1, Number(GAME_CONFIG.gameSpeedMultiplier) || 1);
-      this.x += dx * this.speed * gameSpeed;
-      this.y += dy * this.speed * GAME_CONFIG.ySpeedMultiplier * gameSpeed;
+      const movementSpeed = Math.max(0.1, Number(GAME_CONFIG.movementSpeedMultiplier) || 1);
+      this.x += dx * this.speed * movementSpeed;
+      this.y += dy * this.speed * GAME_CONFIG.ySpeedMultiplier * movementSpeed;
       if (dx !== 0) this.facing = Math.sign(dx);
 
       if (updateState) {
@@ -3933,9 +3933,9 @@ class DogRegimeEnemy {
     const len = Math.hypot(moveX, moveY);
     moveX /= len;
     moveY /= len;
-    const gameSpeed = Math.max(0.1, Number(GAME_CONFIG.gameSpeedMultiplier) || 1);
-    this.x += moveX * this.speed * speedMultiplier * gameSpeed;
-    this.y += moveY * this.speed * GAME_CONFIG.ySpeedMultiplier * speedMultiplier * gameSpeed;
+    const movementSpeed = Math.max(0.1, Number(GAME_CONFIG.movementSpeedMultiplier) || 1);
+    this.x += moveX * this.speed * speedMultiplier * movementSpeed;
+    this.y += moveY * this.speed * GAME_CONFIG.ySpeedMultiplier * speedMultiplier * movementSpeed;
     this.clampToScreen();
 
     this.walkTimer += dt;
@@ -4470,7 +4470,8 @@ class ZetnikEnemy extends DogRegimeEnemy {
 
     let moveX = this.chargeDirection || this.facing || 1;
     let laneDelta = (this.chargeLaneY || this.y) - this.y;
-    let dtScale = Math.max(0.65, Math.min(1.55, dt / 16.67));
+    const movementSpeed = GAME_CONFIG.movementSpeedMultiplier || 1;
+    let dtScale = Math.max(0.65, Math.min(1.55, dt / 16.67)) * movementSpeed;
     this.x += Math.sign(moveX || 1) * this.speed * dtScale;
     if (Math.abs(laneDelta) > 2) {
       this.y += Math.sign(laneDelta) * Math.min(Math.abs(laneDelta), this.speed * GAME_CONFIG.ySpeedMultiplier * dtScale);
@@ -4604,7 +4605,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
     }
 
     const player = scene && scene.player;
-    this.x += this.gundosDirection * this.gundosSpeed * frameScale;
+    this.x += this.gundosDirection * this.gundosSpeed * frameScale * (GAME_CONFIG.movementSpeedMultiplier || 1);
     this.facing = this.gundosDirection >= 0 ? 1 : -1;
     this.walkTimer += dt;
     if (this.walkTimer >= GAME_CONFIG.enemyWalkFrameMs) {
@@ -5028,9 +5029,10 @@ class SuckerEnemy extends DogRegimeEnemy {
       const len = Math.hypot(moveX, moveY);
       moveX /= len;
       moveY /= len;
+      const movementSpeed = GAME_CONFIG.movementSpeedMultiplier || 1;
       if (this.isOffscreenX && this.isOffscreenX()) moveX = this.x < 45 ? 1 : -1;
-      this.x += moveX * this.speed;
-      this.y += moveY * this.speed * GAME_CONFIG.ySpeedMultiplier;
+      this.x += moveX * this.speed * movementSpeed;
+      this.y += moveY * this.speed * GAME_CONFIG.ySpeedMultiplier * movementSpeed;
       this.updateWalkFrame(dt);
     }
 
@@ -5076,7 +5078,7 @@ class SuckerEnemy extends DogRegimeEnemy {
   }
 
   updateSlide(dt, scene) {
-    const step = this.slideSpeed * Math.max(1, dt / 16.67);
+    const step = this.slideSpeed * Math.max(1, dt / 16.67) * (GAME_CONFIG.movementSpeedMultiplier || 1);
     this.x += this.slideDirection * step;
     this.y = this.slideY;
     this.slideDistance += Math.abs(step);
@@ -5162,9 +5164,10 @@ class SuckerEnemy extends DogRegimeEnemy {
     this.fastRetreatTimer -= dt;
     const player = scene && scene.player;
     const frameScale = Math.max(0.65, Math.min(1.75, dt / 16.67));
-    this.x += this.fastRetreatDirection * this.fastRetreatSpeed * frameScale;
+    const movementSpeed = GAME_CONFIG.movementSpeedMultiplier || 1;
+    this.x += this.fastRetreatDirection * this.fastRetreatSpeed * frameScale * movementSpeed;
     if (player && Math.abs(player.y - this.y) > this.alignToleranceY * 0.6) {
-      this.y += Math.sign(player.y - this.y) * this.speed * GAME_CONFIG.ySpeedMultiplier;
+      this.y += Math.sign(player.y - this.y) * this.speed * GAME_CONFIG.ySpeedMultiplier * movementSpeed;
     }
     this.y = Math.max(GAME_CONFIG.laneTop, Math.min(GAME_CONFIG.laneBottom, this.y));
     this.updateWalkFrame(dt);
@@ -5471,7 +5474,7 @@ class BastardEnemy {
 
     if (this.gundosMedicPhase === 'enter') {
       this.facing = 1;
-      this.x += this.speed * 1.75 * (GAME_CONFIG.gameSpeedMultiplier || 1);
+      this.x += this.speed * 1.75 * (GAME_CONFIG.movementSpeedMultiplier || 1);
       if (this.x >= this.gundosMedicTargetX) {
         this.x = this.gundosMedicTargetX;
         this.gundosMedicPhase = 'idle';
@@ -5494,7 +5497,7 @@ class BastardEnemy {
 
     if (this.gundosMedicPhase === 'exit') {
       this.facing = -1;
-      this.x -= this.speed * 2.2 * (GAME_CONFIG.gameSpeedMultiplier || 1);
+      this.x -= this.speed * 2.2 * (GAME_CONFIG.movementSpeedMultiplier || 1);
       if (this.x < -120) this.remove = true;
       return;
     }
@@ -5544,7 +5547,7 @@ class BastardEnemy {
     }
     this.state = 'wander';
     this.facing = this.bastardHealExitDirection || -1;
-    this.x += this.facing * Math.max(this.speed || 0.75, 1.55) * 2.45 * (GAME_CONFIG.gameSpeedMultiplier || 1);
+    this.x += this.facing * Math.max(this.speed || 0.75, 1.55) * 2.45 * (GAME_CONFIG.movementSpeedMultiplier || 1);
     if (this.x < -140 || this.x > GAME_CONFIG.width + 140) this.remove = true;
   }
 
@@ -5588,9 +5591,9 @@ class BastardEnemy {
     if (moveX === 0 && moveY === 0) return;
 
     const len = Math.hypot(moveX, moveY);
-    const gameSpeed = GAME_CONFIG.gameSpeedMultiplier || 1;
-    this.x += (moveX / len) * this.speed * gameSpeed;
-    this.y += (moveY / len) * this.speed * GAME_CONFIG.ySpeedMultiplier * gameSpeed;
+    const movementSpeed = GAME_CONFIG.movementSpeedMultiplier || 1;
+    this.x += (moveX / len) * this.speed * movementSpeed;
+    this.y += (moveY / len) * this.speed * GAME_CONFIG.ySpeedMultiplier * movementSpeed;
     this.y = Math.max(GAME_CONFIG.laneTop, Math.min(GAME_CONFIG.laneBottom, this.y));
 
     this.walkTimer += dt;
@@ -11842,10 +11845,8 @@ class GameApp {
   }
 
   loop(time) {
-    const elapsed = Math.min(45, time - this.lastTime);
+    const dt = Math.min(45, time - this.lastTime);
     this.lastTime = time;
-    const speedMultiplier = Math.max(0.1, Number(GAME_CONFIG.gameSpeedMultiplier) || 1);
-    const dt = elapsed * speedMultiplier;
     try {
       if (this.runtimeErrorTimer > 0) this.runtimeErrorTimer -= dt;
       this.update(dt);
@@ -17275,7 +17276,7 @@ if (document.readyState === 'loading') {
 
     update(dt, scene) {
       const frameScale = Math.max(0.65, Math.min(1.55, dt / 16.67));
-      this.x -= this.speed * frameScale;
+      this.x -= this.speed * frameScale * (GAME_CONFIG.movementSpeedMultiplier || 1);
       this.spin += dt * 0.012;
       const player = scene && scene.player;
       const fireballLaneTolerance = Number(GAME_CONFIG.enemies.gundos.fireballLaneTolerance) || GAME_CONFIG.yHitTolerance;
@@ -17464,8 +17465,9 @@ if (document.readyState === 'loading') {
       }
 
       const frameScale = Math.max(0.7, Math.min(1.6, dt / 16.67));
-      this.x += dx / distance * config.speed * frameScale;
-      this.y += dy / distance * config.speed * GAME_CONFIG.ySpeedMultiplier * frameScale;
+      const movementSpeed = GAME_CONFIG.movementSpeedMultiplier || 1;
+      this.x += dx / distance * config.speed * frameScale * movementSpeed;
+      this.y += dy / distance * config.speed * GAME_CONFIG.ySpeedMultiplier * frameScale * movementSpeed;
       if (Math.abs(dx) > 3) this.facing = dx >= 0 ? 1 : -1;
 
       this.walkTimer += dt;
@@ -17592,7 +17594,7 @@ if (document.readyState === 'loading') {
       const top = config.arenaTop || 540;
       const bottom = config.arenaBottom || 675;
       const speed = config.arenaMoveSpeed == null ? 0.6 : config.arenaMoveSpeed;
-      this.y += this.arenaMoveDirection * speed * Math.max(0.65, Math.min(1.55, dt / 16.67));
+      this.y += this.arenaMoveDirection * speed * Math.max(0.65, Math.min(1.55, dt / 16.67)) * (GAME_CONFIG.movementSpeedMultiplier || 1);
       if (this.y <= top) {
         this.y = top;
         this.arenaMoveDirection = 1;

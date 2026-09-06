@@ -122,7 +122,7 @@ class BastardEnemy {
 
     if (this.gundosMedicPhase === 'enter') {
       this.facing = 1;
-      this.x += this.speed * 1.75 * (GAME_CONFIG.gameSpeedMultiplier || 1);
+      this.x += this.speed * 1.75 * (GAME_CONFIG.movementSpeedMultiplier || 1);
       if (this.x >= this.gundosMedicTargetX) {
         this.x = this.gundosMedicTargetX;
         this.gundosMedicPhase = 'idle';
@@ -145,7 +145,7 @@ class BastardEnemy {
 
     if (this.gundosMedicPhase === 'exit') {
       this.facing = -1;
-      this.x -= this.speed * 2.2 * (GAME_CONFIG.gameSpeedMultiplier || 1);
+      this.x -= this.speed * 2.2 * (GAME_CONFIG.movementSpeedMultiplier || 1);
       if (this.x < -120) this.remove = true;
       return;
     }
@@ -195,7 +195,7 @@ class BastardEnemy {
     }
     this.state = 'wander';
     this.facing = this.bastardHealExitDirection || -1;
-    this.x += this.facing * Math.max(this.speed || 0.75, 1.55) * 2.45 * (GAME_CONFIG.gameSpeedMultiplier || 1);
+    this.x += this.facing * Math.max(this.speed || 0.75, 1.55) * 2.45 * (GAME_CONFIG.movementSpeedMultiplier || 1);
     if (this.x < -140 || this.x > GAME_CONFIG.width + 140) this.remove = true;
   }
 
@@ -239,9 +239,9 @@ class BastardEnemy {
     if (moveX === 0 && moveY === 0) return;
 
     const len = Math.hypot(moveX, moveY);
-    const gameSpeed = GAME_CONFIG.gameSpeedMultiplier || 1;
-    this.x += (moveX / len) * this.speed * gameSpeed;
-    this.y += (moveY / len) * this.speed * GAME_CONFIG.ySpeedMultiplier * gameSpeed;
+    const movementSpeed = GAME_CONFIG.movementSpeedMultiplier || 1;
+    this.x += (moveX / len) * this.speed * movementSpeed;
+    this.y += (moveY / len) * this.speed * GAME_CONFIG.ySpeedMultiplier * movementSpeed;
     this.y = Math.max(GAME_CONFIG.laneTop, Math.min(GAME_CONFIG.laneBottom, this.y));
 
     this.walkTimer += dt;

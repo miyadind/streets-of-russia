@@ -889,10 +889,8 @@ class GameApp {
   }
 
   loop(time) {
-    const elapsed = Math.min(45, time - this.lastTime);
+    const dt = Math.min(45, time - this.lastTime);
     this.lastTime = time;
-    const speedMultiplier = Math.max(0.1, Number(GAME_CONFIG.gameSpeedMultiplier) || 1);
-    const dt = elapsed * speedMultiplier;
     try {
       if (this.runtimeErrorTimer > 0) this.runtimeErrorTimer -= dt;
       this.update(dt);

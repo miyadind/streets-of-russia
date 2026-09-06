@@ -122,9 +122,10 @@ class SuckerEnemy extends DogRegimeEnemy {
       const len = Math.hypot(moveX, moveY);
       moveX /= len;
       moveY /= len;
+      const movementSpeed = GAME_CONFIG.movementSpeedMultiplier || 1;
       if (this.isOffscreenX && this.isOffscreenX()) moveX = this.x < 45 ? 1 : -1;
-      this.x += moveX * this.speed;
-      this.y += moveY * this.speed * GAME_CONFIG.ySpeedMultiplier;
+      this.x += moveX * this.speed * movementSpeed;
+      this.y += moveY * this.speed * GAME_CONFIG.ySpeedMultiplier * movementSpeed;
       this.updateWalkFrame(dt);
     }
 
@@ -170,7 +171,7 @@ class SuckerEnemy extends DogRegimeEnemy {
   }
 
   updateSlide(dt, scene) {
-    const step = this.slideSpeed * Math.max(1, dt / 16.67);
+    const step = this.slideSpeed * Math.max(1, dt / 16.67) * (GAME_CONFIG.movementSpeedMultiplier || 1);
     this.x += this.slideDirection * step;
     this.y = this.slideY;
     this.slideDistance += Math.abs(step);
@@ -256,9 +257,10 @@ class SuckerEnemy extends DogRegimeEnemy {
     this.fastRetreatTimer -= dt;
     const player = scene && scene.player;
     const frameScale = Math.max(0.65, Math.min(1.75, dt / 16.67));
-    this.x += this.fastRetreatDirection * this.fastRetreatSpeed * frameScale;
+    const movementSpeed = GAME_CONFIG.movementSpeedMultiplier || 1;
+    this.x += this.fastRetreatDirection * this.fastRetreatSpeed * frameScale * movementSpeed;
     if (player && Math.abs(player.y - this.y) > this.alignToleranceY * 0.6) {
-      this.y += Math.sign(player.y - this.y) * this.speed * GAME_CONFIG.ySpeedMultiplier;
+      this.y += Math.sign(player.y - this.y) * this.speed * GAME_CONFIG.ySpeedMultiplier * movementSpeed;
     }
     this.y = Math.max(GAME_CONFIG.laneTop, Math.min(GAME_CONFIG.laneBottom, this.y));
     this.updateWalkFrame(dt);

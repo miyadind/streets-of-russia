@@ -184,7 +184,7 @@
 
     update(dt, scene) {
       const frameScale = Math.max(0.65, Math.min(1.55, dt / 16.67));
-      this.x -= this.speed * frameScale;
+      this.x -= this.speed * frameScale * (GAME_CONFIG.movementSpeedMultiplier || 1);
       this.spin += dt * 0.012;
       const player = scene && scene.player;
       const fireballLaneTolerance = Number(GAME_CONFIG.enemies.gundos.fireballLaneTolerance) || GAME_CONFIG.yHitTolerance;
@@ -373,8 +373,9 @@
       }
 
       const frameScale = Math.max(0.7, Math.min(1.6, dt / 16.67));
-      this.x += dx / distance * config.speed * frameScale;
-      this.y += dy / distance * config.speed * GAME_CONFIG.ySpeedMultiplier * frameScale;
+      const movementSpeed = GAME_CONFIG.movementSpeedMultiplier || 1;
+      this.x += dx / distance * config.speed * frameScale * movementSpeed;
+      this.y += dy / distance * config.speed * GAME_CONFIG.ySpeedMultiplier * frameScale * movementSpeed;
       if (Math.abs(dx) > 3) this.facing = dx >= 0 ? 1 : -1;
 
       this.walkTimer += dt;
@@ -501,7 +502,7 @@
       const top = config.arenaTop || 540;
       const bottom = config.arenaBottom || 675;
       const speed = config.arenaMoveSpeed == null ? 0.6 : config.arenaMoveSpeed;
-      this.y += this.arenaMoveDirection * speed * Math.max(0.65, Math.min(1.55, dt / 16.67));
+      this.y += this.arenaMoveDirection * speed * Math.max(0.65, Math.min(1.55, dt / 16.67)) * (GAME_CONFIG.movementSpeedMultiplier || 1);
       if (this.y <= top) {
         this.y = top;
         this.arenaMoveDirection = 1;

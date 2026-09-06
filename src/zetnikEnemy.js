@@ -116,7 +116,8 @@ class ZetnikEnemy extends DogRegimeEnemy {
 
     let moveX = this.chargeDirection || this.facing || 1;
     let laneDelta = (this.chargeLaneY || this.y) - this.y;
-    let dtScale = Math.max(0.65, Math.min(1.55, dt / 16.67));
+    const movementSpeed = GAME_CONFIG.movementSpeedMultiplier || 1;
+    let dtScale = Math.max(0.65, Math.min(1.55, dt / 16.67)) * movementSpeed;
     this.x += Math.sign(moveX || 1) * this.speed * dtScale;
     if (Math.abs(laneDelta) > 2) {
       this.y += Math.sign(laneDelta) * Math.min(Math.abs(laneDelta), this.speed * GAME_CONFIG.ySpeedMultiplier * dtScale);
@@ -250,7 +251,7 @@ class ZetnikEnemy extends DogRegimeEnemy {
     }
 
     const player = scene && scene.player;
-    this.x += this.gundosDirection * this.gundosSpeed * frameScale;
+    this.x += this.gundosDirection * this.gundosSpeed * frameScale * (GAME_CONFIG.movementSpeedMultiplier || 1);
     this.facing = this.gundosDirection >= 0 ? 1 : -1;
     this.walkTimer += dt;
     if (this.walkTimer >= GAME_CONFIG.enemyWalkFrameMs) {
