@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.298",
+  "buildVersion": "0.4.299",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -7988,6 +7988,13 @@ class LevelScene {
     return type;
   }
 
+  getDifficultyCombatPickup() {
+    const difficulty = GAME_CONFIG.settings && GAME_CONFIG.settings.difficulty;
+    if (difficulty === 'easy') return 'medkit';
+    if (difficulty === 'hard') return 'pirozhok';
+    return 'tea';
+  }
+
   maybeDropPickup(enemy, options = {}) {
     if (!enemy || enemy.pickupDropped) return;
     enemy.pickupDropped = true;
@@ -8001,7 +8008,7 @@ class LevelScene {
     if (enemy.enemyType === 'zetnik') {
       if (enemy.gundosMinion || enemy.gundosGuarding || enemy.redirectedToBoss) return;
       if (this.gundosArenaActive || this.gundosIntroActive || this.gundosVictoryPending) return;
-      this.dropPickup('pirozhok', x, y);
+      this.dropPickup(this.getDifficultyCombatPickup(), x, y);
       return;
     }
   }
