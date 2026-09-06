@@ -880,10 +880,16 @@ class LevelScene {
       }
 
       if (typeof enemy.takeHit !== 'function') continue;
-      enemy.takeHit(damage, direction, 72);
+      // Support is a screen-wide impact, not a physical punch. Keep each
+      // enemy at its exact world position while still applying damage and KO.
+      const impactX = enemy.x;
+      const impactY = enemy.y;
+      enemy.takeHit(damage, direction, 0);
       if (enemy.alive && typeof enemy.startKnockdown === 'function') {
-        enemy.startKnockdown(direction, 54);
+        enemy.startKnockdown(direction, 0);
       }
+      enemy.x = impactX;
+      enemy.y = impactY;
       this.addDamageText(damage, enemy);
       affected += 1;
     }
