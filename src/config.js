@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  "buildVersion": "0.4.295",
+  "buildVersion": "0.4.296",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -451,6 +451,9 @@ const GAME_CONFIG = {
       "atmHitsToTrigger": 3,
       "moneyCount": 16,
       "moneyCollectionSpot": { "x": 790, "y": 642 },
+      "victoryFlashDurationMs": 1200,
+      "victoryFlashIntervalMs": 140,
+      "dissipateDurationMs": 2500,
       "voicePaths": [
         "assets/enemies/4ort/uss4.mp3",
         "assets/enemies/4ort/uss1.mp3",

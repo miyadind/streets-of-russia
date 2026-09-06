@@ -101,6 +101,20 @@
     enemy.chortSmokeTargetY = zone.top + 30 + Math.random() * Math.max(1, zone.bottom - zone.top - 60);
   }
 
+  function getVictoryTransition(scene) {
+    const config = getConfig();
+    const elapsed = Math.max(0, Number(scene && scene.chortVictoryTransitionMs) || 0);
+    const duration = Math.max(1, Number(config.victoryFlashDurationMs) || 1200);
+    const interval = Math.max(40, Number(config.victoryFlashIntervalMs) || 140);
+    const isFlashing = elapsed > 0 && elapsed < duration;
+    return {
+      elapsed,
+      duration,
+      isFlashing,
+      showClearSky: elapsed >= duration || (isFlashing && Math.floor(elapsed / interval) % 2 === 1)
+    };
+  }
+
   DogRegimeEnemy.prototype.initializeChortBoss = function (scene) {
     if (this.chortInitialized) return;
     const config = getConfig();
@@ -265,7 +279,13 @@
 
   DogRegimeEnemy.prototype.updateChortDissipate = function (dt, scene) {
     this.deadTimer += dt;
-    if (this.deadTimer > 2600) this.remove = true;
+    if (scene) {
+      scene.chortVictoryTransitionMs = this.deadTimer;
+      if (this.deadTimer >= (Number(getConfig().victoryFlashDurationMs) || 1200)) {
+        scene.chortVictoryBackgroundActive = true;
+      }
+    }
+    if (this.deadTimer > (Number(getConfig().dissipateDurationMs) || 2500)) this.remove = true;
   };
 
   const originalUpdate = DogRegimeEnemy.prototype.update;
@@ -319,7 +339,10 @@
       this.chortCanBeHit = false;
       this.canBeHit = false;
       this.nonPhysical = true;
-      if (this.__scene) this.__scene.chortVictoryBackgroundActive = true;
+      if (this.__scene) {
+        this.__scene.chortVictoryTransitionMs = 0;
+        this.__scene.chortVictoryBackgroundActive = false;
+      }
     }
   };
 
@@ -332,6 +355,44 @@
       return smoke[this.walkFrame % Math.max(1, smoke.length)] || images.idle;
     }
     return images.idle || originalGetImage.call(this);
+  };
+
+  const originalDraw = DogRegimeEnemy.prototype.draw;
+  DogRegimeEnemy.prototype.draw = function (ctx, debug = false) {
+    if (this.enemyType !== '4ort' || this.alive || this.chortPhase !== 'dissipate') {
+      return originalDraw.call(this, ctx, debug);
+    }
+
+    const img = this.getImage();
+    if (!img) return;
+    const config = getConfig();
+    const duration = Math.max(1, Number(config.dissipateDurationMs) || 2500);
+    const progress = Math.max(0, Math.min(1, (Number(this.deadTimer) || 0) / duration));
+    const scale = (this.scale || GAME_CONFIG.enemyScale) * (1 + progress * 0.36);
+    const width = img.width * scale;
+    const height = img.height * scale;
+
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, 1 - progress * 1.18);
+    ctx.translate(this.x, this.y - progress * 62);
+    if (this.facing === -1 && this.mirrorSprite !== false) ctx.scale(-1, 1);
+    ctx.drawImage(img, -width / 2, -height, width, height);
+    ctx.restore();
+
+    // A few fading smoke motes make the defeat read as dispersion, not a cut.
+    ctx.save();
+    ctx.fillStyle = 'rgba(178, 194, 217, 0.3)';
+    for (let index = 0; index < 7; index++) {
+      const seed = index * 1.73;
+      const driftX = Math.sin(seed) * (24 + progress * 94);
+      const driftY = -28 - index * 13 - progress * (52 + index * 9);
+      const radius = 13 + progress * 18;
+      ctx.globalAlpha = Math.max(0, (1 - progress) * (0.34 - index * 0.018));
+      ctx.beginPath();
+      ctx.arc(this.x + driftX, this.y + driftY, radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
   };
 
   const originalEnemyPhysicalPresence = LevelScene.prototype.enemyHasPhysicalPresence;
@@ -354,7 +415,8 @@
   const originalGetLevelBackgroundImage = LevelScene.prototype.getLevelBackgroundImage;
   LevelScene.prototype.getLevelBackgroundImage = function () {
     const level = this.getLevelConfig && this.getLevelConfig();
-    if (this.chortVictoryBackgroundActive && level && level.victoryBackground) {
+    const transition = getVictoryTransition(this);
+    if ((this.chortVictoryBackgroundActive || transition.showClearSky) && level && level.victoryBackground) {
       const background = this.images && this.images.levelVictoryBackgrounds && this.images.levelVictoryBackgrounds[level.victoryBackground];
       if (background && background.complete !== false && background.naturalWidth !== 0) return background;
     }
@@ -364,6 +426,14 @@
   const originalDrawForeground = LevelScene.prototype.drawLevelForegroundObjects;
   LevelScene.prototype.drawLevelForegroundObjects = function (ctx) {
     originalDrawForeground.call(this, ctx);
+    const transition = getVictoryTransition(this);
+    if (transition.isFlashing) {
+      const flash = 0.1 + 0.17 * Math.max(0, Math.sin(transition.elapsed / 42));
+      ctx.save();
+      ctx.fillStyle = 'rgba(220, 239, 255, ' + flash.toFixed(3) + ')';
+      ctx.fillRect(0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
+      ctx.restore();
+    }
     const boss = (this.enemies || []).find(enemy => enemy && enemy.enemyType === '4ort');
     if (!boss || !boss.chortMoney || !boss.chortMoney.length) return;
     ctx.save();
