@@ -1,7 +1,7 @@
 const DevPanel = {
   open: false,
   tab: 'PLAYER',
-  tabs: ['PLAYER', 'DOG', 'SUCKER', 'ZETNIK', 'BASTARD', 'LEVEL WAVES', 'LEVEL AREA'],
+  tabs: ['PLAYER', 'DOG', 'SUCKER', 'ZETNIK', 'BASTARD', '4ORT', 'LEVEL WAVES', 'LEVEL AREA'],
   statusText: 'Ready',
   statusUntil: 0,
   selectedLevelIndex: 0,
@@ -93,6 +93,17 @@ const DevPanel = {
       { label: 'Fall chance', path: 'enemies.bastard.fallChance', min: 0, max: 1, step: 0.01 },
       { label: 'Turn chance', path: 'enemies.bastard.turnChance', min: 0, max: 1, step: 0.05 },
       { label: 'Knockback X', path: 'enemies.bastard.knockbackX', min: 0, max: 180, step: 4 }
+    ],
+    '4ORT': [
+      { label: 'Boss HP', path: 'enemies.4ort.hp', min: 100, max: 1600, step: 10 },
+      { label: 'Boss scale', path: 'enemies.4ort.scale', min: 0.05, max: 0.32, step: 0.005 },
+      { label: 'ATM hits', path: 'enemies.4ort.atmHitsToTrigger', min: 1, max: 12, step: 1 },
+      { label: 'Money collect ms', path: 'enemies.4ort.moneyCollectMs', min: 1500, max: 18000, step: 250 },
+      { label: 'Smoke shot damage', path: 'enemies.4ort.smokeShotDamage', min: 1, max: 80, step: 1 },
+      { label: 'Smoke shot min ms', path: 'enemies.4ort.smokeShotMinMs', min: 400, max: 6000, step: 100 },
+      { label: 'Smoke shot max ms', path: 'enemies.4ort.smokeShotMaxMs', min: 600, max: 8000, step: 100 },
+      { label: 'Smoke shot speed', path: 'enemies.4ort.smokeShotSpeed', min: 2, max: 18, step: 0.25 },
+      { label: 'Smoke move speed', path: 'enemies.4ort.smokePhaseMoveSpeed', min: 0, max: 3, step: 0.05 }
     ]
   },
 

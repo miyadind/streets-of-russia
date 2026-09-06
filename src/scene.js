@@ -795,7 +795,16 @@ class LevelScene {
     for (const enemy of this.enemies) entities.push({ type: 'enemy', y: enemy.y, ref: enemy });
     entities.sort((a, b) => a.y - b.y);
 
-    for (const entity of entities) entity.ref.draw(ctx, this.debug);
+    const occluders = this.getLevelForegroundOccluders ? this.getLevelForegroundOccluders() : [];
+    const isBehindOccluder = (entity) => occluders.some((item) => {
+      const rect = item.maskRect;
+      return rect && entity.ref.x >= rect.x - 18 && entity.ref.x <= rect.x + rect.w + 18 && entity.y < item.occlusionY;
+    });
+    const behind = entities.filter(isBehindOccluder);
+    const front = entities.filter(entity => !isBehindOccluder(entity));
+    for (const entity of behind) entity.ref.draw(ctx, this.debug);
+    if (this.drawLevelForegroundOccluders) this.drawLevelForegroundOccluders(ctx, bg);
+    for (const entity of front) entity.ref.draw(ctx, this.debug);
     for (const pickup of this.pickups) pickup.draw(ctx);
     this.drawDamageTexts(ctx);
 

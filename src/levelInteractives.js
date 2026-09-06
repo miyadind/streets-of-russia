@@ -13,10 +13,18 @@
     return item && (item.type === 'breakablePoster' || item.type === 'breakableObject');
   }
 
+  function isChortAtm(item) {
+    return !!(item && item.type === 'chortAtm');
+  }
+
+  function isBreakableInteractive(item) {
+    return isBreakableSupportObject(item) || isChortAtm(item);
+  }
+
   // Reward objects use their visible hitbox directly. Unlike enemies, they do
   // not require the player to stand on a particular movement lane.
   function usesDirectAttackHitbox(item) {
-    return isBreakableSupportObject(item) && !!item.dropPickup;
+    return (isBreakableSupportObject(item) && !!item.dropPickup) || isChortAtm(item);
   }
 
   // Older dev exports predate the kiosk-specific fields, so its id remains the stable behavior key.
@@ -33,6 +41,10 @@
   }
 
   function isInteractiveUnlocked(scene, item) {
+    if (isChortAtm(item)) {
+      const boss = (scene && scene.enemies || []).find(enemy => enemy && enemy.enemyType === '4ort' && enemy.alive && !enemy.remove);
+      return !!(boss && boss.chortPhase === 'smoke');
+    }
     const requiresBossDefeat = item && (item.requiresBossDefeat || isFruitKiosk(item));
     return !requiresBossDefeat || !!(scene && (scene.gundosBossDefeated || scene.bossVictoryReady));
   }
@@ -65,7 +77,7 @@
 
   function canHitPoster(scene, item, state) {
     const player = scene && scene.player;
-    if (!player || !isInteractiveUnlocked(scene, item) || state.replaced || player.attackHasHit || !isAttackActive(player)) return false;
+    if (!player || !isInteractiveUnlocked(scene, item) || (!isChortAtm(item) && state.replaced) || player.attackHasHit || !isAttackActive(player)) return false;
     const attackBox = player.getHitbox && player.getHitbox();
     const posterBox = item.effectRect || item.hitbox;
     if (!attackBox || !posterBox || !item.hitbox) return false;
@@ -90,6 +102,23 @@
   }
 
   function hitPoster(scene, item, state) {
+    if (isChortAtm(item)) {
+      state.hits += 1;
+      state.flashMs = 150;
+      if (hasMetalImpact(item)) spawnMetalImpact(scene, item, state);
+      scene.player.attackHasHit = true;
+      scene.hitStop = Math.max(scene.hitStop || 0, GAME_CONFIG.playerHitStopMs || 55);
+      const bossConfig = GAME_CONFIG.enemies && GAME_CONFIG.enemies['4ort'];
+      const needed = Math.max(1, Number((bossConfig && bossConfig.atmHitsToTrigger) || item.hitsToTrigger || item.hitsToReplace) || 3);
+      if (state.hits >= needed) {
+        state.hits = 0;
+        state.flashMs = 0;
+        if (scene.triggerChortAtm) scene.triggerChortAtm(item);
+      }
+      playInteractiveImpact(item, state, false);
+      return;
+    }
+
     state.hits += 1;
     state.flashMs = 150;
     if (hasMetalImpact(item)) spawnMetalImpact(scene, item, state);
@@ -438,7 +467,7 @@
   LevelScene.prototype.updateLevelInteractives = function (dt) {
     const level = this.getLevelConfig();
     for (const item of getInteractivesForLevel(level)) {
-      if (!isBreakableSupportObject(item)) continue;
+      if (!isBreakableInteractive(item)) continue;
       const state = getPosterState(this, item);
       if (state.flashMs > 0) state.flashMs = Math.max(0, state.flashMs - dt);
       updateFruitBurst(state, dt);
@@ -482,9 +511,9 @@
         continue;
       }
 
-      if (!isBreakableSupportObject(item)) continue;
+      if (!isBreakableInteractive(item)) continue;
       const state = getPosterState(this, item);
-      if (!state.replaced && !hasFruitBurst(item) && item.showDamageEffect !== false) drawPosterDamage(ctx, item, state);
+      if (!isChortAtm(item) && !state.replaced && !hasFruitBurst(item) && item.showDamageEffect !== false) drawPosterDamage(ctx, item, state);
       if (hasFruitBurst(item)) drawFruitBurst(ctx, state);
       if (hasMetalImpact(item)) drawMetalImpact(ctx, state);
 
@@ -506,6 +535,24 @@
         }
         ctx.restore();
       }
+    }
+  };
+
+  LevelScene.prototype.getLevelForegroundOccluders = function () {
+    const level = this.getLevelConfig();
+    return getInteractivesForLevel(level).filter(item => isChortAtm(item) && item.maskRect && Number.isFinite(item.occlusionY));
+  };
+
+  LevelScene.prototype.drawLevelForegroundOccluders = function (ctx, background) {
+    const occluders = this.getLevelForegroundOccluders ? this.getLevelForegroundOccluders() : [];
+    if (!background || !background.naturalWidth || !occluders.length) return;
+    for (const item of occluders) {
+      const rect = item.maskRect;
+      const sx = rect.x / GAME_CONFIG.width * background.naturalWidth;
+      const sy = rect.y / GAME_CONFIG.height * background.naturalHeight;
+      const sw = rect.w / GAME_CONFIG.width * background.naturalWidth;
+      const sh = rect.h / GAME_CONFIG.height * background.naturalHeight;
+      ctx.drawImage(background, sx, sy, sw, sh, rect.x, rect.y, rect.w, rect.h);
     }
   };
 

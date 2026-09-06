@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  "buildVersion": "0.4.287",
+  "buildVersion": "0.4.288",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -411,6 +411,7 @@ const GAME_CONFIG = {
     "damage": 28,
     "appearSoundPath": "assets/enemies/4ort/uss4.mp3",
     "scale": 0.17,
+    "mirrorSprite": true,
       "bossMusic": true,
       "bossMusicKey": "siberiaTheme",
       "blocksWaveClear": true,
@@ -436,7 +437,21 @@ const GAME_CONFIG = {
       "attackActiveMs": 260,
       "attackRecoveryMs": 520,
       "bodyRadiusX": 62,
-      "bodyRadiusY": 26
+      "bodyRadiusY": 26,
+      "smokeShotDamage": 18,
+      "smokeShotMinMs": 1450,
+      "smokeShotMaxMs": 2200,
+      "smokeShotSpeed": 7.8,
+      "smokePhaseMoveSpeed": 0.72,
+      "humanIntroMs": 3200,
+      "moneyCollectMs": 7200,
+      "atmHitsToTrigger": 3,
+      "moneyCount": 6,
+      "voicePaths": [
+        "assets/enemies/4ort/uss4.mp3",
+        "assets/enemies/4ort/uss3.mp3",
+        "assets/enemies/4ort/uss2.mp3"
+      ]
     },
     "gundos": {
       "name": "gundos",
@@ -956,7 +971,7 @@ const GAME_CONFIG = {
     "siberia03": {
       "name": "Siberia 03",
       "region": "siberia",
-      "background": "assets/backgrounds/2/street03.png",
+      "background": "assets/backgrounds/2/street03_1.png",
       "music": "siberiaTheme",
       "musicMode": "boss",
       "waves": [
@@ -970,6 +985,34 @@ const GAME_CONFIG = {
               "delayMs": 0
             }
           ]
+        }
+      ],
+      "interactives": [
+        {
+          "id": "siberiaAtm",
+          "type": "chortAtm",
+          "hitsToTrigger": 3,
+          "hitbox": {
+            "x": 570,
+            "y": 365,
+            "w": 142,
+            "h": 208
+          },
+          "effectRect": {
+            "x": 554,
+            "y": 322,
+            "w": 176,
+            "h": 268
+          },
+          "maskRect": {
+            "x": 554,
+            "y": 322,
+            "w": 176,
+            "h": 268
+          },
+          "occlusionY": 578,
+          "hitEffect": "metalImpact",
+          "impactSfx": "garageGateMetal"
         }
       ],
       "walkZone": {

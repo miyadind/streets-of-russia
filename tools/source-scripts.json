@@ -26,6 +26,7 @@
   "src/mobileUi.js",
   "src/game.js",
   "src/levelInteractives.js",
+  "src/chortBoss.js",
   "src/horseEnemyPatch.js",
   "src/mobileBootstrap.js",
   "src/campaignMapUi.js",

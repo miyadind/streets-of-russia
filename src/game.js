@@ -463,6 +463,10 @@ class GameApp {
           loaded.chortWalk1 || loaded.chortIdle || loaded.dogWalk1,
           loaded.chortWalk2 || loaded.chortIdle || loaded.dogWalk0
         ],
+        smoke: [
+          loaded.chortSmoke0 || loaded.chortIdle || loaded.dogIdle,
+          loaded.chortSmoke1 || loaded.chortSmoke0 || loaded.chortIdle || loaded.dogIdle
+        ],
         attack: [loaded.chortIdle || loaded.dogAttack0, loaded.chortIdle || loaded.dogAttack1],
         dead: loaded.chortSmoke1 || loaded.chortSmoke0 || loaded.chortIdle || loaded.dogDead
       }
