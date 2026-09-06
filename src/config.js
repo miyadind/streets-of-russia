@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  "buildVersion": "0.4.294",
+  "buildVersion": "0.4.295",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -453,8 +453,10 @@ const GAME_CONFIG = {
       "moneyCollectionSpot": { "x": 790, "y": 642 },
       "voicePaths": [
         "assets/enemies/4ort/uss4.mp3",
+        "assets/enemies/4ort/uss1.mp3",
+        "assets/enemies/4ort/uss2.mp3",
         "assets/enemies/4ort/uss3.mp3",
-        "assets/enemies/4ort/uss2.mp3"
+        "assets/enemies/4ort/uss5.mp3"
       ]
     },
     "gundos": {
