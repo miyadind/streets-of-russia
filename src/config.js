@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  "buildVersion": "0.4.293",
+  "buildVersion": "0.4.294",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -404,7 +404,7 @@ const GAME_CONFIG = {
       "bodyRadiusY": 22
     },
   "4ort": {
-    "name": "4ort",
+    "name": "Губернатор",
     "bossId": "siberiaBoss",
     "hp": 460,
     "speed": 1.05,

@@ -126,14 +126,17 @@
 
   DogRegimeEnemy.prototype.playChortVoice = function () {
     const paths = getConfig().voicePaths || [];
-    const path = paths[this.chortVoiceIndex % paths.length];
-    if (!path) return;
+    // Every lure consumes one line. Once the configured sequence is over,
+    // later ATM cycles stay quiet instead of looping the first line again.
+    const path = paths[this.chortVoiceIndex];
+    if (!path) return false;
     AudioManager.playOptionalSfx('4ortVoice' + this.chortVoiceIndex, 1, {
       src: path,
       duckMusic: true,
       duckSource: '4ortVoice'
     });
     this.chortVoiceIndex += 1;
+    return true;
   };
 
   DogRegimeEnemy.prototype.beginChortSmoke = function (scene) {
@@ -152,17 +155,19 @@
     if (this.chortPhase !== 'smoke') return false;
     const config = getConfig();
     this.chortRound += 1;
-    this.chortPhase = this.chortRound >= 4 ? 'finalHuman' : 'approachMoney';
+    // The governor always has to cross the same vulnerable collection phase.
+    // On rounds 1-3 its HP is capped at a quarter threshold; from round 4 on
+    // it can be finished, or return to smoke when the player misses the window.
+    this.chortPhase = 'approachMoney';
     this.chortCanBeHit = true;
     this.canBeHit = true;
     this.nonPhysical = false;
     this.state = 'walk';
     this.intent = 'collect';
-    this.chortPhaseTimer = this.chortRound >= 4 ? 0 : (Number(config.moneyApproachMs) || 720);
+    this.chortPhaseTimer = Number(config.moneyApproachMs) || 720;
     this.chortMoneyTimer = 0;
     this.chortMoney = [];
 
-    if (this.chortRound >= 4) return true;
     const rect = (atm && (atm.effectRect || atm.hitbox)) || { x: 570, y: 365, w: 142, h: 208 };
     const count = Math.max(6, Number(config.moneyCount) || 16);
     for (let index = 0; index < count; index++) {
@@ -294,8 +299,11 @@
     }
 
     const amount = Math.max(0, Number(damage) || 0);
-    const isFinal = this.chortPhase === 'finalHuman';
-    const phaseFloor = isFinal ? 0 : Math.max(0, this.maxHp - this.maxHp * Math.min(3, this.chortRound) / 4);
+    const canFinish = this.chortRound >= 4 &&
+      (this.chortPhase === 'approachMoney' || this.chortPhase === 'collecting');
+    const phaseFloor = canFinish
+      ? 0
+      : Math.max(0, this.maxHp - this.maxHp * Math.min(3, this.chortRound) / 4);
     const oldHp = this.hp;
     this.hp = Math.max(phaseFloor, this.hp - amount);
     this.flash = 130;
@@ -303,7 +311,7 @@
     this.x += (Math.sign(direction) || 0) * Math.min(12, Number(knockback) || 0);
     this.clampToScreen();
 
-    if (isFinal && oldHp > 0 && this.hp <= 0) {
+    if (canFinish && oldHp > 0 && this.hp <= 0) {
       this.alive = false;
       this.state = 'dead';
       this.chortPhase = 'dissipate';
