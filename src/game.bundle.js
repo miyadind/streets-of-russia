@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.310",
+  "buildVersion": "0.4.311",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -1686,6 +1686,12 @@ window.Assets = {
     walk:['assets/enemies/NEgay/walk01.png?v=negay-refresh-2','assets/enemies/NEgay/walk02.png?v=negay-refresh-2','assets/enemies/NEgay/walk03.png?v=negay-refresh-2'],
     attack:['assets/enemies/NEgay/Whiplash.png?v=negay-refresh-2','assets/enemies/NEgay/WhiplashFinal.png?v=negay-final-1'],
     dead:'assets/enemies/NEgay/knockdown.png?v=negay-refresh-2'
+  },
+  gundon:{
+    idle:'assets/enemies/GunDon/idle.png',
+    walk:['assets/enemies/GunDon/walk01.png'],
+    scared:'assets/enemies/GunDon/Scared.png',
+    appear:'assets/enemies/GunDon/appear.mp3'
   },
   '4ort':{
     idle:'assets/enemies/4ort/idle.png',
@@ -11714,6 +11720,10 @@ class GameApp {
       negayAttack1: Assets.negay.attack[1],
       negayDead: Assets.negay.dead,
 
+      gundonIdle: Assets.gundon.idle,
+      gundonWalk0: Assets.gundon.walk[0],
+      gundonScared: Assets.gundon.scared,
+
       chortIdle: Assets['4ort'].idle,
       chortWalk0: Assets['4ort'].walk[0],
       chortWalk1: Assets['4ort'].walk[1],
@@ -11825,6 +11835,12 @@ class GameApp {
         walk: [loaded.negayWalk0 || loaded.dogWalk0, loaded.negayWalk1 || loaded.negayWalk0 || loaded.dogWalk1, loaded.negayWalk2 || loaded.negayWalk0 || loaded.dogWalk0],
         attack: [loaded.negayAttack0 || loaded.dogAttack0, loaded.negayAttack1 || loaded.negayAttack0 || loaded.dogAttack1],
         dead: loaded.negayDead || loaded.negayIdle || loaded.dogDead
+      },
+      gundon: {
+        idle: loaded.gundonIdle || loaded.dogIdle,
+        walk: [loaded.gundonWalk0 || loaded.gundonIdle || loaded.dogWalk0],
+        scared: loaded.gundonScared || loaded.gundonIdle || loaded.dogIdle,
+        dead: loaded.gundonScared || loaded.gundonIdle || loaded.dogDead
       },
       '4ort': {
         idle: loaded.chortIdle || loaded.dogIdle,
@@ -18046,6 +18062,12 @@ if (document.readyState === 'loading') {
       label: 'goydenish',
       name: 'Гойденыш',
       description: 'Бывший артист и недосвященник, который окончательно заигрался и потерял себя как человека. Вместо ролей он теперь разыгрывает патриотическую клоунаду, вместо проповедей зовёт людей воевать, а любую жестокость пытается представить великой исторической миссией. Чем безумнее звучит его речь, тем громче он кричит «Гойда!», надеясь, что пафос заменит здравый смысл.'
+    },
+    {
+      type: 'gundon',
+      label: 'gundon',
+      name: 'Господин Пушка',
+      description: 'Местный царёк, помешанный на оружии, медалях, роскоши и собственном величии. С беззащитными он грозный воин, перед настоящим хозяином — верный, трусливый слуга. Обвешивает себя наградами, окружает родственниками и охраной и так старательно изображает великого правителя, будто боится, что без всей этой мишуры кто-нибудь увидит обычного прислужника системы.'
     },
     {
       type: '4ort',

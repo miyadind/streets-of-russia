@@ -344,6 +344,10 @@ class GameApp {
       negayAttack1: Assets.negay.attack[1],
       negayDead: Assets.negay.dead,
 
+      gundonIdle: Assets.gundon.idle,
+      gundonWalk0: Assets.gundon.walk[0],
+      gundonScared: Assets.gundon.scared,
+
       chortIdle: Assets['4ort'].idle,
       chortWalk0: Assets['4ort'].walk[0],
       chortWalk1: Assets['4ort'].walk[1],
@@ -455,6 +459,12 @@ class GameApp {
         walk: [loaded.negayWalk0 || loaded.dogWalk0, loaded.negayWalk1 || loaded.negayWalk0 || loaded.dogWalk1, loaded.negayWalk2 || loaded.negayWalk0 || loaded.dogWalk0],
         attack: [loaded.negayAttack0 || loaded.dogAttack0, loaded.negayAttack1 || loaded.negayAttack0 || loaded.dogAttack1],
         dead: loaded.negayDead || loaded.negayIdle || loaded.dogDead
+      },
+      gundon: {
+        idle: loaded.gundonIdle || loaded.dogIdle,
+        walk: [loaded.gundonWalk0 || loaded.gundonIdle || loaded.dogWalk0],
+        scared: loaded.gundonScared || loaded.gundonIdle || loaded.dogIdle,
+        dead: loaded.gundonScared || loaded.gundonIdle || loaded.dogDead
       },
       '4ort': {
         idle: loaded.chortIdle || loaded.dogIdle,

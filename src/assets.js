@@ -100,6 +100,12 @@ window.Assets = {
     attack:['assets/enemies/NEgay/Whiplash.png?v=negay-refresh-2','assets/enemies/NEgay/WhiplashFinal.png?v=negay-final-1'],
     dead:'assets/enemies/NEgay/knockdown.png?v=negay-refresh-2'
   },
+  gundon:{
+    idle:'assets/enemies/GunDon/idle.png',
+    walk:['assets/enemies/GunDon/walk01.png'],
+    scared:'assets/enemies/GunDon/Scared.png',
+    appear:'assets/enemies/GunDon/appear.mp3'
+  },
   '4ort':{
     idle:'assets/enemies/4ort/idle.png',
     walk:['assets/enemies/4ort/walk01.png','assets/enemies/4ort/walk02.png','assets/enemies/4ort/walk03.png'],
