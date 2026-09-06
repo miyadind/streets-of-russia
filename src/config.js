@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  "buildVersion": "0.4.289",
+  "buildVersion": "0.4.290",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -410,6 +410,7 @@ const GAME_CONFIG = {
     "speed": 1.05,
     "damage": 28,
     "appearSoundPath": "assets/enemies/4ort/uss4.mp3",
+    "silentAppear": true,
     "scale": 0.17,
     "mirrorSprite": true,
       "bossMusic": true,
@@ -439,14 +440,17 @@ const GAME_CONFIG = {
       "bodyRadiusX": 62,
       "bodyRadiusY": 26,
       "smokeShotDamage": 18,
-      "smokeShotMinMs": 1450,
-      "smokeShotMaxMs": 2200,
-      "smokeShotSpeed": 7.8,
-      "smokePhaseMoveSpeed": 0.72,
-      "humanIntroMs": 3200,
-      "moneyCollectMs": 7200,
+      "smokeShotMinMs": 980,
+      "smokeShotMaxMs": 1560,
+      "smokeShotSpeed": 8.6,
+      "smokeShotSpreadY": 78,
+      "smokePhaseMoveSpeed": 3.2,
+      "humanIntroMs": 1800,
+      "moneyApproachMs": 720,
+      "moneyCollectMs": 8000,
       "atmHitsToTrigger": 3,
-      "moneyCount": 6,
+      "moneyCount": 16,
+      "moneyCollectionSpot": { "x": 790, "y": 642 },
       "voicePaths": [
         "assets/enemies/4ort/uss4.mp3",
         "assets/enemies/4ort/uss3.mp3",
@@ -979,6 +983,35 @@ const GAME_CONFIG = {
           "trigger": "onEnter",
           "enemies": [
             {
+              "type": "dogRegime",
+              "count": 2,
+              "side": "right",
+              "delayMs": 450
+            }
+          ]
+        },
+        {
+          "trigger": "afterWaveCleared",
+          "enemies": [
+            {
+              "type": "dogRegime",
+              "count": 1,
+              "side": "right",
+              "delayMs": 350
+            },
+            {
+              "type": "zetnik",
+              "count": 1,
+              "side": "left",
+              "delayMs": 1250
+            }
+          ]
+        },
+        {
+          "trigger": "afterWaveCleared",
+          "appearDelayMs": 1100,
+          "enemies": [
+            {
               "type": "4ort",
               "count": 1,
               "side": "right",
@@ -1018,7 +1051,7 @@ const GAME_CONFIG = {
       "walkZone": {
         "left": 0,
         "right": 1280,
-        "top": 575,
+        "top": 500,
         "bottom": 730
       },
       "playerStart": {

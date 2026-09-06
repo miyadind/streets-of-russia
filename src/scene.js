@@ -335,6 +335,8 @@ class LevelScene {
 
   playEnemyAppearSound(type) {
     if (!type) return;
+    const enemyConfig = (GAME_CONFIG.enemies && GAME_CONFIG.enemies[type]) || {};
+    if (enemyConfig.silentAppear) return;
     if (type === 'dogRegime') {
       if (AudioManager.stopHorseAppearSfx) AudioManager.stopHorseAppearSfx();
       return;

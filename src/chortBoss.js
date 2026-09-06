@@ -2,14 +2,16 @@
   if (typeof DogRegimeEnemy === 'undefined' || typeof LevelScene === 'undefined') return;
 
   class ChortSmokeProjectile {
-    constructor(x, y, direction, image, config, laneY) {
+    constructor(x, y, direction, image, config, targetY) {
       this.enemyType = 'chortSmokeProjectile';
       this.x = x;
       this.y = y;
       this.direction = direction >= 0 ? 1 : -1;
       this.image = image || null;
-      this.laneY = laneY;
+      this.targetY = targetY;
+      this.laneY = y;
       this.speed = Number(config.smokeShotSpeed) || 7.8;
+      this.verticalSpeed = (Number(targetY) - y) / 92;
       this.damage = Number(config.smokeShotDamage) || 18;
       this.scale = 0.085;
       this.hitboxSize = 58;
@@ -25,6 +27,8 @@
       const frame = Math.max(0.65, Math.min(1.45, dt / 16.67));
       this.age += dt;
       this.x += this.direction * this.speed * frame;
+      this.y += this.verticalSpeed * frame;
+      this.laneY = this.y;
       const player = scene && scene.player;
       if (player && player.hp > 0 && Combat.canProjectileHit(this, player, {
         laneY: this.laneY,
@@ -108,8 +112,8 @@
     this.chortShotTimer = Number(config.smokeShotMinMs) || 1450;
     this.chortMoney = [];
     this.chortMoneyTimer = 0;
-    // The spawn sound already plays the first line, so later human phases use lines two and three.
-    this.chortVoiceIndex = 1;
+    // Voice lines play only when the ATM spills money, never at the boss spawn.
+    this.chortVoiceIndex = 0;
     this.chortCanBeHit = false;
     this.canBeHit = false;
     this.nonPhysical = false;
@@ -148,19 +152,19 @@
     if (this.chortPhase !== 'smoke') return false;
     const config = getConfig();
     this.chortRound += 1;
-    this.chortPhase = this.chortRound >= 4 ? 'finalHuman' : 'collecting';
+    this.chortPhase = this.chortRound >= 4 ? 'finalHuman' : 'approachMoney';
     this.chortCanBeHit = true;
     this.canBeHit = true;
     this.nonPhysical = false;
-    this.state = 'idle';
+    this.state = 'walk';
     this.intent = 'collect';
-    this.chortPhaseTimer = this.chortRound >= 4 ? 0 : (Number(config.moneyCollectMs) || 7200);
+    this.chortPhaseTimer = this.chortRound >= 4 ? 0 : (Number(config.moneyApproachMs) || 720);
     this.chortMoneyTimer = 0;
     this.chortMoney = [];
 
     if (this.chortRound >= 4) return true;
     const rect = (atm && (atm.effectRect || atm.hitbox)) || { x: 570, y: 365, w: 142, h: 208 };
-    const count = Math.max(3, Number(config.moneyCount) || 6);
+    const count = Math.max(6, Number(config.moneyCount) || 16);
     for (let index = 0; index < count; index++) {
       this.chortMoney.push({
         x: rect.x + 18 + Math.random() * Math.max(10, rect.w - 36),
@@ -169,6 +173,7 @@
         age: 0
       });
     }
+    this.playChortVoice();
     return true;
   };
 
@@ -187,19 +192,40 @@
     }
 
     if (this.chortPhase === 'smoke') {
-      const speed = (Number(config.smokePhaseMoveSpeed) || 0.72) * frame;
+      const speed = (Number(config.smokePhaseMoveSpeed) || 3.2) * frame;
       if (!Number.isFinite(this.chortSmokeTargetX) || Math.abs(this.chortSmokeTargetX - this.x) < 12) chooseSmokeTarget(this, scene);
       this.x += Math.sign(this.chortSmokeTargetX - this.x) * Math.min(Math.abs(this.chortSmokeTargetX - this.x), speed);
       this.y += Math.sign(this.chortSmokeTargetY - this.y) * Math.min(Math.abs(this.chortSmokeTargetY - this.y), speed * 0.62);
       this.chortShotTimer -= dt;
       if (this.chortShotTimer <= 0) {
         const player = scene && scene.player;
-        const laneY = player ? Math.max(zone.top, Math.min(zone.bottom, player.y)) : this.y;
+        const spread = Number(config.smokeShotSpreadY) || 78;
+        const laneY = player
+          ? Math.max(zone.top, Math.min(zone.bottom, player.y + (Math.random() * 2 - 1) * spread))
+          : zone.top + Math.random() * Math.max(1, zone.bottom - zone.top);
         const direction = player && player.x < this.x ? -1 : 1;
         const images = this.getEnemyImages();
         const smokeFrames = images.smoke || [];
-        scene.enemies.push(new ChortSmokeProjectile(this.x + direction * 72, laneY - 44, direction, smokeFrames[this.walkFrame % smokeFrames.length], config, laneY));
+        scene.enemies.push(new ChortSmokeProjectile(this.x + direction * 72, this.y - 78, direction, smokeFrames[this.walkFrame % smokeFrames.length], config, laneY));
         this.chortShotTimer = (Number(config.smokeShotMinMs) || 1450) + Math.random() * Math.max(1, (Number(config.smokeShotMaxMs) || 2200) - (Number(config.smokeShotMinMs) || 1450));
+      }
+      this.clampToScreen();
+      return;
+    }
+
+    if (this.chortPhase === 'approachMoney') {
+      const spot = config.moneyCollectionSpot || { x: 790, y: 642 };
+      const speed = 3.8 * frame;
+      this.x += Math.sign(spot.x - this.x) * Math.min(Math.abs(spot.x - this.x), speed);
+      this.y += Math.sign(spot.y - this.y) * Math.min(Math.abs(spot.y - this.y), speed * 0.58);
+      this.chortPhaseTimer -= dt;
+      if (this.chortPhaseTimer <= 0 || (Math.abs(spot.x - this.x) < 8 && Math.abs(spot.y - this.y) < 8)) {
+        this.x = spot.x;
+        this.y = spot.y;
+        this.chortPhase = 'collecting';
+        this.chortPhaseTimer = Number(config.moneyCollectMs) || 8000;
+        this.chortMoneyTimer = 0;
+        this.state = 'collect';
       }
       this.clampToScreen();
       return;
@@ -208,12 +234,8 @@
     if (this.chortPhase === 'collecting') {
       this.chortPhaseTimer -= dt;
       this.chortMoneyTimer += dt;
-      const target = this.chortMoney[0];
-      if (target) {
-        const move = 1.35 * frame;
-        this.x += Math.sign(target.x - this.x) * Math.min(Math.abs(target.x - this.x), move);
-        this.y += Math.sign(target.y - this.y) * Math.min(Math.abs(target.y - this.y), move * 0.45);
-      }
+      this.intent = 'collect';
+      this.state = 'collect';
       const collectEvery = Math.max(380, (Number(config.moneyCollectMs) || 7200) / Math.max(1, this.chortMoney.length));
       if (this.chortMoneyTimer >= collectEvery && this.chortMoney.length) {
         this.chortMoney.shift();
@@ -223,10 +245,9 @@
         this.chortMoney = [];
         this.chortCanBeHit = false;
         this.canBeHit = false;
-        this.nonPhysical = false;
-        this.chortPhase = 'humanIntro';
-        this.chortPhaseTimer = Number(config.humanIntroMs) || 3200;
-        this.playChortVoice();
+        this.nonPhysical = true;
+        this.chortPhase = 'smoke';
+        this.beginChortSmoke(scene);
       }
       this.clampToScreen();
       return;
