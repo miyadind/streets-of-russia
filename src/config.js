@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  "buildVersion": "0.4.319",
+  "buildVersion": "0.4.320",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -184,7 +184,7 @@ const GAME_CONFIG = {
     "dogRegime": {
       "name": "Пёс режима",
       "hp": 90,
-      "speed": 1.35,
+      "speed": 1.89,
       "damage": 10,
       "scale": 0.105,
       "attackScale": 1.11,
@@ -382,7 +382,7 @@ const GAME_CONFIG = {
     "negay": {
       "name": "NEgay",
       "hp": 130,
-      "speed": 2.2,
+      "speed": 3.08,
       "damage": 32,
       "appearSoundPath": "assets/enemies/NEgay/appear.mp3?v=negay-appear-2",
       "scale": 0.12,
