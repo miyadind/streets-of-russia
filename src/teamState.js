@@ -4,8 +4,7 @@
   const TEAM_HEROES = ['alexey', 'anna', 'boris'];
 
   function getHeroMaxHp(heroKey) {
-    const hero = GAME_CONFIG.heroes && GAME_CONFIG.heroes[heroKey];
-    return hero && Number(hero.hp) ? Number(hero.hp) : 100;
+    return getDifficultyHeroHp(heroKey);
   }
 
   function clamp(value, min, max) {
@@ -40,6 +39,7 @@
   GameApp.prototype.applySavedHeroHp = function (player, heroKey) {
     this.ensureTeamHpState();
     const maxHp = getHeroMaxHp(heroKey);
+    player.maxHp = maxHp;
     player.hp = clamp(this.heroHp[heroKey] == null ? maxHp : Number(this.heroHp[heroKey]), 1, maxHp);
   };
 

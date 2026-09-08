@@ -270,7 +270,7 @@ const DevPanel = {
       const hero = GAME_CONFIG.heroes[player.heroKey];
       player.speed = hero.speed;
       player.damage = hero.damage;
-      player.maxHp = hero.hp;
+      player.maxHp = getDifficultyHeroHp(hero);
       player.hp = Math.min(player.hp, player.maxHp);
     }
     for (const enemy of game.scene.enemies || []) {

@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.316",
+  "buildVersion": "0.4.317",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -19,6 +19,11 @@ const GAME_CONFIG = {
     "sfxEnabled": true,
     "sfxVolume": 0.85,
     "musicVolume": 0.45
+  },
+  "heroHealthByDifficulty": {
+    "easy": 1,
+    "normal": 0.7,
+    "hard": 0.5
   },
   "laneTop": 515,
   "laneBottom": 675,
@@ -1606,6 +1611,17 @@ const GAME_CONFIG = {
   }
 };
 
+function getDifficultyHeroHp(heroKey) {
+  const hero = typeof heroKey === 'string'
+    ? GAME_CONFIG.heroes && GAME_CONFIG.heroes[heroKey]
+    : heroKey;
+  const baseHp = hero && Number(hero.hp) ? Number(hero.hp) : 100;
+  const difficulty = GAME_CONFIG.settings && GAME_CONFIG.settings.difficulty || 'normal';
+  const multipliers = GAME_CONFIG.heroHealthByDifficulty || {};
+  const multiplier = Number(multipliers[difficulty]);
+  return Math.max(1, Math.round(baseHp * (Number.isFinite(multiplier) ? multiplier : 0.7)));
+}
+
 const DEFAULT_GAME_CONFIG = JSON.parse(JSON.stringify(GAME_CONFIG));
 
 
@@ -2986,8 +3002,8 @@ class Player {
     const hero = GAME_CONFIG.heroes[heroKey];
     this.heroKey = heroKey;
     this.name = hero.name;
-    this.maxHp = hero.hp;
-    this.hp = hero.hp;
+    this.maxHp = getDifficultyHeroHp(hero);
+    this.hp = this.maxHp;
     this.speed = hero.speed;
     this.damage = hero.damage;
     this.scale = hero.scale || GAME_CONFIG.playerScale;
@@ -8364,7 +8380,7 @@ const DevPanel = {
       const hero = GAME_CONFIG.heroes[player.heroKey];
       player.speed = hero.speed;
       player.damage = hero.damage;
-      player.maxHp = hero.hp;
+      player.maxHp = getDifficultyHeroHp(hero);
       player.hp = Math.min(player.hp, player.maxHp);
     }
     for (const enemy of game.scene.enemies || []) {
@@ -17467,8 +17483,7 @@ window.addEventListener('load', () => {
   const TEAM_HEROES = ['alexey', 'anna', 'boris'];
 
   function getHeroMaxHp(heroKey) {
-    const hero = GAME_CONFIG.heroes && GAME_CONFIG.heroes[heroKey];
-    return hero && Number(hero.hp) ? Number(hero.hp) : 100;
+    return getDifficultyHeroHp(heroKey);
   }
 
   function clamp(value, min, max) {
@@ -17503,6 +17518,7 @@ window.addEventListener('load', () => {
   GameApp.prototype.applySavedHeroHp = function (player, heroKey) {
     this.ensureTeamHpState();
     const maxHp = getHeroMaxHp(heroKey);
+    player.maxHp = maxHp;
     player.hp = clamp(this.heroHp[heroKey] == null ? maxHp : Number(this.heroHp[heroKey]), 1, maxHp);
   };
 
@@ -20419,8 +20435,7 @@ if (document.readyState === 'loading') {
   }
 
   function getHeroMaxHp(heroKey) {
-    const hero = GAME_CONFIG.heroes && GAME_CONFIG.heroes[heroKey];
-    return hero && Number(hero.hp) ? Number(hero.hp) : 100;
+    return getDifficultyHeroHp(heroKey);
   }
 
   function defaultHeroHp() {
@@ -21447,7 +21462,7 @@ if (document.readyState === 'loading') {
   GameApp.prototype.startHeroRecovery = function (heroKey) {
     if (!heroKey || !GAME_CONFIG.heroes || !GAME_CONFIG.heroes[heroKey]) return;
     this.ensureHeroRecoveryState();
-    const maxHp = Number(GAME_CONFIG.heroes[heroKey].hp) || 100;
+    const maxHp = getDifficultyHeroHp(heroKey);
     const target = Math.ceil(maxHp * 0.5);
     this.heroRecovery[heroKey] = { target, elapsedMs: 0, durationMs: RECOVERY_DURATION_MS };
     if (this.heroHp) this.heroHp[heroKey] = 0;

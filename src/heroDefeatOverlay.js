@@ -38,7 +38,7 @@
   GameApp.prototype.startHeroRecovery = function (heroKey) {
     if (!heroKey || !GAME_CONFIG.heroes || !GAME_CONFIG.heroes[heroKey]) return;
     this.ensureHeroRecoveryState();
-    const maxHp = Number(GAME_CONFIG.heroes[heroKey].hp) || 100;
+    const maxHp = getDifficultyHeroHp(heroKey);
     const target = Math.ceil(maxHp * 0.5);
     this.heroRecovery[heroKey] = { target, elapsedMs: 0, durationMs: RECOVERY_DURATION_MS };
     if (this.heroHp) this.heroHp[heroKey] = 0;

@@ -72,8 +72,7 @@
   }
 
   function getHeroMaxHp(heroKey) {
-    const hero = GAME_CONFIG.heroes && GAME_CONFIG.heroes[heroKey];
-    return hero && Number(hero.hp) ? Number(hero.hp) : 100;
+    return getDifficultyHeroHp(heroKey);
   }
 
   function defaultHeroHp() {

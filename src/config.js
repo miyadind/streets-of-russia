@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  "buildVersion": "0.4.316",
+  "buildVersion": "0.4.317",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -12,6 +12,11 @@ const GAME_CONFIG = {
     "sfxEnabled": true,
     "sfxVolume": 0.85,
     "musicVolume": 0.45
+  },
+  "heroHealthByDifficulty": {
+    "easy": 1,
+    "normal": 0.7,
+    "hard": 0.5
   },
   "laneTop": 515,
   "laneBottom": 675,
@@ -1598,5 +1603,16 @@ const GAME_CONFIG = {
     }
   }
 };
+
+function getDifficultyHeroHp(heroKey) {
+  const hero = typeof heroKey === 'string'
+    ? GAME_CONFIG.heroes && GAME_CONFIG.heroes[heroKey]
+    : heroKey;
+  const baseHp = hero && Number(hero.hp) ? Number(hero.hp) : 100;
+  const difficulty = GAME_CONFIG.settings && GAME_CONFIG.settings.difficulty || 'normal';
+  const multipliers = GAME_CONFIG.heroHealthByDifficulty || {};
+  const multiplier = Number(multipliers[difficulty]);
+  return Math.max(1, Math.round(baseHp * (Number.isFinite(multiplier) ? multiplier : 0.7)));
+}
 
 const DEFAULT_GAME_CONFIG = JSON.parse(JSON.stringify(GAME_CONFIG));

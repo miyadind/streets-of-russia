@@ -3,8 +3,8 @@ class Player {
     const hero = GAME_CONFIG.heroes[heroKey];
     this.heroKey = heroKey;
     this.name = hero.name;
-    this.maxHp = hero.hp;
-    this.hp = hero.hp;
+    this.maxHp = getDifficultyHeroHp(hero);
+    this.hp = this.maxHp;
     this.speed = hero.speed;
     this.damage = hero.damage;
     this.scale = hero.scale || GAME_CONFIG.playerScale;
