@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.321",
+  "buildVersion": "0.4.322",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -1747,6 +1747,20 @@ window.Assets = {
     walk:['assets/enemies/4ort/walk01.png','assets/enemies/4ort/walk02.png','assets/enemies/4ort/walk03.png'],
     smoke:['assets/enemies/4ort/smoke_idle01.png','assets/enemies/4ort/smoke_idle02.png'],
     appear:'assets/enemies/4ort/uss4.mp3'
+  },
+  // Lightweight, card-sized portraits. These are intentionally separate from
+  // combat sprites so the Bestiary never waits for the gameplay asset queue.
+  bestiary:{
+    dogRegime:'assets/bestiary/dog-regime.webp',
+    zetnik:'assets/bestiary/zetnik.webp',
+    sucker:'assets/bestiary/sucker.webp',
+    bastard:'assets/bestiary/bastard.webp',
+    horse:'assets/bestiary/horse.webp',
+    negay:'assets/bestiary/negay.webp',
+    goydenish:'assets/bestiary/goydenish.webp',
+    gundon:'assets/bestiary/gundon.webp',
+    '4ort':'assets/bestiary/4ort.webp',
+    gundos:'assets/bestiary/gundos.webp'
   },
   supportFigureCount: 18,
   pickups:{
@@ -11673,6 +11687,9 @@ class GameApp {
       dogDead: Assets.dog.dead,
       pickupMedkit: Assets.pickups && Assets.pickups.medkit
     };
+    for (const [type, source] of Object.entries(Assets.bestiary || {})) {
+      paths['bestiary_' + type] = source;
+    }
     for (let i = 1; i <= Assets.supportFigureCount; i++) {
       const id = 'support' + String(i).padStart(2, '0');
       paths['pickup' + id] = Assets.pickups && Assets.pickups[id];
@@ -11712,6 +11729,10 @@ class GameApp {
         dead: loaded.dogDead
       }
     };
+    this.images.bestiary = {};
+    for (const type of Object.keys(Assets.bestiary || {})) {
+      this.images.bestiary[type] = loaded['bestiary_' + type] || null;
+    }
     this.images.pickups = { medkit: loaded.pickupMedkit };
     for (let i = 1; i <= Assets.supportFigureCount; i++) {
       const id = 'support' + String(i).padStart(2, '0');
@@ -18416,10 +18437,11 @@ if (document.readyState === 'loading') {
       if (!entries.length) return;
       this.index = Math.max(0, Math.min(entries.length - 1, this.index));
       const entry = entries[this.index];
+      const portraitImage = game.images.bestiary && game.images.bestiary[entry.type];
       const enemyImages = game.images.enemies && game.images.enemies[entry.type];
-      const image = enemyImages && (enemyImages.idle ||
+      const image = portraitImage || (enemyImages && (enemyImages.idle ||
         (enemyImages.walk && enemyImages.walk[0]) ||
-        enemyImages.dead);
+        enemyImages.dead));
 
       ctx.save();
       ctx.textAlign = 'center';

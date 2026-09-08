@@ -112,6 +112,20 @@ window.Assets = {
     smoke:['assets/enemies/4ort/smoke_idle01.png','assets/enemies/4ort/smoke_idle02.png'],
     appear:'assets/enemies/4ort/uss4.mp3'
   },
+  // Lightweight, card-sized portraits. These are intentionally separate from
+  // combat sprites so the Bestiary never waits for the gameplay asset queue.
+  bestiary:{
+    dogRegime:'assets/bestiary/dog-regime.webp',
+    zetnik:'assets/bestiary/zetnik.webp',
+    sucker:'assets/bestiary/sucker.webp',
+    bastard:'assets/bestiary/bastard.webp',
+    horse:'assets/bestiary/horse.webp',
+    negay:'assets/bestiary/negay.webp',
+    goydenish:'assets/bestiary/goydenish.webp',
+    gundon:'assets/bestiary/gundon.webp',
+    '4ort':'assets/bestiary/4ort.webp',
+    gundos:'assets/bestiary/gundos.webp'
+  },
   supportFigureCount: 18,
   pickups:{
     medkit:'assets/pickups/medkit.png?v=pickup-rebuilt-2',

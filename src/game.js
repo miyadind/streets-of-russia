@@ -201,6 +201,9 @@ class GameApp {
       dogDead: Assets.dog.dead,
       pickupMedkit: Assets.pickups && Assets.pickups.medkit
     };
+    for (const [type, source] of Object.entries(Assets.bestiary || {})) {
+      paths['bestiary_' + type] = source;
+    }
     for (let i = 1; i <= Assets.supportFigureCount; i++) {
       const id = 'support' + String(i).padStart(2, '0');
       paths['pickup' + id] = Assets.pickups && Assets.pickups[id];
@@ -240,6 +243,10 @@ class GameApp {
         dead: loaded.dogDead
       }
     };
+    this.images.bestiary = {};
+    for (const type of Object.keys(Assets.bestiary || {})) {
+      this.images.bestiary[type] = loaded['bestiary_' + type] || null;
+    }
     this.images.pickups = { medkit: loaded.pickupMedkit };
     for (let i = 1; i <= Assets.supportFigureCount; i++) {
       const id = 'support' + String(i).padStart(2, '0');

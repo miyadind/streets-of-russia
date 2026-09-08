@@ -228,10 +228,11 @@
       if (!entries.length) return;
       this.index = Math.max(0, Math.min(entries.length - 1, this.index));
       const entry = entries[this.index];
+      const portraitImage = game.images.bestiary && game.images.bestiary[entry.type];
       const enemyImages = game.images.enemies && game.images.enemies[entry.type];
-      const image = enemyImages && (enemyImages.idle ||
+      const image = portraitImage || (enemyImages && (enemyImages.idle ||
         (enemyImages.walk && enemyImages.walk[0]) ||
-        enemyImages.dead);
+        enemyImages.dead));
 
       ctx.save();
       ctx.textAlign = 'center';
