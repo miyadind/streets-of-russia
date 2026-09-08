@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.317",
+  "buildVersion": "0.4.318",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -12186,6 +12186,11 @@ class GameApp {
       this.scene = new LevelScene(this, this.images);
       if (window.CampaignRuntime) window.CampaignRuntime.startActiveRegionScene(this);
       else if (this.scene.spawnInitialWave) this.scene.spawnInitialWave();
+
+      // Do not enter the playable state until the selected screen's own
+      // background is ready. Otherwise the previous screen remains visible
+      // for one or more frames during a campaign transition.
+      await this.ensureSceneBackgroundLoaded(this.scene);
       this.setState('level');
       const levelKey = this.scene && this.scene.getLevelKey ? this.scene.getLevelKey() : null;
       const level = levelKey && GAME_CONFIG.levels ? GAME_CONFIG.levels[levelKey] : null;
@@ -12196,6 +12201,19 @@ class GameApp {
     } finally {
       this.startingLevel = false;
     }
+  }
+
+  async ensureSceneBackgroundLoaded(scene) {
+    if (!scene || !scene.getLevelConfig || !this.images) return;
+    const level = scene.getLevelConfig();
+    const source = level && level.background;
+    const screenIndex = Number(scene.screenIndex);
+    if (!source || !Number.isFinite(screenIndex)) return;
+
+    const image = await this.loadSingleImage(source, source);
+    if (!image) return;
+    if (!Array.isArray(this.images.streets)) this.images.streets = [];
+    this.images.streets[screenIndex] = image;
   }
 
   update(dt) {
@@ -21266,6 +21284,9 @@ if (document.readyState === 'loading') {
   const previousCompleteCampaignRegion = GameApp.prototype.completeCampaignRegion;
   GameApp.prototype.completeCampaignRegion = function () {
     const completedRegionId = this.campaignMap && this.campaignMap.getActiveRegionId ? this.campaignMap.getActiveRegionId() : 'farEast';
+    // The boss flow bypasses LevelScene.nextScreen, so persist the active
+    // hero before this.scene is cleared for the campaign map.
+    if (this.saveCurrentHeroHp) this.saveCurrentHeroHp();
     if (this.campaignMap && this.campaignMap.completeActiveRegion) this.campaignMap.completeActiveRegion();
     this.scene = null;
     this.resumeTarget = 'campaignMap';
@@ -21276,7 +21297,9 @@ if (document.readyState === 'loading') {
   const previousStartLevel = GameApp.prototype.startLevel;
   GameApp.prototype.startLevel = async function () {
     await previousStartLevel.call(this);
-    restartSceneAtActiveRegion(this);
+    // CampaignRuntime selects the target screen before the level becomes
+    // visible. The fallback remains for builds without that runtime.
+    if (!window.CampaignRuntime) restartSceneAtActiveRegion(this);
   };
 
   window.StoryFlowPatch = {

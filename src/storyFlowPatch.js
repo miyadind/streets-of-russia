@@ -445,6 +445,9 @@
   const previousCompleteCampaignRegion = GameApp.prototype.completeCampaignRegion;
   GameApp.prototype.completeCampaignRegion = function () {
     const completedRegionId = this.campaignMap && this.campaignMap.getActiveRegionId ? this.campaignMap.getActiveRegionId() : 'farEast';
+    // The boss flow bypasses LevelScene.nextScreen, so persist the active
+    // hero before this.scene is cleared for the campaign map.
+    if (this.saveCurrentHeroHp) this.saveCurrentHeroHp();
     if (this.campaignMap && this.campaignMap.completeActiveRegion) this.campaignMap.completeActiveRegion();
     this.scene = null;
     this.resumeTarget = 'campaignMap';
@@ -455,7 +458,9 @@
   const previousStartLevel = GameApp.prototype.startLevel;
   GameApp.prototype.startLevel = async function () {
     await previousStartLevel.call(this);
-    restartSceneAtActiveRegion(this);
+    // CampaignRuntime selects the target screen before the level becomes
+    // visible. The fallback remains for builds without that runtime.
+    if (!window.CampaignRuntime) restartSceneAtActiveRegion(this);
   };
 
   window.StoryFlowPatch = {
