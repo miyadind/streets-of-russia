@@ -331,9 +331,17 @@ const CampaignMapScreen = {
     AudioManager.unlock();
     AudioManager.playSfx('menuSelect', 0.85);
     const selection = this.getSelectedLevel();
+    if (!selection.key) return;
     game.campaignStartLevelKey = null;
     game.campaignRunRegionIndex = this.getDisplayRegionIndex();
     game.devStartLevelKey = selection.key;
+    // Keep an explicit pending target through character selection. This is
+    // deliberately separate from map progress, which remains unchanged.
+    game.pendingLevelStart = {
+      key: selection.key,
+      regionIndex: game.campaignRunRegionIndex,
+      developer: true
+    };
     if (window.CampaignFlow && window.CampaignFlow.openCharacterSelect) {
       window.CampaignFlow.openCharacterSelect(game, 'campaignStart');
       return;

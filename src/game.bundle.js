@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.320",
+  "buildVersion": "0.4.321",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -9862,9 +9862,17 @@ const CampaignMapScreen = {
     AudioManager.unlock();
     AudioManager.playSfx('menuSelect', 0.85);
     const selection = this.getSelectedLevel();
+    if (!selection.key) return;
     game.campaignStartLevelKey = null;
     game.campaignRunRegionIndex = this.getDisplayRegionIndex();
     game.devStartLevelKey = selection.key;
+    // Keep an explicit pending target through character selection. This is
+    // deliberately separate from map progress, which remains unchanged.
+    game.pendingLevelStart = {
+      key: selection.key,
+      regionIndex: game.campaignRunRegionIndex,
+      developer: true
+    };
     if (window.CampaignFlow && window.CampaignFlow.openCharacterSelect) {
       window.CampaignFlow.openCharacterSelect(game, 'campaignStart');
       return;
@@ -10263,7 +10271,8 @@ const CampaignMapScreen = {
     const order = getLevelOrder();
     if (!game) return -1;
     // A developer-map choice must always override a stale ordinary map choice.
-    return order.indexOf(game.devStartLevelKey || game.campaignStartLevelKey || '');
+    const pendingKey = game.pendingLevelStart && game.pendingLevelStart.key;
+    return order.indexOf(pendingKey || game.devStartLevelKey || game.campaignStartLevelKey || '');
   }
 
   function getStartScreenIndex(game) {
@@ -10273,6 +10282,7 @@ const CampaignMapScreen = {
 
   function clearDevStartSelection(game) {
     if (!game) return;
+    game.pendingLevelStart = null;
     game.devStartLevelKey = null;
     game.campaignStartLevelKey = null;
     game.campaignRunRegionIndex = null;
@@ -10329,6 +10339,19 @@ const CampaignMapScreen = {
     const maxIndex = Math.max(0, order.length - 1);
     const targetIndex = clamp(Number(screenIndex) || 0, 0, maxIndex);
     resetGundosSceneState(scene);
+    // A new LevelScene spawns screen 1 in its constructor. Clear that
+    // provisional state before applying a map/developer target.
+    scene.enemies = [];
+    scene.pickups = [];
+    scene.damageTexts = [];
+    scene.pendingPickupDrops = [];
+    scene.scheduledGroups = [];
+    scene.pendingWave = null;
+    scene.pendingWaveTimer = 0;
+    scene.nonBlockingWaveTimer = 0;
+    scene.currentWaveIndex = -1;
+    scene.encounterActive = false;
+    scene.encounterCleared = false;
     scene.screenIndex = targetIndex;
     placePlayerAtLevelStart(scene);
     if (!options || options.spawn !== false) {
@@ -10361,8 +10384,7 @@ const CampaignMapScreen = {
       setSceneScreen(game.scene, targetIndex);
     }
     playSceneMusic(game.scene);
-    game.devStartLevelKey = null;
-    game.campaignStartLevelKey = null;
+    clearDevStartSelection(game);
   }
 
   window.CampaignRuntime = {
@@ -16971,6 +16993,12 @@ window.addEventListener('load', () => {
     };
 
     CharacterSelect.confirm = function (game) {
+      // CampaignFlow owns selection from the map. This keeps the selected
+      // developer screen intact instead of falling back to the first level.
+      if (window.CampaignFlow && window.CampaignFlow.confirmCharacterSelect) {
+        window.CampaignFlow.confirmCharacterSelect(this, game);
+        return;
+      }
       const heroKey = this.heroes[this.selectedIndex];
       if (this.isHeroDisabled(game, heroKey)) {
         AudioManager.playSfx('menuBack', 0.65);

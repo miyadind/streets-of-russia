@@ -252,6 +252,12 @@
     };
 
     CharacterSelect.confirm = function (game) {
+      // CampaignFlow owns selection from the map. This keeps the selected
+      // developer screen intact instead of falling back to the first level.
+      if (window.CampaignFlow && window.CampaignFlow.confirmCharacterSelect) {
+        window.CampaignFlow.confirmCharacterSelect(this, game);
+        return;
+      }
       const heroKey = this.heroes[this.selectedIndex];
       if (this.isHeroDisabled(game, heroKey)) {
         AudioManager.playSfx('menuBack', 0.65);
