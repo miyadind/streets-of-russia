@@ -917,11 +917,37 @@ class LevelScene {
     return type;
   }
 
-  getDifficultyCombatPickup() {
-    const difficulty = GAME_CONFIG.settings && GAME_CONFIG.settings.difficulty;
-    if (difficulty === 'easy') return 'medkit';
-    if (difficulty === 'hard') return 'pirozhok';
-    return 'tea';
+  getCombatPickupRegion() {
+    const levelKey = this.getLevelKey && this.getLevelKey();
+    const regions = Array.isArray(GAME_CONFIG.campaignRegions) ? GAME_CONFIG.campaignRegions : [];
+    const region = regions.find(item => item && Array.isArray(item.levels) && item.levels.includes(levelKey));
+    if (!region) return null;
+    const screenIndex = region.levels.indexOf(levelKey);
+    return { id: region.mapId, screenIndex };
+  }
+
+  canDropCombatPickup(enemy) {
+    if (!enemy || enemy.enemyType === 'bastard') return false;
+    if (enemy.gundosMinion || enemy.gundosGuarding || enemy.redirectedToBoss) return false;
+    if (this.gundosArenaActive || this.gundosIntroActive || this.gundosVictoryPending) return false;
+
+    const level = this.getLevelConfig ? this.getLevelConfig() : null;
+    if (level && level.musicMode === 'boss') return false;
+
+    const region = this.getCombatPickupRegion();
+    if (!region || region.screenIndex < 0 || region.screenIndex > 1) return false;
+
+    const game = this.game;
+    if (!game) return false;
+    if (!game.combatPickupDropsByRegion || typeof game.combatPickupDropsByRegion !== 'object') {
+      game.combatPickupDropsByRegion = {};
+    }
+    return !game.combatPickupDropsByRegion[region.id];
+  }
+
+  getRandomCombatPickup() {
+    const types = ['medkit', 'tea', 'pirozhok'];
+    return types[Math.floor(Math.random() * types.length)];
   }
 
   maybeDropPickup(enemy, options = {}) {
@@ -929,17 +955,15 @@ class LevelScene {
     enemy.pickupDropped = true;
     if (options.source !== 'player') return;
 
+    if (!this.canDropCombatPickup(enemy)) return;
+
     const rawX = Number.isFinite(enemy.x) ? enemy.x : GAME_CONFIG.width / 2;
     const rawY = Number.isFinite(enemy.y) ? enemy.y : GAME_CONFIG.laneBottom;
     const x = Math.max(70, Math.min(GAME_CONFIG.width - 70, rawX));
     const y = Math.max(GAME_CONFIG.laneTop + 35, Math.min(GAME_CONFIG.laneBottom, rawY));
-
-    if (enemy.enemyType === 'zetnik') {
-      if (enemy.gundosMinion || enemy.gundosGuarding || enemy.redirectedToBoss) return;
-      if (this.gundosArenaActive || this.gundosIntroActive || this.gundosVictoryPending) return;
-      this.dropPickup(this.getDifficultyCombatPickup(), x, y);
-      return;
-    }
+    const region = this.getCombatPickupRegion();
+    this.game.combatPickupDropsByRegion[region.id] = true;
+    this.dropPickup(this.getRandomCombatPickup(), x, y);
   }
 
   flushPickupDrops() {

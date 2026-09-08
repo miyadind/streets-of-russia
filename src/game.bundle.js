@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.315",
+  "buildVersion": "0.4.316",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -247,7 +247,7 @@ const GAME_CONFIG = {
     "sucker": {
       "name": "Sucker",
       "hp": 180,
-      "speed": 1.15,
+      "speed": 1.495,
       "damage": 12,
       "scale": 0.13,
       "bossMusic": false,
@@ -255,12 +255,12 @@ const GAME_CONFIG = {
       "attackStartDistance": 420,
       "minDistance": 220,
       "alignToleranceY": 30,
-      "slideSpeed": 7.25,
+      "slideSpeed": 9.425,
       "slideRange": 520,
       "windupMs": 560,
       "slideRecoveryMs": 650,
       "interruptedRecoveryMs": 1100,
-      "fastRetreatSpeed": 9.666666666666666,
+      "fastRetreatSpeed": 12.566666666666666,
       "fastRetreatMs": 620,
       "hitsBeforeFastRetreat": 2,
       "counterRangeX": 74,
@@ -8020,11 +8020,37 @@ class LevelScene {
     return type;
   }
 
-  getDifficultyCombatPickup() {
-    const difficulty = GAME_CONFIG.settings && GAME_CONFIG.settings.difficulty;
-    if (difficulty === 'easy') return 'medkit';
-    if (difficulty === 'hard') return 'pirozhok';
-    return 'tea';
+  getCombatPickupRegion() {
+    const levelKey = this.getLevelKey && this.getLevelKey();
+    const regions = Array.isArray(GAME_CONFIG.campaignRegions) ? GAME_CONFIG.campaignRegions : [];
+    const region = regions.find(item => item && Array.isArray(item.levels) && item.levels.includes(levelKey));
+    if (!region) return null;
+    const screenIndex = region.levels.indexOf(levelKey);
+    return { id: region.mapId, screenIndex };
+  }
+
+  canDropCombatPickup(enemy) {
+    if (!enemy || enemy.enemyType === 'bastard') return false;
+    if (enemy.gundosMinion || enemy.gundosGuarding || enemy.redirectedToBoss) return false;
+    if (this.gundosArenaActive || this.gundosIntroActive || this.gundosVictoryPending) return false;
+
+    const level = this.getLevelConfig ? this.getLevelConfig() : null;
+    if (level && level.musicMode === 'boss') return false;
+
+    const region = this.getCombatPickupRegion();
+    if (!region || region.screenIndex < 0 || region.screenIndex > 1) return false;
+
+    const game = this.game;
+    if (!game) return false;
+    if (!game.combatPickupDropsByRegion || typeof game.combatPickupDropsByRegion !== 'object') {
+      game.combatPickupDropsByRegion = {};
+    }
+    return !game.combatPickupDropsByRegion[region.id];
+  }
+
+  getRandomCombatPickup() {
+    const types = ['medkit', 'tea', 'pirozhok'];
+    return types[Math.floor(Math.random() * types.length)];
   }
 
   maybeDropPickup(enemy, options = {}) {
@@ -8032,17 +8058,15 @@ class LevelScene {
     enemy.pickupDropped = true;
     if (options.source !== 'player') return;
 
+    if (!this.canDropCombatPickup(enemy)) return;
+
     const rawX = Number.isFinite(enemy.x) ? enemy.x : GAME_CONFIG.width / 2;
     const rawY = Number.isFinite(enemy.y) ? enemy.y : GAME_CONFIG.laneBottom;
     const x = Math.max(70, Math.min(GAME_CONFIG.width - 70, rawX));
     const y = Math.max(GAME_CONFIG.laneTop + 35, Math.min(GAME_CONFIG.laneBottom, rawY));
-
-    if (enemy.enemyType === 'zetnik') {
-      if (enemy.gundosMinion || enemy.gundosGuarding || enemy.redirectedToBoss) return;
-      if (this.gundosArenaActive || this.gundosIntroActive || this.gundosVictoryPending) return;
-      this.dropPickup(this.getDifficultyCombatPickup(), x, y);
-      return;
-    }
+    const region = this.getCombatPickupRegion();
+    this.game.combatPickupDropsByRegion[region.id] = true;
+    this.dropPickup(this.getRandomCombatPickup(), x, y);
   }
 
   flushPickupDrops() {
@@ -17146,6 +17170,7 @@ window.addEventListener('load', () => {
       this.supportFigures = supportFigures;
       this.supportFigureDrops = supportFigureDrops;
       this.supportFiguresCollected = supportFiguresCollected;
+      this.combatPickupDropsByRegion = {};
       this.characterSelectMode = null;
       this.casualtyRespawn = null;
       this.gameOverRegionStartIndex = 0;

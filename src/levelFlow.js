@@ -540,6 +540,7 @@
       this.supportFigures = supportFigures;
       this.supportFigureDrops = supportFigureDrops;
       this.supportFiguresCollected = supportFiguresCollected;
+      this.combatPickupDropsByRegion = {};
       this.characterSelectMode = null;
       this.casualtyRespawn = null;
       this.gameOverRegionStartIndex = 0;
