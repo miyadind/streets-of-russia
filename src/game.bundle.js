@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.318",
+  "buildVersion": "0.4.319",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -1088,12 +1088,19 @@ const GAME_CONFIG = {
             "h": 268
           },
           "maskRect": {
-            "x": 548,
-            "y": 332,
-            "w": 190,
-            "h": 378
+            "x": 540,
+            "y": 326,
+            "w": 196,
+            "h": 286
           },
-          "occlusionY": 665,
+          "occlusionY": 584,
+          "blockFootprint": {
+            "x": 540,
+            "y": 566,
+            "w": 194,
+            "h": 46,
+            "insetTop": 18
+          },
           "hitEffect": "metalImpact",
           "impactSfx": "garageGateMetal"
         }
@@ -12468,6 +12475,12 @@ window.addEventListener('load', () => {
     return getInteractivesForLevel(level).filter(isVehicleObstacle);
   }
 
+  function getSolidObstacles(level) {
+    return getInteractivesForLevel(level).filter((item) =>
+      isVehicleObstacle(item) || (isChortAtm(item) && (item.blockFootprint || item.blockBox))
+    );
+  }
+
   function getPosterState(scene, item) {
     if (!scene.levelInteractiveState) scene.levelInteractiveState = {};
     const key = scene.getLevelKey() + ':' + item.id;
@@ -12794,10 +12807,29 @@ window.addEventListener('load', () => {
     };
   }
 
-  function resolveActorFromObstacle(scene, actor, obstacle) {
-    if (!scene || !actor || !obstacle || !obstacle.blockBox) return;
+  function getObstacleBlockBoxes(obstacle) {
+    if (!obstacle) return [];
+    if (!obstacle.blockFootprint) return obstacle.blockBox ? [obstacle.blockBox] : [];
+
+    const footprint = obstacle.blockFootprint;
+    const inset = Math.max(0, Math.min(Number(footprint.insetTop) || 0, footprint.w / 2 - 1));
+    const rowHeight = Math.max(6, Math.ceil(footprint.h / 3));
+    return [0, 1, 2].map((row) => {
+      const progress = row / 2;
+      const rowInset = Math.round(inset * (1 - progress));
+      const y = footprint.y + row * rowHeight;
+      return {
+        x: footprint.x + rowInset,
+        y,
+        w: footprint.w - rowInset * 2,
+        h: Math.min(rowHeight, footprint.y + footprint.h - y)
+      };
+    }).filter((box) => box.w > 0 && box.h > 0);
+  }
+
+  function resolveActorFromBlock(scene, actor, block) {
+    if (!scene || !actor || !block) return;
     const actorBox = getActorObstacleBox(actor);
-    const block = obstacle.blockBox;
     if (!actorBox || !Combat.overlap(actorBox, block)) return;
 
     const leftPush = block.x - (actorBox.x + actorBox.w);
@@ -12825,6 +12857,23 @@ window.addEventListener('load', () => {
     actor.y += chosen.dy;
   }
 
+  function resolveActorFromObstacle(scene, actor, obstacle) {
+    for (const block of getObstacleBlockBoxes(obstacle)) {
+      resolveActorFromBlock(scene, actor, block);
+    }
+  }
+
+  function drawFootprint(ctx, footprint) {
+    const inset = Math.max(0, Math.min(Number(footprint.insetTop) || 0, footprint.w / 2 - 1));
+    ctx.beginPath();
+    ctx.moveTo(footprint.x + inset, footprint.y);
+    ctx.lineTo(footprint.x + footprint.w - inset, footprint.y);
+    ctx.lineTo(footprint.x + footprint.w, footprint.y + footprint.h);
+    ctx.lineTo(footprint.x, footprint.y + footprint.h);
+    ctx.closePath();
+    ctx.stroke();
+  }
+
   function drawVehicleObstacle(scene, ctx, item) {
     const rect = item && item.drawRect;
     if (!rect) return;
@@ -12844,7 +12893,7 @@ window.addEventListener('load', () => {
 
   LevelScene.prototype.resolveObstacleCollisions = function (actor) {
     const level = this.getLevelConfig();
-    for (const obstacle of getVehicleObstacles(level)) {
+    for (const obstacle of getSolidObstacles(level)) {
       resolveActorFromObstacle(this, actor, obstacle);
     }
   };
@@ -12940,6 +12989,11 @@ window.addEventListener('load', () => {
         if (item.effectRect) {
           ctx.strokeStyle = 'rgba(80, 190, 255, 0.9)';
           ctx.strokeRect(item.effectRect.x, item.effectRect.y, item.effectRect.w, item.effectRect.h);
+        }
+        if (item.blockFootprint) {
+          ctx.strokeStyle = 'rgba(255, 122, 40, 0.95)';
+          ctx.lineWidth = 3;
+          drawFootprint(ctx, item.blockFootprint);
         }
         if (!usesDirectAttackHitbox(item) && Number.isFinite(item.laneY)) {
           ctx.strokeStyle = 'rgba(80,255,120,0.85)';
@@ -13045,6 +13099,7 @@ window.addEventListener('load', () => {
       if (item && item.hitbox) keys.push('hitbox');
       if (item && item.drawRect) keys.push('drawRect');
       if (item && item.blockBox) keys.push('blockBox');
+      if (item && item.blockFootprint) keys.push('blockFootprint');
       if (item && item.effectRect) keys.push('effectRect');
       if (item && !usesDirectAttackHitbox(item) && Number.isFinite(item.laneY)) keys.push('lane');
       if (!keys.length) keys.push('hitbox');
@@ -13171,7 +13226,7 @@ window.addEventListener('load', () => {
       ctx.fillText('Box:', r.box.x + 24, r.box.y + 123);
       this.drawButton(ctx, r.boxPrev.x, r.boxPrev.y, r.boxPrev.w, r.boxPrev.h, '<');
       this.drawButton(ctx, r.boxNext.x, r.boxNext.y, r.boxNext.w, r.boxNext.h, '>');
-      ctx.fillStyle = this.selectedObjectBoxKey === 'hitbox' ? '#ffe65a' : this.selectedObjectBoxKey === 'effectRect' ? '#50beff' : '#50ff78';
+      ctx.fillStyle = this.selectedObjectBoxKey === 'hitbox' ? '#ffe65a' : this.selectedObjectBoxKey === 'effectRect' ? '#50beff' : this.selectedObjectBoxKey === 'blockFootprint' ? '#ff7a28' : '#50ff78';
       ctx.font = 'bold 15px Arial';
       ctx.fillText(String(this.selectedObjectBoxKey).toUpperCase(), r.box.x + 160, r.box.y + 123);
 
