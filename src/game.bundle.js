@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.313",
+  "buildVersion": "0.4.314",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -10434,7 +10434,8 @@ const CampaignMapScreen = {
     game.characterSelectMode = null;
     game.runInProgress = true;
     game.resumeTarget = 'level';
-    if (game.resetTeamRun) game.resetTeamRun({ preserveCampaignSupport: true });
+    // Team state is initialized by "New Game". Starting another screen from
+    // the campaign map must retain each hero's current HP and recovery state.
     game.startLevel();
   }
 
@@ -17858,7 +17859,7 @@ window.addEventListener('load', () => {
       game.characterSelectMode = null;
       game.runInProgress = true;
       game.resumeTarget = 'level';
-      if (game.resetTeamRun) game.resetTeamRun({ preserveCampaignSupport: true });
+      // A map selection continues the current run; do not refill the team.
       game.startLevel();
     };
 

@@ -84,7 +84,8 @@
     game.characterSelectMode = null;
     game.runInProgress = true;
     game.resumeTarget = 'level';
-    if (game.resetTeamRun) game.resetTeamRun({ preserveCampaignSupport: true });
+    // Team state is initialized by "New Game". Starting another screen from
+    // the campaign map must retain each hero's current HP and recovery state.
     game.startLevel();
   }
 

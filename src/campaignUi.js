@@ -242,7 +242,7 @@
       game.characterSelectMode = null;
       game.runInProgress = true;
       game.resumeTarget = 'level';
-      if (game.resetTeamRun) game.resetTeamRun({ preserveCampaignSupport: true });
+      // A map selection continues the current run; do not refill the team.
       game.startLevel();
     };
 
