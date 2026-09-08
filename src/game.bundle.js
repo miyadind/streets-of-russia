@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.322",
+  "buildVersion": "0.4.323",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -2388,6 +2388,10 @@ const AudioManager = {
     for (const key of this.menuPlaylist) {
       const audio = this.music[key];
       audio.loop = false;
+      // The next menu track must already be playable when the current one
+      // finishes; metadata-only preload can leave a silent gap or stall.
+      audio.preload = 'auto';
+      try { audio.load(); } catch (error) {}
       audio.addEventListener('ended', () => this.playNextMenuTrack(key));
     }
   },
@@ -2403,6 +2407,17 @@ const AudioManager = {
     const nextKey = playlist[(index + 1) % playlist.length];
     game.menuMusicKey = nextKey;
     this.playMusic(nextKey, true, true);
+  },
+
+  syncMenuPlaylist(game) {
+    if (!game || !game.isMenuState || !game.isMenuState(game.state) || !this.isMusicOn() || this.isMusicPausedByGame()) return;
+    const key = this.currentMusicKey;
+    const track = this.currentMusic;
+    if (!key || !track || !(this.menuPlaylist || []).includes(key)) return;
+
+    const duration = Number(track.duration) || 0;
+    const isAtEnd = track.ended || (duration > 0 && track.currentTime >= duration - 0.12);
+    if (isAtEnd) this.playNextMenuTrack(key);
   },
 
   unregisterExternalAudio(audio) {
@@ -12065,6 +12080,7 @@ class GameApp {
   isMenuState(state) {
     return state === 'mainMenu' ||
       state === 'settings' ||
+      state === 'bestiary' ||
       state === 'characterSelect' ||
       state === 'campaignMap' ||
       state === 'playerNameEntry' ||
@@ -12268,6 +12284,7 @@ class GameApp {
 
   update(dt) {
     this.syncMusicPauseState();
+    if (AudioManager.syncMenuPlaylist) AudioManager.syncMenuPlaylist(this);
     DevPanel.update(this);
     this.syncMusicPauseState();
     this.onCampaignMapOpened();

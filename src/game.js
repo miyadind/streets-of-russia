@@ -579,6 +579,7 @@ class GameApp {
   isMenuState(state) {
     return state === 'mainMenu' ||
       state === 'settings' ||
+      state === 'bestiary' ||
       state === 'characterSelect' ||
       state === 'campaignMap' ||
       state === 'playerNameEntry' ||
@@ -782,6 +783,7 @@ class GameApp {
 
   update(dt) {
     this.syncMusicPauseState();
+    if (AudioManager.syncMenuPlaylist) AudioManager.syncMenuPlaylist(this);
     DevPanel.update(this);
     this.syncMusicPauseState();
     this.onCampaignMapOpened();
