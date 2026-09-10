@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.325",
+  "buildVersion": "0.4.326",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -2868,7 +2868,9 @@ const AudioManager = {
 
     if (isSameTrack && !forceRestart) {
       next.volume = this.getMusicVolume();
-      if (!next.paused && this.musicActuallyPlaying) return;
+      // A pending play() promise may not have updated musicActuallyPlaying yet.
+      // Calling play() again during that window can restart the menu track.
+      if (!next.paused) return;
     }
 
     if (!isSameTrack || forceRestart) {
@@ -12148,8 +12150,7 @@ class GameApp {
 
     const isPlaying = AudioManager.currentMusicKey === key &&
       AudioManager.currentMusic === track &&
-      !track.paused &&
-      AudioManager.musicActuallyPlaying;
+      !track.paused;
     if (!isPlaying) AudioManager.playMusic(key, false, true);
   }
 

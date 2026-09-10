@@ -647,8 +647,7 @@ class GameApp {
 
     const isPlaying = AudioManager.currentMusicKey === key &&
       AudioManager.currentMusic === track &&
-      !track.paused &&
-      AudioManager.musicActuallyPlaying;
+      !track.paused;
     if (!isPlaying) AudioManager.playMusic(key, false, true);
   }
 

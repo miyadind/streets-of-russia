@@ -604,7 +604,9 @@ const AudioManager = {
 
     if (isSameTrack && !forceRestart) {
       next.volume = this.getMusicVolume();
-      if (!next.paused && this.musicActuallyPlaying) return;
+      // A pending play() promise may not have updated musicActuallyPlaying yet.
+      // Calling play() again during that window can restart the menu track.
+      if (!next.paused) return;
     }
 
     if (!isSameTrack || forceRestart) {
