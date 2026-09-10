@@ -325,6 +325,9 @@
   const previousUpdate = GameApp.prototype.update;
   GameApp.prototype.update = function (dt) {
     if (this.state === 'bestiary') {
+      this.syncMusicPauseState();
+      if (AudioManager.syncMenuPlaylist) AudioManager.syncMenuPlaylist(this);
+      if (this.maintainMainMenuMusic) this.maintainMainMenuMusic();
       const click = Input.consumePointer();
       if (click && this.handleSpeakerClick(click)) return;
       BestiaryScreen.update(this, click);

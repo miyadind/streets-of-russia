@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.324",
+  "buildVersion": "0.4.325",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -12136,6 +12136,23 @@ class GameApp {
     AudioManager.playMusic(this.getMenuMusicKey(), false, true);
   }
 
+  maintainMainMenuMusic() {
+    // These screens share the menu playlist. Keep the selected track alive
+    // when a browser pauses it during an in-menu state transition.
+    if (this.state !== 'mainMenu' && this.state !== 'settings' && this.state !== 'bestiary') return;
+    if (!AudioManager.isMusicOn() || AudioManager.isMusicPausedByGame()) return;
+
+    const key = this.getMenuMusicKey();
+    const track = AudioManager.music && AudioManager.music[key];
+    if (!track || (track.dataset && track.dataset.failed === 'true')) return;
+
+    const isPlaying = AudioManager.currentMusicKey === key &&
+      AudioManager.currentMusic === track &&
+      !track.paused &&
+      AudioManager.musicActuallyPlaying;
+    if (!isPlaying) AudioManager.playMusic(key, false, true);
+  }
+
   ensureCampaignMapMusic() {
     if (this.state !== 'campaignMap' || !AudioManager.isMusicOn() || AudioManager.isMusicPausedByGame()) return;
 
@@ -12285,6 +12302,7 @@ class GameApp {
   update(dt) {
     this.syncMusicPauseState();
     if (AudioManager.syncMenuPlaylist) AudioManager.syncMenuPlaylist(this);
+    this.maintainMainMenuMusic();
     DevPanel.update(this);
     this.syncMusicPauseState();
     this.onCampaignMapOpened();
@@ -18551,6 +18569,9 @@ if (document.readyState === 'loading') {
   const previousUpdate = GameApp.prototype.update;
   GameApp.prototype.update = function (dt) {
     if (this.state === 'bestiary') {
+      this.syncMusicPauseState();
+      if (AudioManager.syncMenuPlaylist) AudioManager.syncMenuPlaylist(this);
+      if (this.maintainMainMenuMusic) this.maintainMainMenuMusic();
       const click = Input.consumePointer();
       if (click && this.handleSpeakerClick(click)) return;
       BestiaryScreen.update(this, click);
