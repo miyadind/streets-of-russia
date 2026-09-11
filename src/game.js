@@ -20,6 +20,7 @@ class GameApp {
     this.storyAssetsPromise = null;
     this.startingLevel = false;
     this.imageRequests = new Map();
+    this.loadingProgress = { completed: 0, total: 0, message: 'ПОДГОТОВКА ИГРЫ...' };
   }
 
   async init() {
@@ -32,30 +33,37 @@ class GameApp {
     requestAnimationFrame((time) => this.loop(time));
 
     this.images = await this.loadInitialImages();
-    this.setState('splash');
-    this.storyAssetsPromise = new Promise((resolve) => {
-      // Let the first splash frame paint before background loading starts.
-      setTimeout(() => {
-        this.loadStoryAssets().then(() => {
-          this.storyAssetsReady = true;
-          resolve(this.images);
-        }).catch((error) => {
-          console.error('Story asset loading failed:', error);
-          this.storyAssetsReady = true;
-          resolve(this.images);
-        });
-      }, 0);
-    });
-
-    this.startupAssetsPromise = this.storyAssetsPromise.then(() => this.loadStartupAssets().then(() => {
-      this.startupAssetsReady = true;
+    this.setLoadingMessage('ЗАГРУЖАЕМ МЕНЮ, ИНТРО И КАРТУ...');
+    this.storyAssetsPromise = this.loadStoryAssets().then(() => {
+      this.storyAssetsReady = true;
       return this.images;
     }).catch((error) => {
-      console.error('Startup asset loading failed:', error);
-      this.startupAssetsReady = true;
+      console.error('Story asset loading failed:', error);
+      this.storyAssetsReady = true;
       return this.images;
-    }));
+    });
 
+    this.startupAssetsPromise = this.storyAssetsPromise.then(() => {
+      this.setLoadingMessage('ЗАГРУЖАЕМ ГЕРОЕВ И ТВАРЕЙ...');
+      return this.loadStartupAssets().then(() => {
+        this.startupAssetsReady = true;
+        return this.images;
+      }).catch((error) => {
+        console.error('Startup asset loading failed:', error);
+        this.startupAssetsReady = true;
+        return this.images;
+      });
+    });
+
+    await this.startupAssetsPromise;
+    this.setLoadingMessage('ЗАГРУЖАЕМ УРОВНИ И ЭФФЕКТЫ...');
+    await this.beginDeferredAssetLoad();
+    this.setState('splash');
+  }
+
+  setLoadingMessage(message) {
+    if (!this.loadingProgress) this.loadingProgress = { completed: 0, total: 0, message: '' };
+    this.loadingProgress.message = message;
   }
 
   beginDeferredAssetLoad() {
@@ -63,7 +71,7 @@ class GameApp {
 
     const startup = this.startupAssetsPromise || Promise.resolve(this.images);
     this.deferredImagesPromise = startup.then(() => new Promise((resolve) => {
-      // Let the intro paint and start its narration before the heavy queue begins.
+      // The splash screen is shown only after this complete playable asset queue.
       setTimeout(() => {
         this.preloadDeferredAudio();
         this.loadImages().then((images) => {
@@ -119,11 +127,14 @@ class GameApp {
   async loadImageEntries(entries, concurrency = 6) {
     const loaded = {};
     let cursor = 0;
+    const progress = this.loadingProgress;
+    if (progress) progress.total += entries.length;
     const workers = Array.from({ length: Math.max(1, Math.min(concurrency, entries.length)) }, async () => {
       while (cursor < entries.length) {
         const index = cursor++;
         const [key, src] = entries[index];
         loaded[key] = await this.loadSingleImage(src, src);
+        if (progress) progress.completed += 1;
       }
     });
     await Promise.all(workers);
@@ -143,20 +154,32 @@ class GameApp {
   async loadStoryAssets() {
     const map = this.campaignMap;
     const activeMapId = map && map.getActiveRegionId ? map.getActiveRegionId() : 'part1';
-    const activeMapSrc = map && map.sources && map.sources.active
-      ? map.sources.active[activeMapId]
-      : 'assets/map/campaign/active/01_part_1_active.png';
     const paths = {
       intro: 'assets/backgrounds/Intro.png?v=intro-20260803-1',
-      mapBase: 'assets/map/campaign/map_base.png',
-      mapActive: activeMapSrc
+      mapBase: 'assets/map/campaign/map_base.png'
     };
+    if (map && map.sources) {
+      for (const group of ['locked', 'active', 'completed']) {
+        for (const [id, source] of Object.entries(map.sources[group] || {})) {
+          paths[`map_${group}_${id}`] = source;
+        }
+      }
+    } else {
+      paths.map_active_part1 = 'assets/map/campaign/active/01_part_1_active.png';
+    }
     const loaded = await this.loadImageEntries(Object.entries(paths), 3);
 
     this.images.intro = loaded.intro;
     if (map && map.images) {
       map.images.base = loaded.mapBase;
-      map.images.active[activeMapId] = loaded.mapActive;
+      for (const group of ['locked', 'active', 'completed']) {
+        for (const id of Object.keys(map.sources[group] || {})) {
+          map.images[group][id] = loaded[`map_${group}_${id}`] || null;
+        }
+      }
+      if (!map.images.active[activeMapId]) {
+        map.images.active[activeMapId] = loaded.map_active_part1 || null;
+      }
     }
 
     if (this.intro) {
@@ -517,21 +540,27 @@ class GameApp {
 
     const cache = {};
     const loadImage = (src, label) => new Promise((resolve) => {
+      const progress = this.loadingProgress;
+      if (progress) progress.total += 1;
       if (!src) {
+        if (progress) progress.completed += 1;
         resolve(null);
         return;
       }
       if (cache[src]) {
+        if (progress) progress.completed += 1;
         resolve(cache[src]);
         return;
       }
       const img = new Image();
       img.onload = () => {
         cache[src] = img;
+        if (progress) progress.completed += 1;
         resolve(img);
       };
       img.onerror = () => {
         console.warn('Missing level interactive image:', label || src);
+        if (progress) progress.completed += 1;
         resolve(null);
       };
       img.src = src;
@@ -960,10 +989,35 @@ class GameApp {
   drawLoading(ctx, message = 'ЗАГРУЗКА...') {
     ctx.fillStyle = '#050505';
     ctx.fillRect(0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
+    if (this.images.main) {
+      ctx.globalAlpha = 0.24;
+      ctx.drawImage(this.images.main, 0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
+      ctx.globalAlpha = 1;
+    }
+    const progress = this.loadingProgress || {};
+    const label = progress.message || message;
+    const total = Number(progress.total) || 0;
+    const completed = Number(progress.completed) || 0;
+    const ratio = total ? Math.max(0, Math.min(1, completed / total)) : 0.04;
+    const bar = { x: 310, y: 410, w: 660, h: 18 };
+
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 34px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText(message, GAME_CONFIG.width / 2, GAME_CONFIG.height / 2);
+    ctx.fillText(label, GAME_CONFIG.width / 2, 365);
+    ctx.fillStyle = 'rgba(0,0,0,0.72)';
+    ctx.fillRect(bar.x, bar.y, bar.w, bar.h);
+    ctx.strokeStyle = 'rgba(255,255,255,0.86)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(bar.x, bar.y, bar.w, bar.h);
+    ctx.fillStyle = '#d52b1e';
+    ctx.fillRect(bar.x + 3, bar.y + 3, Math.max(5, (bar.w - 6) * ratio), bar.h - 6);
+    ctx.font = 'bold 18px Arial';
+    ctx.fillStyle = '#fff';
+    ctx.fillText(total ? `${Math.round(ratio * 100)}%` : 'ПОДГОТОВКА...', GAME_CONFIG.width / 2, 465);
+    ctx.font = '18px Arial';
+    ctx.fillStyle = 'rgba(255,255,255,0.82)';
+    ctx.fillText('Никаких пустых экранов после старта.', GAME_CONFIG.width / 2, 505);
     ctx.textAlign = 'left';
   }
 
