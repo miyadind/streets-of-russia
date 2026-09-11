@@ -576,13 +576,16 @@
       this.flash = 220;
       AudioManager.playSfx('zetnikCrash', 1, { playbackRate: 0.82, startAt: 0.01 });
       if (scene) scene.hitStop = Math.max(scene.hitStop || 0, 80);
-      if (this.hp <= 0) this.defeat(scene);
+      const impactDirection = zetnik && Number.isFinite(zetnik.x)
+        ? Math.sign(this.x - zetnik.x)
+        : 0;
+      if (this.hp <= 0) this.defeat(scene, impactDirection);
     }
 
-    defeat(scene) {
+    defeat(scene, impactDirection = 0) {
       if (!this.alive) return;
       this.alive = false;
-      this.deathFacing = -(this.facing || -1);
+      this.deathFacing = Math.sign(impactDirection) || this.facing || -1;
       this.blocksWaveClear = false;
       this.deathTimer = 0;
       this.stopVoice();

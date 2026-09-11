@@ -137,6 +137,7 @@ class Player {
     if (this.invulnerableTimer > 0 && !options.ignoreInvulnerability) return false;
     const wasAlive = this.hp > 0;
     const facingBeforeHit = this.facing || 1;
+    const impactFallFacing = this.getImpactFallFacing(options);
 
     const source = options.source || 'melee';
     let damageAmount = Math.max(0, amount || 0);
@@ -163,12 +164,15 @@ class Player {
       this.x = Math.max(70, Math.min(GAME_CONFIG.width - 70, this.x));
     }
 
-    if (this.hp <= 0 && this.tryRevive()) return true;
+    if (this.hp <= 0 && this.tryRevive({
+      fallFacing: impactFallFacing,
+      standUpFacing: options.standUpFacing || facingBeforeHit
+    })) return true;
 
     if (this.hp > 0 && options.knockdownMs) {
       this.knockDown(options.knockdownMs, {
         force: options.forceKnockdown,
-        facing: options.knockdownFacing || (options.knockbackX ? -Math.sign(options.knockbackX) : this.facing),
+        facing: impactFallFacing,
         standUpFacing: options.standUpFacing || facingBeforeHit
       });
     } else if (this.hp > 0 && this.state !== 'pinned' && this.state !== 'knockdown') {
@@ -190,6 +194,22 @@ class Player {
     }
 
     return true;
+  }
+
+  getImpactFallFacing(options = {}) {
+    const explicitFacing = Math.sign(Number(options.knockdownFacing) || 0);
+    if (explicitFacing) return explicitFacing;
+
+    const sourceX = Number(options.sourceX);
+    if (Number.isFinite(sourceX) && Math.abs(this.x - sourceX) > 1) {
+      return Math.sign(this.x - sourceX);
+    }
+
+    // Knockback already points away from the attacker. A fallen character's
+    // head therefore points in that same direction, not back toward the hit.
+    const knockbackFacing = Math.sign(Number(options.knockbackX) || 0);
+    if (knockbackFacing) return knockbackFacing;
+    return Math.sign(this.facing) || 1;
   }
 
   getBossMatchup(boss) {
@@ -220,12 +240,15 @@ class Player {
     this.walkTimer = 0;
   }
 
-  tryRevive() {
+  tryRevive(options = {}) {
     if (!this.abilities.reviveOnce || this.reviveUsed) return false;
     this.reviveUsed = true;
     const restoredHp = Math.max(1, Math.round(this.maxHp * 0.5));
     this.hp = restoredHp;
     this.state = 'knockdown';
+    this.knockdownFacing = Math.sign(options.fallFacing) || this.facing || 1;
+    this.standUpFacing = Math.sign(options.standUpFacing) || this.facing || 1;
+    this.facing = this.knockdownFacing;
     this.hitStunTimer = 0;
     this.hurtTimer = 0;
     this.invulnerableTimer = Math.max(GAME_CONFIG.playerInvulnerableMs, GAME_CONFIG.playerReviveKnockdownMs || 950);
@@ -491,7 +514,7 @@ class Player {
     if (this.state === 'pinned') return false;
     AudioManager.playSfx('playerDown', 0.85);
     this.state = 'knockdown';
-    this.knockdownFacing = options.facing ? Math.sign(options.facing) || this.facing || 1 : this.facing || 1;
+    this.knockdownFacing = this.getImpactFallFacing({ knockdownFacing: options.facing });
     this.standUpFacing = options.standUpFacing ? Math.sign(options.standUpFacing) || this.facing || 1 : this.facing || 1;
     this.facing = this.knockdownFacing;
     this.hitStunTimer = 0;
