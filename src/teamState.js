@@ -147,6 +147,12 @@
         ctx.strokeStyle = defeated ? '#555' : '#777';
         ctx.strokeRect(x + 58, 38, 108, 12);
 
+        ctx.font = 'bold 11px Arial';
+        ctx.fillStyle = defeated ? 'rgba(255,255,255,0.5)' : '#fff';
+        ctx.textAlign = 'center';
+        ctx.fillText(`HP: ${Math.round(hp)} / ${Math.round(getHeroMaxHp(key))}`, x + 112, 80);
+        ctx.textAlign = 'left';
+
         if (recovering) {
           ctx.font = 'bold 11px Arial';
           ctx.fillStyle = 'rgba(255,255,255,0.55)';
