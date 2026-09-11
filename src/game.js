@@ -86,6 +86,10 @@ class GameApp {
     for (const channel of channels) {
       for (const audio of Object.values(channel || {})) {
         if (!audio) continue;
+        // Calling load() on the active HTMLAudioElement resets its playback
+        // position. Deferred assets begin on the first Bestiary visit, so
+        // leave the menu track untouched while it is already playing.
+        if (audio === AudioManager.currentMusic && !audio.paused) continue;
         audio.preload = 'auto';
         try { audio.load(); } catch (error) {}
       }
