@@ -586,6 +586,7 @@ class GameApp {
     return state === 'mainMenu' ||
       state === 'settings' ||
       state === 'bestiary' ||
+      state === 'difficultySelect' ||
       state === 'characterSelect' ||
       state === 'campaignMap' ||
       state === 'playerNameEntry' ||
@@ -644,7 +645,7 @@ class GameApp {
   maintainMainMenuMusic() {
     // These screens share the menu playlist. Keep the selected track alive
     // when a browser pauses it during an in-menu state transition.
-    if (this.state !== 'mainMenu' && this.state !== 'settings' && this.state !== 'bestiary') return;
+    if (this.state !== 'mainMenu' && this.state !== 'settings' && this.state !== 'bestiary' && this.state !== 'difficultySelect') return;
     if (!AudioManager.isMusicOn() || AudioManager.isMusicPausedByGame()) return;
 
     const key = this.getMenuMusicKey();
@@ -830,6 +831,9 @@ class GameApp {
     } else if (this.state === 'settings') {
       if (click) Input.restorePointer(click);
       Menu.updateSettings(this);
+    } else if (this.state === 'difficultySelect') {
+      if (click) Input.restorePointer(click);
+      if (window.DifficultySelect) window.DifficultySelect.update(this);
     } else if (this.state === 'characterSelect') {
       if (click) Input.restorePointer(click);
       CharacterSelect.update(this);
@@ -915,6 +919,8 @@ class GameApp {
       Menu.draw(ctx, this.images);
     } else if (this.state === 'settings') {
       Menu.drawSettings(ctx, this.images);
+    } else if (this.state === 'difficultySelect') {
+      if (window.DifficultySelect) window.DifficultySelect.draw(ctx, this.images);
     } else if (this.state === 'characterSelect') {
       CharacterSelect.draw(ctx, this.images);
     } else if (this.state === 'level' && this.scene) {

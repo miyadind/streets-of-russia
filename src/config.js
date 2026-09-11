@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  "buildVersion": "0.4.334",
+  "buildVersion": "0.4.335",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -86,7 +86,7 @@ const GAME_CONFIG = {
     "anna": {
       "name": "Анна",
       "role": "fast",
-      "hp": 100,
+      "hp": 140,
       "speed": 3.15,
       "damage": 12,
       "scale": 0.11,
@@ -1618,7 +1618,10 @@ function getDifficultyHeroHp(heroKey) {
     ? GAME_CONFIG.heroes && GAME_CONFIG.heroes[heroKey]
     : heroKey;
   const baseHp = hero && Number(hero.hp) ? Number(hero.hp) : 100;
-  const difficulty = GAME_CONFIG.settings && GAME_CONFIG.settings.difficulty || 'normal';
+  const activeGame = typeof window !== 'undefined' ? window.game : null;
+  const difficulty = activeGame && activeGame.runDifficultyLocked
+    ? activeGame.runDifficulty
+    : GAME_CONFIG.settings && GAME_CONFIG.settings.difficulty || 'normal';
   const multipliers = GAME_CONFIG.heroHealthByDifficulty || {};
   const multiplier = Number(multipliers[difficulty]);
   return Math.max(1, Math.round(baseHp * (Number.isFinite(multiplier) ? multiplier : 0.7)));

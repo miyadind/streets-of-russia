@@ -2,7 +2,7 @@ const Menu = {
   selectedIndex: 0,
   settingsIndex: 0,
   items: ['НОВАЯ ИГРА', 'ТВАРИ', 'НАСТРОЙКИ'],
-  settingsItems: ['СЛОЖНОСТЬ', 'МУЗЫКА', 'ГРОМКОСТЬ МУЗЫКИ', 'ЗВУКИ УДАРОВ', 'ГРОМКОСТЬ ЗВУКОВ', 'НАЗАД'],
+  settingsItems: ['МУЗЫКА', 'ГРОМКОСТЬ МУЗЫКИ', 'ЗВУКИ УДАРОВ', 'ГРОМКОСТЬ ЗВУКОВ', 'НАЗАД'],
   difficulties: ['easy', 'normal', 'hard'],
   difficultyLabels: {
     easy: 'ЛЕГКО',
@@ -86,11 +86,6 @@ const Menu = {
   changeSetting(index, game, direction = 1) {
     const item = this.settingsItems[index];
     AudioManager.playSfx('menuSelect', 0.75);
-
-    if (item === 'СЛОЖНОСТЬ') {
-      const current = this.difficulties.indexOf(GAME_CONFIG.settings.difficulty);
-      GAME_CONFIG.settings.difficulty = this.difficulties[this.wrap(current + direction, this.difficulties.length)];
-    }
 
     if (item === 'МУЗЫКА') {
       AudioManager.toggleMusic();
@@ -189,7 +184,6 @@ const Menu = {
 
   getSettingsLabel(index) {
     const item = this.settingsItems[index];
-    if (item === 'СЛОЖНОСТЬ') return 'СЛОЖНОСТЬ: ' + this.difficultyLabels[GAME_CONFIG.settings.difficulty];
     if (item === 'МУЗЫКА') return 'МУЗЫКА: ' + (GAME_CONFIG.settings.musicEnabled ? 'ВКЛ' : 'ВЫКЛ');
     if (item === 'ГРОМКОСТЬ МУЗЫКИ') return 'ГРОМКОСТЬ МУЗЫКИ: ' + Math.round(GAME_CONFIG.settings.musicVolume * 100) + '%';
     if (item === 'ЗВУКИ УДАРОВ') return 'ЗВУКИ: ' + (GAME_CONFIG.settings.sfxEnabled ? 'ВКЛ' : 'ВЫКЛ');

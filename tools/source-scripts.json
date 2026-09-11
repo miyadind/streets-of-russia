@@ -37,6 +37,7 @@
   "src/levelFlow.js",
   "src/teamState.js",
   "src/campaignUi.js",
+  "src/difficultySelect.js",
   "src/fullscreen.js",
   "src/bestiary.js",
   "src/gundosEnemyPatch.js",

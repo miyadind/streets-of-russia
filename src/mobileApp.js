@@ -186,7 +186,8 @@ const MobileApp = {
       AudioManager.unlock();
       AudioManager.playSfx('menuSelect', 0.85);
       if (i === 0) {
-        if (game.startIntro) game.startIntro();
+        if (game.startNewCampaign) game.startNewCampaign();
+        else if (game.startIntro) game.startIntro();
         else game.setState('characterSelect');
       }
       if (i === 1) game.setState('mainMenu');
