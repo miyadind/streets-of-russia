@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.337",
+  "buildVersion": "0.4.338",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -11600,7 +11600,7 @@ class GameApp {
     this.storyAssetsPromise = null;
     this.startingLevel = false;
     this.imageRequests = new Map();
-    this.loadingProgress = { completed: 0, total: 0, message: 'ПОДГОТОВКА ИГРЫ...' };
+    this.loadingProgress = { completed: 0, total: 0 };
   }
 
   async init() {
@@ -11613,7 +11613,6 @@ class GameApp {
     requestAnimationFrame((time) => this.loop(time));
 
     this.images = await this.loadInitialImages();
-    this.setLoadingMessage('ЗАГРУЖАЕМ МЕНЮ, ИНТРО И КАРТУ...');
     this.storyAssetsPromise = this.loadStoryAssets().then(() => {
       this.storyAssetsReady = true;
       return this.images;
@@ -11624,7 +11623,6 @@ class GameApp {
     });
 
     this.startupAssetsPromise = this.storyAssetsPromise.then(() => {
-      this.setLoadingMessage('ЗАГРУЖАЕМ ГЕРОЕВ И ТВАРЕЙ...');
       return this.loadStartupAssets().then(() => {
         this.startupAssetsReady = true;
         return this.images;
@@ -11636,14 +11634,8 @@ class GameApp {
     });
 
     await this.startupAssetsPromise;
-    this.setLoadingMessage('ЗАГРУЖАЕМ УРОВНИ И ЭФФЕКТЫ...');
     await this.beginDeferredAssetLoad();
     this.setState('splash');
-  }
-
-  setLoadingMessage(message) {
-    if (!this.loadingProgress) this.loadingProgress = { completed: 0, total: 0, message: '' };
-    this.loadingProgress.message = message;
   }
 
   beginDeferredAssetLoad() {
@@ -12575,7 +12567,6 @@ class GameApp {
       ctx.globalAlpha = 1;
     }
     const progress = this.loadingProgress || {};
-    const label = progress.message || message;
     const total = Number(progress.total) || 0;
     const completed = Number(progress.completed) || 0;
     const ratio = total ? Math.max(0, Math.min(1, completed / total)) : 0.04;
@@ -12584,7 +12575,7 @@ class GameApp {
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 34px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText(label, GAME_CONFIG.width / 2, 365);
+    ctx.fillText('ЗАГРУЗКА...', GAME_CONFIG.width / 2, 365);
     ctx.fillStyle = 'rgba(0,0,0,0.72)';
     ctx.fillRect(bar.x, bar.y, bar.w, bar.h);
     ctx.strokeStyle = 'rgba(255,255,255,0.86)';
@@ -12592,12 +12583,6 @@ class GameApp {
     ctx.strokeRect(bar.x, bar.y, bar.w, bar.h);
     ctx.fillStyle = '#d52b1e';
     ctx.fillRect(bar.x + 3, bar.y + 3, Math.max(5, (bar.w - 6) * ratio), bar.h - 6);
-    ctx.font = 'bold 18px Arial';
-    ctx.fillStyle = '#fff';
-    ctx.fillText(total ? `${Math.round(ratio * 100)}%` : 'ПОДГОТОВКА...', GAME_CONFIG.width / 2, 465);
-    ctx.font = '18px Arial';
-    ctx.fillStyle = 'rgba(255,255,255,0.82)';
-    ctx.fillText('Никаких пустых экранов после старта.', GAME_CONFIG.width / 2, 505);
     ctx.textAlign = 'left';
   }
 
@@ -18395,8 +18380,9 @@ window.addEventListener('load', () => {
       GAME_CONFIG.settings.difficulty = mode.key;
       game.runDifficulty = mode.key;
       game.runDifficultyLocked = true;
+      game.difficultyConfirmedForNewRun = true;
       AudioManager.playSfx('menuSelect', 0.85);
-      game.beginNewCampaignAfterDifficulty();
+      game.startNewCampaign();
     },
 
     update(game) {
@@ -18496,15 +18482,6 @@ window.addEventListener('load', () => {
       ctx.fillText('После начала прохождения сложность изменить нельзя.', GAME_CONFIG.width / 2, 686);
       ctx.restore();
     }
-  };
-
-  const previousStartNewCampaign = GameApp.prototype.startNewCampaign;
-  GameApp.prototype.beginNewCampaignAfterDifficulty = function () {
-    if (previousStartNewCampaign) previousStartNewCampaign.call(this);
-  };
-
-  GameApp.prototype.startNewCampaign = function () {
-    DifficultySelect.open(this);
   };
 
   window.DifficultySelect = DifficultySelect;
@@ -21564,6 +21541,11 @@ if (document.readyState === 'loading') {
 
   const previousStartNewCampaign = GameApp.prototype.startNewCampaign;
   GameApp.prototype.startNewCampaign = function () {
+    if (!this.difficultyConfirmedForNewRun && window.DifficultySelect) {
+      window.DifficultySelect.open(this);
+      return;
+    }
+    this.difficultyConfirmedForNewRun = false;
     const stats = this.profileStats || loadStats();
     this.profileStats = stats;
     AudioManager.unlock();

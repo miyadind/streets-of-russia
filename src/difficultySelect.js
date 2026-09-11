@@ -47,8 +47,9 @@
       GAME_CONFIG.settings.difficulty = mode.key;
       game.runDifficulty = mode.key;
       game.runDifficultyLocked = true;
+      game.difficultyConfirmedForNewRun = true;
       AudioManager.playSfx('menuSelect', 0.85);
-      game.beginNewCampaignAfterDifficulty();
+      game.startNewCampaign();
     },
 
     update(game) {
@@ -148,15 +149,6 @@
       ctx.fillText('После начала прохождения сложность изменить нельзя.', GAME_CONFIG.width / 2, 686);
       ctx.restore();
     }
-  };
-
-  const previousStartNewCampaign = GameApp.prototype.startNewCampaign;
-  GameApp.prototype.beginNewCampaignAfterDifficulty = function () {
-    if (previousStartNewCampaign) previousStartNewCampaign.call(this);
-  };
-
-  GameApp.prototype.startNewCampaign = function () {
-    DifficultySelect.open(this);
   };
 
   window.DifficultySelect = DifficultySelect;

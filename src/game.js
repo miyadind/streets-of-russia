@@ -20,7 +20,7 @@ class GameApp {
     this.storyAssetsPromise = null;
     this.startingLevel = false;
     this.imageRequests = new Map();
-    this.loadingProgress = { completed: 0, total: 0, message: 'ПОДГОТОВКА ИГРЫ...' };
+    this.loadingProgress = { completed: 0, total: 0 };
   }
 
   async init() {
@@ -33,7 +33,6 @@ class GameApp {
     requestAnimationFrame((time) => this.loop(time));
 
     this.images = await this.loadInitialImages();
-    this.setLoadingMessage('ЗАГРУЖАЕМ МЕНЮ, ИНТРО И КАРТУ...');
     this.storyAssetsPromise = this.loadStoryAssets().then(() => {
       this.storyAssetsReady = true;
       return this.images;
@@ -44,7 +43,6 @@ class GameApp {
     });
 
     this.startupAssetsPromise = this.storyAssetsPromise.then(() => {
-      this.setLoadingMessage('ЗАГРУЖАЕМ ГЕРОЕВ И ТВАРЕЙ...');
       return this.loadStartupAssets().then(() => {
         this.startupAssetsReady = true;
         return this.images;
@@ -56,14 +54,8 @@ class GameApp {
     });
 
     await this.startupAssetsPromise;
-    this.setLoadingMessage('ЗАГРУЖАЕМ УРОВНИ И ЭФФЕКТЫ...');
     await this.beginDeferredAssetLoad();
     this.setState('splash');
-  }
-
-  setLoadingMessage(message) {
-    if (!this.loadingProgress) this.loadingProgress = { completed: 0, total: 0, message: '' };
-    this.loadingProgress.message = message;
   }
 
   beginDeferredAssetLoad() {
@@ -995,7 +987,6 @@ class GameApp {
       ctx.globalAlpha = 1;
     }
     const progress = this.loadingProgress || {};
-    const label = progress.message || message;
     const total = Number(progress.total) || 0;
     const completed = Number(progress.completed) || 0;
     const ratio = total ? Math.max(0, Math.min(1, completed / total)) : 0.04;
@@ -1004,7 +995,7 @@ class GameApp {
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 34px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText(label, GAME_CONFIG.width / 2, 365);
+    ctx.fillText('ЗАГРУЗКА...', GAME_CONFIG.width / 2, 365);
     ctx.fillStyle = 'rgba(0,0,0,0.72)';
     ctx.fillRect(bar.x, bar.y, bar.w, bar.h);
     ctx.strokeStyle = 'rgba(255,255,255,0.86)';
@@ -1012,12 +1003,6 @@ class GameApp {
     ctx.strokeRect(bar.x, bar.y, bar.w, bar.h);
     ctx.fillStyle = '#d52b1e';
     ctx.fillRect(bar.x + 3, bar.y + 3, Math.max(5, (bar.w - 6) * ratio), bar.h - 6);
-    ctx.font = 'bold 18px Arial';
-    ctx.fillStyle = '#fff';
-    ctx.fillText(total ? `${Math.round(ratio * 100)}%` : 'ПОДГОТОВКА...', GAME_CONFIG.width / 2, 465);
-    ctx.font = '18px Arial';
-    ctx.fillStyle = 'rgba(255,255,255,0.82)';
-    ctx.fillText('Никаких пустых экранов после старта.', GAME_CONFIG.width / 2, 505);
     ctx.textAlign = 'left';
   }
 

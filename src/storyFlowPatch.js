@@ -197,6 +197,11 @@
 
   const previousStartNewCampaign = GameApp.prototype.startNewCampaign;
   GameApp.prototype.startNewCampaign = function () {
+    if (!this.difficultyConfirmedForNewRun && window.DifficultySelect) {
+      window.DifficultySelect.open(this);
+      return;
+    }
+    this.difficultyConfirmedForNewRun = false;
     const stats = this.profileStats || loadStats();
     this.profileStats = stats;
     AudioManager.unlock();
