@@ -759,7 +759,8 @@ class LevelScene {
       const canLeaveArea = enemy.isHealingExit && enemy.isHealingExit();
       const isAreaBoundEnemy = (typeof DogRegimeEnemy !== 'undefined' && enemy instanceof DogRegimeEnemy) ||
         (typeof BastardEnemy !== 'undefined' && enemy instanceof BastardEnemy);
-      if (isAreaBoundEnemy && !canLeaveArea) {
+      const isAirborneChort = enemy && enemy.enemyType === '4ort' && enemy.chortPhase === 'smoke';
+      if (isAreaBoundEnemy && !canLeaveArea && !isAirborneChort) {
         const tuning = GAME_CONFIG.enemies[enemy.enemyType] || {};
         const keepOnScreen = tuning.keepOnScreen === true;
         const margin = keepOnScreen ? Math.max(0, Number(tuning.screenMarginX) || 45) : 45;

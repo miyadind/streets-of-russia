@@ -1,5 +1,5 @@
 const GAME_CONFIG = {
-  "buildVersion": "0.4.333",
+  "buildVersion": "0.4.334",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -478,6 +478,8 @@ const GAME_CONFIG = {
       "smokeBombRadiusX": 78,
       "smokeBombLaneTolerance": 42,
       "smokePhaseMoveSpeed": 3.2,
+      "smokeAltitudeY": 270,
+      "smokeCloudScale": 0.3,
       "smokeMinionMinMs": 5600,
       "smokeMinionMaxMs": 7600,
       "smokeMinionMaxActive": 2,

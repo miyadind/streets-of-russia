@@ -192,10 +192,25 @@
     };
   }
 
+  function getSmokeAltitude(config, zone) {
+    const ceiling = Math.max(130, Number(zone.top) - 95);
+    const requested = Number(config.smokeAltitudeY) || 270;
+    return Math.max(130, Math.min(ceiling, requested));
+  }
+
+  function clampSmokeToAir(enemy, scene, config) {
+    const zone = getZone(scene);
+    const margin = 110;
+    const altitude = getSmokeAltitude(config, zone);
+    enemy.x = Math.max(zone.left + margin, Math.min(zone.right - margin, enemy.x));
+    enemy.y = Math.max(118, Math.min(altitude + 24, enemy.y));
+  }
+
   function chooseSmokeTarget(enemy, scene) {
     const zone = getZone(scene);
+    const config = getConfig();
     enemy.chortSmokeTargetX = Math.max(zone.left + 105, Math.min(zone.right - 105, zone.left + 140 + Math.random() * Math.max(1, zone.right - zone.left - 280)));
-    enemy.chortSmokeTargetY = zone.top + 36;
+    enemy.chortSmokeTargetY = getSmokeAltitude(config, zone);
   }
 
   function getRandomDelay(config, minKey, maxKey, fallback) {
@@ -271,6 +286,8 @@
     this.chortBombTimer = getRandomDelay(config, 'smokeBombMinMs', 'smokeBombMaxMs', 1900);
     this.chortBombState = 'patrol';
     this.chortHoverTimer = 0;
+    this.chortSmokeAge = 0;
+    this.y = getSmokeAltitude(config, getZone(scene));
     chooseSmokeTarget(this, scene);
   };
 
@@ -343,9 +360,10 @@
     if (this.chortPhase === 'smoke') {
       const speed = (Number(config.smokePhaseMoveSpeed) || 3.2) * frame;
       const player = scene && scene.player;
+      this.chortSmokeAge = (Number(this.chortSmokeAge) || 0) + dt;
       if (this.chortBombState === 'align') {
         this.chortSmokeTargetX = Math.max(zone.left + 105, Math.min(zone.right - 105, player ? player.x : this.x));
-        this.chortSmokeTargetY = zone.top + 36;
+        this.chortSmokeTargetY = getSmokeAltitude(config, zone);
       } else if (!Number.isFinite(this.chortSmokeTargetX) || Math.abs(this.chortSmokeTargetX - this.x) < 12) {
         chooseSmokeTarget(this, scene);
       }
@@ -363,7 +381,8 @@
         this.chortHoverTimer -= dt;
         if (this.chortHoverTimer <= 0) {
           const targetY = player ? Math.max(zone.top, Math.min(zone.bottom, player.y)) : zone.top + (zone.bottom - zone.top) / 2;
-          scene.enemies.push(new ChortSmokeBomb(this.x, this.y - 54, targetY, config));
+          // Spawn below the hovering cloud so the falling bomb is readable.
+          scene.enemies.push(new ChortSmokeBomb(this.x, this.y + 82, targetY, config));
           this.chortBombState = 'patrol';
           this.chortBombTimer = getRandomDelay(config, 'smokeBombMinMs', 'smokeBombMaxMs', 1900);
           chooseSmokeTarget(this, scene);
@@ -372,7 +391,7 @@
         this.chortBombTimer -= dt;
         if (this.chortBombTimer <= 0) this.chortBombState = 'align';
       }
-      this.clampToScreen();
+      clampSmokeToAir(this, scene, config);
       return;
     }
 
@@ -518,9 +537,31 @@
 
   const originalDraw = DogRegimeEnemy.prototype.draw;
   DogRegimeEnemy.prototype.draw = function (ctx, debug = false) {
-    if (this.enemyType !== '4ort' || this.alive || this.chortPhase !== 'dissipate') {
+    if (this.enemyType !== '4ort') {
       return originalDraw.call(this, ctx, debug);
     }
+
+    if (this.alive && this.chortPhase === 'smoke') {
+      const img = this.getImage();
+      if (!img) return;
+      const config = getConfig();
+      const scale = Number(config.smokeCloudScale) || 0.3;
+      const width = img.width * scale;
+      const height = img.height * scale;
+      const bob = Math.sin((Number(this.chortSmokeAge) || 0) / 180) * 7;
+      ctx.save();
+      ctx.globalAlpha = this.flash > 0 ? 0.62 : 1;
+      ctx.drawImage(img, this.x - width / 2, this.y - height / 2 + bob, width, height);
+      if (debug) {
+        ctx.strokeStyle = 'rgba(255,174,48,0.9)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(this.x - width * 0.34, this.y - height * 0.18 + bob, width * 0.68, height * 0.36);
+      }
+      ctx.restore();
+      return;
+    }
+
+    if (this.alive || this.chortPhase !== 'dissipate') return originalDraw.call(this, ctx, debug);
 
     const img = this.getImage();
     if (!img) return;
