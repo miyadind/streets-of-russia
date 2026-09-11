@@ -363,6 +363,7 @@ class GameApp {
       chortWalk0: Assets['4ort'].walk[0],
       chortWalk1: Assets['4ort'].walk[1],
       chortWalk2: Assets['4ort'].walk[2],
+      chortCollect: Assets['4ort'].collect,
       chortSmoke0: Assets['4ort'].smoke[0],
       chortSmoke1: Assets['4ort'].smoke[1],
 
@@ -484,6 +485,7 @@ class GameApp {
           loaded.chortWalk1 || loaded.chortIdle || loaded.dogWalk1,
           loaded.chortWalk2 || loaded.chortIdle || loaded.dogWalk0
         ],
+        collect: loaded.chortCollect || loaded.chortIdle || loaded.dogIdle,
         smoke: [
           loaded.chortSmoke0 || loaded.chortIdle || loaded.dogIdle,
           loaded.chortSmoke1 || loaded.chortSmoke0 || loaded.chortIdle || loaded.dogIdle

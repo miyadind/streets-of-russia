@@ -109,6 +109,7 @@ window.Assets = {
   '4ort':{
     idle:'assets/enemies/4ort/idle.png',
     walk:['assets/enemies/4ort/walk01.png','assets/enemies/4ort/walk02.png','assets/enemies/4ort/walk03.png'],
+    collect:'assets/enemies/4ort/collect.png',
     smoke:['assets/enemies/4ort/smoke_idle01.png','assets/enemies/4ort/smoke_idle02.png'],
     appear:'assets/enemies/4ort/uss4.mp3'
   },

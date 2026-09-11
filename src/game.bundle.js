@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.332",
+  "buildVersion": "0.4.333",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -1745,6 +1745,7 @@ window.Assets = {
   '4ort':{
     idle:'assets/enemies/4ort/idle.png',
     walk:['assets/enemies/4ort/walk01.png','assets/enemies/4ort/walk02.png','assets/enemies/4ort/walk03.png'],
+    collect:'assets/enemies/4ort/collect.png',
     smoke:['assets/enemies/4ort/smoke_idle01.png','assets/enemies/4ort/smoke_idle02.png'],
     appear:'assets/enemies/4ort/uss4.mp3'
   },
@@ -11941,6 +11942,7 @@ class GameApp {
       chortWalk0: Assets['4ort'].walk[0],
       chortWalk1: Assets['4ort'].walk[1],
       chortWalk2: Assets['4ort'].walk[2],
+      chortCollect: Assets['4ort'].collect,
       chortSmoke0: Assets['4ort'].smoke[0],
       chortSmoke1: Assets['4ort'].smoke[1],
 
@@ -12062,6 +12064,7 @@ class GameApp {
           loaded.chortWalk1 || loaded.chortIdle || loaded.dogWalk1,
           loaded.chortWalk2 || loaded.chortIdle || loaded.dogWalk0
         ],
+        collect: loaded.chortCollect || loaded.chortIdle || loaded.dogIdle,
         smoke: [
           loaded.chortSmoke0 || loaded.chortIdle || loaded.dogIdle,
           loaded.chortSmoke1 || loaded.chortSmoke0 || loaded.chortIdle || loaded.dogIdle
@@ -13818,6 +13821,7 @@ window.addEventListener('load', () => {
       if (this.chortPhaseTimer <= 0 || (Math.abs(spot.x - this.x) < 8 && Math.abs(spot.y - this.y) < 8)) {
         this.x = spot.x;
         this.y = spot.y;
+        this.chortCollectionSpot = { x: spot.x, y: spot.y };
         this.chortPhase = 'collecting';
         this.chortPhaseTimer = Number(config.moneyCollectMs) || 8000;
         this.chortMoneyTimer = 0;
@@ -13828,6 +13832,11 @@ window.addEventListener('load', () => {
     }
 
     if (this.chortPhase === 'collecting') {
+      const spot = this.chortCollectionSpot || config.moneyCollectionSpot || { x: 790, y: 642 };
+      // Collecting money is a fixed, vulnerable pose. The player can hit the
+      // boss, but neither hits nor crowd separation may move him off the case.
+      this.x = spot.x;
+      this.y = spot.y;
       this.chortPhaseTimer -= dt;
       this.chortMoneyTimer += dt;
       this.intent = 'collect';
@@ -13905,8 +13914,10 @@ window.addEventListener('load', () => {
     this.hp = Math.max(phaseFloor, this.hp - amount);
     this.flash = 130;
     this.hitStun = 0;
-    this.x += (Math.sign(direction) || 0) * Math.min(12, Number(knockback) || 0);
-    this.clampToScreen();
+    if (this.chortPhase !== 'collecting') {
+      this.x += (Math.sign(direction) || 0) * Math.min(12, Number(knockback) || 0);
+      this.clampToScreen();
+    }
 
     if (canFinish && oldHp > 0 && this.hp <= 0) {
       this.alive = false;
@@ -13937,6 +13948,7 @@ window.addEventListener('load', () => {
     if (!this.alive || this.chortPhase === 'smoke' || this.chortPhase === 'dissipate') {
       return smoke[this.walkFrame % Math.max(1, smoke.length)] || images.idle;
     }
+    if (this.chortPhase === 'collecting') return images.collect || images.idle || originalGetImage.call(this);
     return images.idle || originalGetImage.call(this);
   };
 
@@ -13981,6 +13993,9 @@ window.addEventListener('load', () => {
   const originalEnemyPhysicalPresence = LevelScene.prototype.enemyHasPhysicalPresence;
   LevelScene.prototype.enemyHasPhysicalPresence = function (enemy) {
     if (enemy && enemy.nonPhysical) return false;
+    // The vulnerable money-collection pose stays anchored at the ATM. It is
+    // still hittable; this only excludes it from enemy-vs-enemy separation.
+    if (enemy && enemy.enemyType === '4ort' && enemy.chortPhase === 'collecting') return false;
     return originalEnemyPhysicalPresence.call(this, enemy);
   };
 
