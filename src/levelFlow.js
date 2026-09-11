@@ -174,7 +174,7 @@
     const occluders = this.getLevelForegroundOccluders ? this.getLevelForegroundOccluders() : [];
     const isBehindOccluder = (entity) => occluders.some((item) => {
       const rect = item.maskRect;
-      return rect && entity.ref.x >= rect.x - 18 && entity.ref.x <= rect.x + rect.w + 18 && entity.y < item.occlusionY;
+      return rect && entity.ref.x >= rect.x && entity.ref.x <= rect.x + rect.w && entity.y < item.occlusionY;
     });
     const behind = entities.filter(isBehindOccluder);
     const front = entities.filter(entity => !isBehindOccluder(entity));

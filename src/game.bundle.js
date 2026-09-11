@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.331",
+  "buildVersion": "0.4.332",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -1077,29 +1077,29 @@ const GAME_CONFIG = {
           "hitsToTrigger": 3,
           "hitbox": {
             "x": 570,
-            "y": 365,
+            "y": 326,
             "w": 142,
-            "h": 208
+            "h": 238
           },
           "effectRect": {
-            "x": 554,
-            "y": 322,
-            "w": 176,
-            "h": 268
+            "x": 570,
+            "y": 326,
+            "w": 142,
+            "h": 238
           },
           "maskRect": {
-            "x": 540,
+            "x": 570,
             "y": 326,
-            "w": 196,
-            "h": 286
+            "w": 142,
+            "h": 238
           },
-          "occlusionY": 584,
+          "occlusionY": 564,
           "blockFootprint": {
-            "x": 540,
-            "y": 566,
-            "w": 194,
-            "h": 46,
-            "insetTop": 18
+            "x": 570,
+            "y": 542,
+            "w": 142,
+            "h": 26,
+            "insetTop": 0
           },
           "hitEffect": "metalImpact",
           "impactSfx": "garageGateMetal"
@@ -8015,7 +8015,7 @@ class LevelScene {
     const occluders = this.getLevelForegroundOccluders ? this.getLevelForegroundOccluders() : [];
     const isBehindOccluder = (entity) => occluders.some((item) => {
       const rect = item.maskRect;
-      return rect && entity.ref.x >= rect.x - 18 && entity.ref.x <= rect.x + rect.w + 18 && entity.y < item.occlusionY;
+      return rect && entity.ref.x >= rect.x && entity.ref.x <= rect.x + rect.w && entity.y < item.occlusionY;
     });
     const behind = entities.filter(isBehindOccluder);
     const front = entities.filter(entity => !isBehindOccluder(entity));
@@ -17053,7 +17053,7 @@ window.addEventListener('load', () => {
     const occluders = this.getLevelForegroundOccluders ? this.getLevelForegroundOccluders() : [];
     const isBehindOccluder = (entity) => occluders.some((item) => {
       const rect = item.maskRect;
-      return rect && entity.ref.x >= rect.x - 18 && entity.ref.x <= rect.x + rect.w + 18 && entity.y < item.occlusionY;
+      return rect && entity.ref.x >= rect.x && entity.ref.x <= rect.x + rect.w && entity.y < item.occlusionY;
     });
     const behind = entities.filter(isBehindOccluder);
     const front = entities.filter(entity => !isBehindOccluder(entity));
