@@ -836,7 +836,9 @@
     const completedIndex = Number.isFinite(this.campaignRunRegionIndex)
       ? this.campaignRunRegionIndex
       : this.campaignMap.activeIndex;
-    if (completedIndex === this.campaignMap.activeIndex) {
+    if (this.campaignMap.completeRegionAndSelectNext) {
+      this.campaignMap.completeRegionAndSelectNext(completedIndex);
+    } else if (completedIndex === this.campaignMap.activeIndex) {
       this.campaignMap.completeActiveRegion();
       this.campaignMap.selectedIndex = this.campaignMap.activeIndex;
       this.campaignMap.selectedLevelIndex = 0;

@@ -223,10 +223,27 @@ const CampaignMapScreen = {
     return this.order[this.getDisplayRegionIndex()] || this.getActiveRegionId();
   },
 
-  completeActiveRegion() {
-    if (this.activeIndex < this.order.length - 1) {
+  completeRegionAndSelectNext(completedIndex) {
+    const maxIndex = Math.max(0, this.order.length - 1);
+    const finishedIndex = Math.max(0, Math.min(maxIndex, Number.isFinite(completedIndex)
+      ? completedIndex
+      : this.activeIndex));
+
+    // Developer launches may target any part, but only the part that is
+    // currently active advances the ordinary campaign route.
+    if (finishedIndex === this.activeIndex && this.activeIndex < maxIndex) {
       this.activeIndex += 1;
     }
+
+    // The map must always open on the next campaign destination. The
+    // developer selectors remain independent and can still start any screen.
+    this.selectedIndex = this.activeIndex;
+    this.selectedLevelIndex = 0;
+    return this.activeIndex;
+  },
+
+  completeActiveRegion() {
+    return this.completeRegionAndSelectNext(this.activeIndex);
   },
 
   getDesktopPanelRect() {

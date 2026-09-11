@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.330",
+  "buildVersion": "0.4.331",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -9843,10 +9843,27 @@ const CampaignMapScreen = {
     return this.order[this.getDisplayRegionIndex()] || this.getActiveRegionId();
   },
 
-  completeActiveRegion() {
-    if (this.activeIndex < this.order.length - 1) {
+  completeRegionAndSelectNext(completedIndex) {
+    const maxIndex = Math.max(0, this.order.length - 1);
+    const finishedIndex = Math.max(0, Math.min(maxIndex, Number.isFinite(completedIndex)
+      ? completedIndex
+      : this.activeIndex));
+
+    // Developer launches may target any part, but only the part that is
+    // currently active advances the ordinary campaign route.
+    if (finishedIndex === this.activeIndex && this.activeIndex < maxIndex) {
       this.activeIndex += 1;
     }
+
+    // The map must always open on the next campaign destination. The
+    // developer selectors remain independent and can still start any screen.
+    this.selectedIndex = this.activeIndex;
+    this.selectedLevelIndex = 0;
+    return this.activeIndex;
+  },
+
+  completeActiveRegion() {
+    return this.completeRegionAndSelectNext(this.activeIndex);
   },
 
   getDesktopPanelRect() {
@@ -15418,7 +15435,9 @@ window.addEventListener('load', () => {
     const completedIndex = Number.isFinite(this.campaignRunRegionIndex)
       ? this.campaignRunRegionIndex
       : this.campaignMap.activeIndex;
-    if (completedIndex === this.campaignMap.activeIndex) {
+    if (this.campaignMap.completeRegionAndSelectNext) {
+      this.campaignMap.completeRegionAndSelectNext(completedIndex);
+    } else if (completedIndex === this.campaignMap.activeIndex) {
       this.campaignMap.completeActiveRegion();
       this.campaignMap.selectedIndex = this.campaignMap.activeIndex;
       this.campaignMap.selectedLevelIndex = 0;
@@ -21502,11 +21521,22 @@ if (document.readyState === 'loading') {
 
   const previousCompleteCampaignRegion = GameApp.prototype.completeCampaignRegion;
   GameApp.prototype.completeCampaignRegion = function () {
-    const completedRegionId = this.campaignMap && this.campaignMap.getActiveRegionId ? this.campaignMap.getActiveRegionId() : 'farEast';
+    const completedIndex = Number.isFinite(this.campaignRunRegionIndex)
+      ? this.campaignRunRegionIndex
+      : this.campaignMap && this.campaignMap.activeIndex;
+    const completedRegionId = this.campaignMap && this.campaignMap.order
+      ? this.campaignMap.order[completedIndex] || this.campaignMap.getActiveRegionId()
+      : 'farEast';
     // The boss flow bypasses LevelScene.nextScreen, so persist the active
     // hero before this.scene is cleared for the campaign map.
     if (this.saveCurrentHeroHp) this.saveCurrentHeroHp();
-    if (this.campaignMap && this.campaignMap.completeActiveRegion) this.campaignMap.completeActiveRegion();
+    if (this.campaignMap && this.campaignMap.completeRegionAndSelectNext) {
+      this.campaignMap.completeRegionAndSelectNext(completedIndex);
+    } else if (this.campaignMap && this.campaignMap.completeActiveRegion) {
+      this.campaignMap.completeActiveRegion();
+    }
+    this.campaignRunRegionIndex = null;
+    if (this.campaignMap && this.campaignMap.ensureMapSelection) this.campaignMap.ensureMapSelection(this);
     this.scene = null;
     this.resumeTarget = 'campaignMap';
     if (this.saveCampaignProgress) this.saveCampaignProgress();

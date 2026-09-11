@@ -444,11 +444,22 @@
 
   const previousCompleteCampaignRegion = GameApp.prototype.completeCampaignRegion;
   GameApp.prototype.completeCampaignRegion = function () {
-    const completedRegionId = this.campaignMap && this.campaignMap.getActiveRegionId ? this.campaignMap.getActiveRegionId() : 'farEast';
+    const completedIndex = Number.isFinite(this.campaignRunRegionIndex)
+      ? this.campaignRunRegionIndex
+      : this.campaignMap && this.campaignMap.activeIndex;
+    const completedRegionId = this.campaignMap && this.campaignMap.order
+      ? this.campaignMap.order[completedIndex] || this.campaignMap.getActiveRegionId()
+      : 'farEast';
     // The boss flow bypasses LevelScene.nextScreen, so persist the active
     // hero before this.scene is cleared for the campaign map.
     if (this.saveCurrentHeroHp) this.saveCurrentHeroHp();
-    if (this.campaignMap && this.campaignMap.completeActiveRegion) this.campaignMap.completeActiveRegion();
+    if (this.campaignMap && this.campaignMap.completeRegionAndSelectNext) {
+      this.campaignMap.completeRegionAndSelectNext(completedIndex);
+    } else if (this.campaignMap && this.campaignMap.completeActiveRegion) {
+      this.campaignMap.completeActiveRegion();
+    }
+    this.campaignRunRegionIndex = null;
+    if (this.campaignMap && this.campaignMap.ensureMapSelection) this.campaignMap.ensureMapSelection(this);
     this.scene = null;
     this.resumeTarget = 'campaignMap';
     if (this.saveCampaignProgress) this.saveCampaignProgress();
