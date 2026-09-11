@@ -6,7 +6,7 @@
 
 /* ===== src/config.js ===== */
 const GAME_CONFIG = {
-  "buildVersion": "0.4.328",
+  "buildVersion": "0.4.329",
   "width": 1280,
   "height": 720,
   "targetFPS": 60,
@@ -7235,6 +7235,39 @@ class HealthPickup {
     return true;
   }
 
+  drawGroundMarker(ctx) {
+    if (this.remove || this.floatTimer > 0) return;
+
+    const pop = Math.min(1, this.age / this.popDuration);
+    const pulse = 0.5 + Math.sin(this.age / 150) * 0.16;
+    const radiusX = this.type.startsWith('support') ? 38 : 34;
+    const radiusY = this.type.startsWith('support') ? 11 : 10;
+
+    ctx.save();
+    ctx.globalAlpha = Math.min(0.9, pop * (0.58 + pulse));
+    ctx.fillStyle = 'rgba(16, 24, 18, 0.58)';
+    ctx.beginPath();
+    ctx.ellipse(this.x, this.y + 2, radiusX, radiusY, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = '#ffe26a';
+    ctx.lineWidth = 2.5;
+    ctx.setLineDash([8, 5]);
+    ctx.lineDashOffset = -this.age / 38;
+    ctx.beginPath();
+    ctx.ellipse(this.x, this.y + 2, radiusX, radiusY, 0, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.setLineDash([]);
+    ctx.globalAlpha *= 0.82;
+    ctx.strokeStyle = '#fff5bc';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.ellipse(this.x, this.y + 2, radiusX - 5, Math.max(4, radiusY - 3), 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
   draw(ctx) {
     const img = this.getImage();
     const cfg = this.getConfig();
@@ -7949,6 +7982,8 @@ class LevelScene {
     ctx.fillStyle = 'rgba(255,255,255,0.025)';
     ctx.fillRect(0, GAME_CONFIG.laneTop, GAME_CONFIG.width, GAME_CONFIG.laneBottom - GAME_CONFIG.laneTop);
     if (this.drawLevelForegroundObjects) this.drawLevelForegroundObjects(ctx);
+
+    for (const pickup of this.pickups || []) pickup.drawGroundMarker(ctx);
 
     const entities = [{ type: 'player', y: this.player.y, ref: this.player }];
     for (const enemy of this.enemies) entities.push({ type: 'enemy', y: enemy.y, ref: enemy });
@@ -16965,6 +17000,11 @@ window.addEventListener('load', () => {
     ctx.fillRect(0, GAME_CONFIG.laneTop, GAME_CONFIG.width, GAME_CONFIG.laneBottom - GAME_CONFIG.laneTop);
     if (this.drawLevelForegroundObjects) this.drawLevelForegroundObjects(ctx);
 
+    for (const pickup of this.pickups || []) {
+      if (!pickup || pickup.remove || typeof pickup.drawGroundMarker !== 'function') continue;
+      pickup.drawGroundMarker(ctx);
+    }
+
     const entities = [{ type: 'player', y: this.player.y, ref: this.player }];
     for (const enemy of this.enemies) entities.push({ type: 'enemy', y: enemy.y, ref: enemy });
     entities.sort((a, b) => a.y - b.y);
@@ -19632,6 +19672,11 @@ if (document.readyState === 'loading') {
 
       const boss = this.activeGundos || (this.enemies || []).find(enemy => enemy && enemy.enemyType === 'gundos');
       if (boss && boss.alive && boss.transformed && boss.introFinished && boss.drawFireWall) boss.drawFireWall(ctx, this);
+
+      for (const pickup of this.pickups || []) {
+        if (!pickup || pickup.remove || typeof pickup.drawGroundMarker !== 'function') continue;
+        pickup.drawGroundMarker(ctx);
+      }
 
       const entities = [{ type: 'player', y: this.player.y, ref: this.player }];
       for (const enemy of this.enemies) {

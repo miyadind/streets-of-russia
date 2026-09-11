@@ -998,6 +998,11 @@
       const boss = this.activeGundos || (this.enemies || []).find(enemy => enemy && enemy.enemyType === 'gundos');
       if (boss && boss.alive && boss.transformed && boss.introFinished && boss.drawFireWall) boss.drawFireWall(ctx, this);
 
+      for (const pickup of this.pickups || []) {
+        if (!pickup || pickup.remove || typeof pickup.drawGroundMarker !== 'function') continue;
+        pickup.drawGroundMarker(ctx);
+      }
+
       const entities = [{ type: 'player', y: this.player.y, ref: this.player }];
       for (const enemy of this.enemies) {
         const renderDepthY = typeof enemy.getRenderDepthY === 'function' ? enemy.getRenderDepthY() : enemy.y;
